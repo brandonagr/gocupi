@@ -1,0 +1,12 @@
+
+<SettingsData>
+	<TimeSlice_US>10000</TimeSlice_US>
+	<SpoolCircumference_MM>60.946897</SpoolCircumference_MM>
+	<SpoolSingleStep_Degrees>0.45</SpoolSingleStep_Degrees>
+	<HorizontalDistance_MM>760</HorizontalDistance_MM>
+	<MinVertical_MM>50</MinVertical_MM>
+	<MaxVertical_MM>610</MaxVertical_MM>
+	<MaxSpeed_MM_S>100</MaxSpeed_MM_S>
+	<StartingLeftDist_MM>402</StartingLeftDist_MM>
+	<StartingRightDist_MM>392</StartingRightDist_MM>
+</SettingsData>
