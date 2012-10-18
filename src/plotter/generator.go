@@ -1,9 +1,10 @@
 package plotter
+
 // Generates StepData either from a GetPosition func or from GCode data
 
 import (
-	"math"
 	"fmt"
+	"math"
 )
 
 //// StepData, left then right # of steps
@@ -83,13 +84,29 @@ import (
 //	return
 //}
 
+// Given GCodeData, returns all of the 
+func GenerateGcodePath(data GcodeData, plotCoords chan Coordinate) {
+
+	defer close(plotCoords)
+
+	for _, curTarget := range data.Lines {
+		plotCoords <- curTarget.Dest
+	}
+
+}
+
+func GenerateSpiral(radiusBegin float64, radiusMin float64, radiusDeltaPerRev float64, plotCoords chan Coordinate) {
+
+	defer close(plotCoords)
+}
+
 // Evaluates the posFunc over time totalTime, generating necessary steps
 func GenStepProfile(data GcodeData) (stepProfile []byte) {
 
 	stepProfile = make([]byte, 0, 1000) // guess on size, it will be expanded if needed
 
 	polarSystem := PolarSystemFromSettings()
-	previousPolarPos := PolarCoordinate{ LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM }
+	previousPolarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
 	startingLocation := previousPolarPos.ToCoord(polarSystem)
 
 	fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
@@ -117,7 +134,7 @@ func GenStepProfile(data GcodeData) (stepProfile []byte) {
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
 
 			sliceSteps := previousPolarPos.Minus(polarSliceTarget).Scaled(1 / Settings.StepSize_MM)
-			sliceSteps = sliceSteps.Ceil()//.Clamp(32, -32)
+			sliceSteps = sliceSteps.Ceil() //.Clamp(32, -32)
 
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM))
 			previousActualPos = previousPolarPos.ToCoord(polarSystem)
@@ -127,13 +144,13 @@ func GenStepProfile(data GcodeData) (stepProfile []byte) {
 			fmt.Println("Steps", sliceSteps, "Actual", previousActualPos)
 
 			var encodedSteps byte
-			if (sliceSteps.LeftDist < 0) {
+			if sliceSteps.LeftDist < 0 {
 				encodedSteps = byte(-sliceSteps.LeftDist)
 			} else {
 				encodedSteps = byte(sliceSteps.LeftDist) | 0x80
 			}
 			stepProfile = append(stepProfile, encodedSteps)
-			if (sliceSteps.RightDist < 0) {
+			if sliceSteps.RightDist < 0 {
 				encodedSteps = byte(-sliceSteps.RightDist) | 0x80
 			} else {
 				encodedSteps = byte(sliceSteps.RightDist)
@@ -143,43 +160,6 @@ func GenStepProfile(data GcodeData) (stepProfile []byte) {
 		origin = previousActualPos
 		fmt.Println("NEXT STEP --------------------------------------------")
 	}
-
-
-//	totalSeconds := totalTime.Seconds()
-//	stepProfile = make([]byte, 0, int(totalSeconds / float64(TIME_SLICE_US)))
-//	previousActualPos := positionCalculator(0)
-//
-//	for curTime := TIME_SLICE_US; curTime <= totalTime; curTime += TIME_SLICE_US {
-//
-//		//smoothTime := CubicSmooth(curTime.Seconds() / totalSeconds) * totalSeconds
-//		//smoothTime := QuadraticSmooth(curTime.Seconds() / totalSeconds) * totalSeconds
-//		smoothTime := curTime.Seconds() / totalSeconds
-//		newPos := positionCalculator(smoothTime)
-//
-//		//steps := int(math.Floor(float64(newPos - previousActualPos) / STEPSIZE_MM))
-//
-//		steps := int(float64(newPos - previousActualPos) / STEPSIZE_MM)
-//
-//		// Cap steps to the max, just hope that a future value will catch up, will probably want to panic in the case of 2 axis movement
-//		if steps > 32 {
-//			steps = 32
-//		}
-//		if steps < -32 {
-//			steps = -32
-//		}
-//		previousActualPos = previousActualPos + Position(float64(steps) * STEPSIZE_MM);
-//
-//		var encodedSteps byte
-//		if (steps < 0) {
-//			encodedSteps = byte(-steps) | 0x80
-//		} else {
-//			encodedSteps = byte(steps)
-//		}
-//		stepProfile = append(stepProfile, encodedSteps)
-//
-//		//fmt.Println(curTime, "Target", newPos, "Actual", previousActualPos, "steps", steps)
-//		fmt.Printf("%v\t%v\t%v\t%v\t%v\r\n", curTime, newPos, previousActualPos, steps, encodedSteps);
-//	}
 
 	return
 }
