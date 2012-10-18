@@ -96,92 +96,34 @@ func GenerateGcodePath(data GcodeData, plotCoords chan Coordinate) {
 
 }
 
-func GenerateSpiral(radiusBegin float64, radiusMin float64, radiusDeltaPerRev float64, plotCoords chan Coordinate) {
+// Parameters needed to generate a spiral
+type Spiral struct {
+	RadiusBegin, RadiusEnd, RadiusDeltaPerRev float64
+}
+
+// Generate a spiral
+func GenerateSpiral(setup Spiral, plotCoords chan Coordinate) {
 
 	defer close(plotCoords)
 
-	// MM that will be moved in a single step
+	// MM that will be moved in a single step, used to calc what the new position along spiral will be after one time slice
 	moveDist := Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0
 	theta := 0.0
 
-	for radius := radiusBegin; radius >= radiusMin; {
+	for radius := setup.RadiusBegin; radius >= setup.RadiusEnd; {
 
-		// use right triangle to approximate arc distance along spiral
-		thetaDelta := math.Asin(moveDist / (2.0 * radius))
+		// use right triangle to approximate arc distance along spiral, ignores radiusDelta for this calculation
+		thetaDelta := 2.0 * math.Asin(moveDist/(2.0*radius))
 		theta += thetaDelta
 		if theta >= 2.0*math.Pi {
 			theta -= 2.0 * math.Pi
 		}
 
-		radiusDelta := radiusDeltaPerRev * thetaDelta / (2.0 * math.Pi)
+		radiusDelta := setup.RadiusDeltaPerRev * thetaDelta / (2.0 * math.Pi)
 		radius -= radiusDelta
 
 		//fmt.Println("Radius", radius, "Radius delta", radiusDelta, "Theta", theta, "Theta delta", thetaDelta)
 
 		plotCoords <- Coordinate{X: radius * math.Cos(theta), Y: radius * math.Sin(theta)}
 	}
-}
-
-// Evaluates the posFunc over time totalTime, generating necessary steps
-func GenStepProfile(data GcodeData) (stepProfile []byte) {
-
-	stepProfile = make([]byte, 0, 1000) // guess on size, it will be expanded if needed
-
-	polarSystem := PolarSystemFromSettings()
-	previousPolarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
-	startingLocation := previousPolarPos.ToCoord(polarSystem)
-
-	fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
-
-	// setup 0,0 as the initial location of the plot head
-	polarSystem.XOffset = startingLocation.X
-	polarSystem.YOffset = startingLocation.Y
-
-	origin := Coordinate{}
-	previousActualPos := origin
-
-	for _, curTarget := range data.Lines {
-
-		target := curTarget.Dest
-		targetVector := origin.Minus(target)
-
-		actualDistance := targetVector.Len()
-		idealTime := actualDistance / Settings.MaxSpeed_MM_S
-		numberOfSlices := math.Ceil(idealTime / (Settings.TimeSlice_US / 1000000))
-
-		for slice := 1.0; slice <= numberOfSlices; slice++ {
-			percentageAlongLine := slice / numberOfSlices
-			sliceTarget := origin.Add(targetVector.Scaled(percentageAlongLine))
-
-			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
-
-			sliceSteps := previousPolarPos.Minus(polarSliceTarget).Scaled(1 / Settings.StepSize_MM)
-			sliceSteps = sliceSteps.Ceil() //.Clamp(32, -32)
-
-			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM))
-			previousActualPos = previousPolarPos.ToCoord(polarSystem)
-
-			//fmt.Println("Coord target", sliceTarget, "actual", previousActualPos, "Abs Actual", previousActualPos.Add(startingLocation))
-			//fmt.Println("Polar target", polarSliceTarget, "actual", previousPolarPos)
-			fmt.Println("Steps", sliceSteps, "Actual", previousActualPos)
-
-			var encodedSteps byte
-			if sliceSteps.LeftDist < 0 {
-				encodedSteps = byte(-sliceSteps.LeftDist)
-			} else {
-				encodedSteps = byte(sliceSteps.LeftDist) | 0x80
-			}
-			stepProfile = append(stepProfile, encodedSteps)
-			if sliceSteps.RightDist < 0 {
-				encodedSteps = byte(-sliceSteps.RightDist) | 0x80
-			} else {
-				encodedSteps = byte(sliceSteps.RightDist)
-			}
-			stepProfile = append(stepProfile, encodedSteps)
-		}
-		origin = previousActualPos
-		fmt.Println("NEXT STEP --------------------------------------------")
-	}
-
-	return
 }

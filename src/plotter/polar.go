@@ -1,9 +1,10 @@
 package plotter
+
 // Handles converting X,Y coordinate into polar coordinates
 
 import (
-	"math"
 	"fmt"
+	"math"
 )
 
 // A Cartession coordinate or vector
@@ -18,40 +19,40 @@ func (coord Coordinate) String() string {
 
 // Calculates length of vector
 func (coord Coordinate) Len() float64 {
-	return math.Sqrt(coord.X * coord.X + coord.Y * coord.Y)
+	return math.Sqrt(coord.X*coord.X + coord.Y*coord.Y)
 }
 
 // Add two coordinates together
 func (source Coordinate) Add(dest Coordinate) Coordinate {
-	return Coordinate{ X: dest.X + source.X, Y: dest.Y + source.Y}
+	return Coordinate{X: dest.X + source.X, Y: dest.Y + source.Y}
 }
 
 // Return the vector from source to dest
 func (source Coordinate) Minus(dest Coordinate) Coordinate {
-	return Coordinate{ X: dest.X - source.X, Y: dest.Y - source.Y }
+	return Coordinate{X: dest.X - source.X, Y: dest.Y - source.Y}
 }
 
 // Scales the Coordinate by the specified factor
 func (coord Coordinate) Scaled(factor float64) Coordinate {
-	return Coordinate{ X: coord.X * factor, Y: coord.Y * factor}
+	return Coordinate{X: coord.X * factor, Y: coord.Y * factor}
 }
 
 // Apply math.Ceil to each value
 func (coord Coordinate) Ceil() Coordinate {
-	return Coordinate{ X: math.Ceil(coord.X), Y: math.Ceil(coord.Y) }
+	return Coordinate{X: math.Ceil(coord.X), Y: math.Ceil(coord.Y)}
 }
 
 // Clamp the values of X,Y to the given max/min
 func (coord Coordinate) Clamp(max, min float64) Coordinate {
-	return Coordinate{ X: math.Min(max, math.Max(coord.X, min)), Y: math.Min(max, math.Max(coord.Y, min))}
+	return Coordinate{X: math.Min(max, math.Max(coord.X, min)), Y: math.Min(max, math.Max(coord.Y, min))}
 }
 
 // PolarSystem information, 0,0 is always the upper left motor
 type PolarSystem struct {
-	XOffset,YOffset float64 // The location of X,Y origin relative to the motors
+	XOffset, YOffset float64 // The location of X,Y origin relative to the motors
 
 	MinXMotorDist float64 // minimum amount of space from motors
-	YMin, YMax float64 // minimum vertical Y location
+	YMin, YMax    float64 // minimum vertical Y location
 
 	RightMotorDist float64
 }
@@ -59,11 +60,11 @@ type PolarSystem struct {
 // Create a PolarSystem from the settings object
 func PolarSystemFromSettings() PolarSystem {
 	return PolarSystem{
-		XOffset: 0,
-		YOffset: 0,
-		MinXMotorDist: 0,
-		YMin: Settings.MinVertical_MM,
-		YMax: Settings.MaxVertical_MM,
+		XOffset:        0,
+		YOffset:        0,
+		MinXMotorDist:  0,
+		YMin:           Settings.MinVertical_MM,
+		YMax:           Settings.MaxVertical_MM,
 		RightMotorDist: Settings.HorizontalDistance_MM,
 	}
 }
@@ -80,30 +81,28 @@ func (polarCoord PolarCoordinate) String() string {
 
 // Add two coordinates together
 func (source PolarCoordinate) Add(dest PolarCoordinate) PolarCoordinate {
-	return PolarCoordinate{ LeftDist: dest.LeftDist + source.LeftDist, RightDist: dest.RightDist + source.RightDist}
+	return PolarCoordinate{LeftDist: dest.LeftDist + source.LeftDist, RightDist: dest.RightDist + source.RightDist}
 }
 
 // Return the vector from source to dest
 func (source PolarCoordinate) Minus(dest PolarCoordinate) PolarCoordinate {
-	return PolarCoordinate{ LeftDist: dest.LeftDist - source.LeftDist, RightDist: dest.RightDist - source.RightDist }
+	return PolarCoordinate{LeftDist: dest.LeftDist - source.LeftDist, RightDist: dest.RightDist - source.RightDist}
 }
 
 // Scales the PolarCoordinate bRightDist the specified factor
 func (coord PolarCoordinate) Scaled(factor float64) PolarCoordinate {
-	return PolarCoordinate{ LeftDist: coord.LeftDist * factor, RightDist: coord.RightDist * factor}
+	return PolarCoordinate{LeftDist: coord.LeftDist * factor, RightDist: coord.RightDist * factor}
 }
 
 // ApplRightDist math.Ceil to each value
 func (coord PolarCoordinate) Ceil() PolarCoordinate {
-	return PolarCoordinate{ LeftDist: math.Ceil(coord.LeftDist), RightDist: math.Ceil(coord.RightDist) }
+	return PolarCoordinate{LeftDist: math.Ceil(coord.LeftDist), RightDist: math.Ceil(coord.RightDist)}
 }
 
 // Clamp the values of LeftDist,RightDist to the given maLeftDist/min
-func (coord PolarCoordinate) Clamp(maLeftDist, min float64) PolarCoordinate {
-	return PolarCoordinate{ LeftDist: math.Min(maLeftDist, math.Max(coord.LeftDist, min)), RightDist: math.Min(maLeftDist, math.Max(coord.RightDist, min))}
+func (coord PolarCoordinate) Clamp(max, min float64) PolarCoordinate {
+	return PolarCoordinate{LeftDist: math.Min(max, math.Max(coord.LeftDist, min)), RightDist: math.Min(max, math.Max(coord.RightDist, min))}
 }
-
-
 
 // Convert the given coordinate from X,Y to polar in the given PolarSystem
 func (coord Coordinate) ToPolar(system PolarSystem) (polarCoord PolarCoordinate) {
@@ -113,22 +112,22 @@ func (coord Coordinate) ToPolar(system PolarSystem) (polarCoord PolarCoordinate)
 
 	// clip coordinates to system's area
 	coord.X = math.Max(coord.X, system.MinXMotorDist)
-	coord.X = math.Min(coord.X, system.RightMotorDist - system.MinXMotorDist)
+	coord.X = math.Min(coord.X, system.RightMotorDist-system.MinXMotorDist)
 	coord.Y = math.Max(coord.Y, system.YMin)
 	coord.Y = math.Min(coord.Y, system.YMax)
 
 	//fmt.Println("Coord ToPolar", coord, system.RightMotorDist, system.MinXMotorDist)
 
-	polarCoord.LeftDist = math.Sqrt(coord.X * coord.X + coord.Y * coord.Y)
+	polarCoord.LeftDist = math.Sqrt(coord.X*coord.X + coord.Y*coord.Y)
 	xDiff := system.RightMotorDist - coord.X
-	polarCoord.RightDist = math.Sqrt(xDiff * xDiff + coord.Y * coord.Y)
+	polarCoord.RightDist = math.Sqrt(xDiff*xDiff + coord.Y*coord.Y)
 	return
 }
 
 // Convert the given polarCoordinate from polar to X,Y in the given PolarSystem
 func (polarCoord PolarCoordinate) ToCoord(system PolarSystem) (coord Coordinate) {
 
-	coord.X = ((polarCoord.LeftDist * polarCoord.LeftDist) - (polarCoord.RightDist * polarCoord.RightDist) + (system.RightMotorDist * system.RightMotorDist)) / ( 2.0 * system.RightMotorDist)
+	coord.X = ((polarCoord.LeftDist * polarCoord.LeftDist) - (polarCoord.RightDist * polarCoord.RightDist) + (system.RightMotorDist * system.RightMotorDist)) / (2.0 * system.RightMotorDist)
 	coord.Y = math.Sqrt((polarCoord.LeftDist * polarCoord.LeftDist) - (coord.X * coord.X))
 
 	//fmt.Println("Polar ToCoord", polarCoord, system.RightMotorDist, coord)
@@ -138,4 +137,3 @@ func (polarCoord PolarCoordinate) ToCoord(system PolarSystem) (coord Coordinate)
 
 	return
 }
-

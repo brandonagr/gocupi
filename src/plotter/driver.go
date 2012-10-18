@@ -31,7 +31,8 @@ func GenerateStepsLinear(plotCoords chan Coordinate, stepData chan byte) {
 	previousPolarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
 	startingLocation := previousPolarPos.ToCoord(polarSystem)
 
-	//fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
+	fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
+	fmt.Println("MinY", Settings.MinVertical_MM, "MaxY", Settings.MaxVertical_MM)
 
 	// setup 0,0 as the initial location of the plot head
 	polarSystem.XOffset = startingLocation.X
@@ -46,7 +47,6 @@ func GenerateStepsLinear(plotCoords chan Coordinate, stepData chan byte) {
 			break
 		}
 
-		//fmt.Println("Reading", curTarget)
 		targetVector := origin.Minus(curTarget)
 
 		actualDistance := targetVector.Len()
@@ -57,11 +57,11 @@ func GenerateStepsLinear(plotCoords chan Coordinate, stepData chan byte) {
 
 			percentageAlongLine := slice / numberOfSlices
 			sliceTarget := origin.Add(targetVector.Scaled(percentageAlongLine))
-
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
 
+			// calc integer number of steps that will be made this time slice
 			sliceSteps := previousPolarPos.Minus(polarSliceTarget).Scaled(1 / Settings.StepSize_MM)
-			sliceSteps = sliceSteps.Ceil() //.Clamp(32, -32)
+			sliceSteps = sliceSteps.Ceil().Clamp(127, -127)
 
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM))
 			previousActualPos = previousPolarPos.ToCoord(polarSystem)
@@ -83,20 +83,14 @@ func GenerateStepsLinear(plotCoords chan Coordinate, stepData chan byte) {
 				encodedSteps = byte(sliceSteps.RightDist)
 			}
 			stepData <- encodedSteps
-			//fmt.Println("Len of stepData", len(stepData), encodedSteps)
 		}
 		origin = previousActualPos
-		//fmt.Println("NEXT STEP --------------------------------------------")
 	}
 	fmt.Println("Done generating steps")
 }
 
 // Generates steps from plotCoords and sends those steps to the serial port
-func RenderCoords(plotCoords chan Coordinate, generateSteps func(chan Coordinate, chan byte)) {
-
-	// convert coordinates
-	stepData := make(chan byte, 1024)
-	go generateSteps(plotCoords, stepData)
+func CountSteps(stepData chan byte) {
 
 	stepCount := 0
 	for {
@@ -111,7 +105,7 @@ func RenderCoords(plotCoords chan Coordinate, generateSteps func(chan Coordinate
 }
 
 // Sends the given stepData to the stepper driver
-func RunSteps(stepData []byte, loop bool) {
+func WriteStepsToSerial(stepData chan byte) {
 	fmt.Println("Opening com port")
 	c := &serial.Config{Name: "/dev/ttyAMA0", Baud: 57600}
 	s, err := serial.OpenPort(c)
@@ -120,13 +114,15 @@ func RunSteps(stepData []byte, loop bool) {
 	}
 	defer s.Close()
 
+	// buffers to use during serial communication
 	writeData := make([]byte, 128)
 	readData := make([]byte, 1)
 
-	stepPosition := 0
-	previousSend := time.Now()
+	// convert plotCoords to 
 
-	for {
+	previousSend := time.Now()
+	var byteData byte = 0
+	for stepDataOpen := true; stepDataOpen; {
 		n, err := s.Read(readData)
 		if err != nil {
 			panic(err)
@@ -138,20 +134,11 @@ func RunSteps(stepData []byte, loop bool) {
 		dataToWrite := int(readData[0])
 		for i := 0; i < dataToWrite; i += 2 {
 
-			if stepPosition == len(stepData) {
-				if loop {
-					stepPosition = 0
-				} else {
-					writeData[i] = 0
-					writeData[i+1] = 0
-					continue
-				}
-			}
+			byteData, stepDataOpen = <-stepData
+			writeData[i] = byteData
 
-			writeData[i] = stepData[stepPosition]
-			stepPosition++
-			writeData[i+1] = stepData[stepPosition]
-			stepPosition++
+			byteData, stepDataOpen = <-stepData
+			writeData[i+1] = byteData
 		}
 
 		curTime := time.Now()
@@ -161,9 +148,5 @@ func RunSteps(stepData []byte, loop bool) {
 		sendTime := time.Now()
 		s.Write(writeData)
 		fmt.Println("Send took ", time.Now().Sub(sendTime))
-
-		if stepPosition == len(stepData) && !loop {
-			break
-		}
 	}
 }

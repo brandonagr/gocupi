@@ -17,13 +17,14 @@ func main() {
 	// 		GcodeLine{Command: MOVE, Dest: Coordinate{X: 0, Y: 0}},
 	// 	},
 	// }
-
-	// channels that will output
-	plotCoords := make(chan Coordinate, 1024)
-
 	//go GenerateGcodePath(data, plotCoords)
-	go GenerateSpiral(100, 2, 10, plotCoords)
 
-	//OutputCoords(plotCoords)
-	RenderCoords(plotCoords, GenerateStepsLinear)
+	plotCoords := make(chan Coordinate, 1024)
+	go GenerateSpiral(Spiral{RadiusBegin: 100, RadiusEnd: 2, RadiusDeltaPerRev: 10}, plotCoords)
+
+	stepData := make(chan byte, 1024)
+	go GenerateStepsLinear(plotCoords, stepData)
+
+	CountSteps(stepData)
+	//WriteStepsToSerial(stepData)
 }
