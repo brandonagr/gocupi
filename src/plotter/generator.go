@@ -90,6 +90,7 @@ func GenerateGcodePath(data GcodeData, plotCoords chan Coordinate) {
 	defer close(plotCoords)
 
 	for _, curTarget := range data.Lines {
+		fmt.Println("Sending", curTarget.Dest)
 		plotCoords <- curTarget.Dest
 	}
 
@@ -98,6 +99,27 @@ func GenerateGcodePath(data GcodeData, plotCoords chan Coordinate) {
 func GenerateSpiral(radiusBegin float64, radiusMin float64, radiusDeltaPerRev float64, plotCoords chan Coordinate) {
 
 	defer close(plotCoords)
+
+	// MM that will be moved in a single step
+	moveDist := Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0
+	theta := 0.0
+
+	for radius := radiusBegin; radius >= radiusMin; {
+
+		// use right triangle to approximate arc distance along spiral
+		thetaDelta := math.Asin(moveDist / (2.0 * radius))
+		theta += thetaDelta
+		if theta >= 2.0*math.Pi {
+			theta -= 2.0 * math.Pi
+		}
+
+		radiusDelta := radiusDeltaPerRev * thetaDelta / (2.0 * math.Pi)
+		radius -= radiusDelta
+
+		//fmt.Println("Radius", radius, "Radius delta", radiusDelta, "Theta", theta, "Theta delta", thetaDelta)
+
+		plotCoords <- Coordinate{X: radius * math.Cos(theta), Y: radius * math.Sin(theta)}
+	}
 }
 
 // Evaluates the posFunc over time totalTime, generating necessary steps
