@@ -3,7 +3,9 @@ package plotter
 import (
 	"fmt"
 	serial "github.com/tarm/goserial"
+	"io"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -140,5 +142,69 @@ func WriteStepsToSerial(stepData chan byte) {
 		sendTime := time.Now()
 		s.Write(writeData)
 		fmt.Println("Send took ", time.Now().Sub(sendTime))
+	}
+}
+
+// Used to manually adjust length of each step
+func PerformManualAlignment() {
+	alignStepData := make(chan byte, 1024)
+	//go WriteStepsToSerial(alignStepData)
+	go func() {
+
+		for step := range alignStepData {
+			fmt.Println("Step", step)
+		}
+
+	}()
+
+	for {
+
+		var side string
+		var distance float64
+		fmt.Print("Input L/R DIST:")
+		if _, err := fmt.Scanln(&side, &distance); err != nil {
+			if err == io.EOF {
+				return
+			}
+			panic(err)
+		}
+
+		side = strings.ToLower(side)
+		fmt.Println("Moving ", side, distance)
+
+		idealTime := math.Abs(distance) / (Settings.MaxSpeed_MM_S * 0.5)
+		numberOfSlices := math.Ceil(idealTime / (Settings.TimeSlice_US / 1000000))
+		position := 0.0
+
+		fmt.Println("Slices", numberOfSlices)
+
+		for slice := 0.0; slice <= numberOfSlices; slice++ {
+
+			percentageAlongLine := slice / numberOfSlices
+			sliceTarget := distance * percentageAlongLine
+
+			// calc integer number of steps that will be made this time slice
+			sliceSteps := (sliceTarget - position) * (1 / Settings.StepSize_MM)
+			sliceSteps = math.Ceil(sliceSteps)
+			position = position + sliceSteps*Settings.StepSize_MM
+
+			fmt.Println("Position", position)
+
+			if side == "l" {
+				if sliceSteps < 0 {
+					alignStepData <- byte(-sliceSteps)
+				} else {
+					alignStepData <- byte(sliceSteps) | 0x80
+				}
+				alignStepData <- 0
+			} else {
+				alignStepData <- 0
+				if sliceSteps < 0 {
+					alignStepData <- byte(-sliceSteps) | 0x80
+				} else {
+					alignStepData <- byte(sliceSteps)
+				}
+			}
+		}
 	}
 }

@@ -102,14 +102,58 @@ func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
 // Parameters needed for hilbert curve
 type HilbertCurve struct {
 
-	// how complex
-	Order int
+	// Integer of how complex it is, 2^Degree is the order
+	Degree int
 
-	// how big the entire curve will be
+	// Total size in mm
 	Size float64
 }
 
-// Generate a Hilbert curve
+// Generate a Hilbert curve, based on code from http://en.wikipedia.org/wiki/Hilbert_curve
 func GenerateHilbertCurve(setup HilbertCurve, plotCoords chan<- Coordinate) {
-	panic("Not implemented")
+
+	defer close(plotCoords)
+
+	order := int(math.Pow(2, float64(setup.Degree)))
+	dimSize := order << 1
+	length := dimSize * dimSize
+	scale := setup.Size / float64(dimSize)
+
+	fmt.Println("Hilbert DimSize", dimSize, "Length", length)
+
+	for hilbertIndex := 0; hilbertIndex < length; hilbertIndex++ {
+		var x, y int
+		hilbert_d2xy(dimSize, hilbertIndex, &x, &y)
+
+		plotCoords <- Coordinate{float64(x), float64(y)}.Scaled(scale)
+	}
+}
+
+//convert d to (x,y)
+func hilbert_d2xy(n int, d int, x *int, y *int) {
+	var rx, ry, s, t int
+	t = d
+	*x = 0
+	*y = 0
+	for s = 1; s < n; s *= 2 {
+		rx = 1 & (t / 2)
+		ry = 1 & (t ^ rx)
+		hilbert_rot(s, x, y, rx, ry)
+		*x += s * rx
+		*y += s * ry
+		t /= 4
+	}
+}
+
+//rotate/flip a quadrant appropriately
+func hilbert_rot(n int, x *int, y *int, rx int, ry int) {
+	if ry == 0 {
+		if rx == 1 {
+			*x = n - 1 - *x
+			*y = n - 1 - *y
+		}
+
+		//Swap x and y
+		*x, *y = *y, *x
+	}
 }
