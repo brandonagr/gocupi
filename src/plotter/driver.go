@@ -3,7 +3,6 @@ package plotter
 import (
 	"fmt"
 	serial "github.com/tarm/goserial"
-	"io"
 	"math"
 	"strings"
 	"time"
@@ -99,7 +98,7 @@ func CountSteps(stepData <-chan byte) {
 }
 
 // Sends the given stepData to the stepper driver
-func WriteStepsToSerial(stepData chan byte) {
+func WriteStepsToSerial(stepData <-chan byte) {
 	fmt.Println("Opening com port")
 	c := &serial.Config{Name: "/dev/ttyAMA0", Baud: 57600}
 	s, err := serial.OpenPort(c)
@@ -148,14 +147,15 @@ func WriteStepsToSerial(stepData chan byte) {
 // Used to manually adjust length of each step
 func PerformManualAlignment() {
 	alignStepData := make(chan byte, 1024)
+	defer close(alignStepData)
+
 	//go WriteStepsToSerial(alignStepData)
-	go func() {
-
-		for step := range alignStepData {
-			fmt.Println("Step", step)
-		}
-
-	}()
+	go CountSteps(alignStepData)
+	// go func() {
+	// 	for step := range alignStepData {
+	// 		fmt.Println("Step", step)
+	// 	}
+	// }()
 
 	for {
 
@@ -163,20 +163,16 @@ func PerformManualAlignment() {
 		var distance float64
 		fmt.Print("Input L/R DIST:")
 		if _, err := fmt.Scanln(&side, &distance); err != nil {
-			if err == io.EOF {
-				return
-			}
-			panic(err)
+			return
 		}
 
 		side = strings.ToLower(side)
-		fmt.Println("Moving ", side, distance)
 
 		idealTime := math.Abs(distance) / (Settings.MaxSpeed_MM_S * 0.5)
 		numberOfSlices := math.Ceil(idealTime / (Settings.TimeSlice_US / 1000000))
 		position := 0.0
 
-		fmt.Println("Slices", numberOfSlices)
+		fmt.Println("Moving ", side, distance, "Slices", numberOfSlices)
 
 		for slice := 0.0; slice <= numberOfSlices; slice++ {
 
@@ -187,8 +183,6 @@ func PerformManualAlignment() {
 			sliceSteps := (sliceTarget - position) * (1 / Settings.StepSize_MM)
 			sliceSteps = math.Ceil(sliceSteps)
 			position = position + sliceSteps*Settings.StepSize_MM
-
-			fmt.Println("Position", position)
 
 			if side == "l" {
 				if sliceSteps < 0 {
