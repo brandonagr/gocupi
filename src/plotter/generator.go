@@ -7,85 +7,8 @@ import (
 	"math"
 )
 
-//// StepData, left then right # of steps
-//type StepData []byte
-//
-//// An X,Y position
-//type Position float64
-//
-//// Position tostring
-//func (pos Position) String() string {
-//	return fmt.Sprint(float64(pos), "mm")
-//}
-//
-//// A function that takes time and returns a position
-//type GetPosition func(percentage float64) Position
-//
-//// Given a value from 0 to 1, use cubic spline to smooth it out, where derivative at 0 and 1 is 0
-//// See http://www.paulinternet.nl/?page=bicubic
-//// results in ~50% higher max speed
-//func CubicSmooth(x float64) float64 {
-//	if x < 0 || x > 1 {
-//		panic("Argument x out of range, must be between 0 and 1")
-//	}
-//
-//	xSquared := x * x
-//	return -2.0 * xSquared * x + 3 * xSquared
-//}
-//
-//func QuadraticSmooth(x float64) float64 {
-//	if x < 0 || x > 1 {
-//		panic("Argument x out of range, must be between 0 and 1")
-//	}
-//
-//	xCubed := x * x * x
-//	return -(xCubed * x - 2*xCubed) / 2.0
-//}
-//
-//// Evaluates the posFunc over time totalTime, generating necessary steps
-//func GenStepProfile(totalTime time.Duration, positionCalculator GetPosition) (stepProfile []byte) {
-//
-//	totalSeconds := totalTime.Seconds()
-//	stepProfile = make([]byte, 0, int(totalSeconds / float64(TIME_SLICE_US)))
-//	previousActualPos := positionCalculator(0)
-//
-//	for curTime := TIME_SLICE_US; curTime <= totalTime; curTime += TIME_SLICE_US {
-//
-//		//smoothTime := CubicSmooth(curTime.Seconds() / totalSeconds) * totalSeconds
-//		//smoothTime := QuadraticSmooth(curTime.Seconds() / totalSeconds) * totalSeconds
-//		smoothTime := curTime.Seconds() / totalSeconds
-//		newPos := positionCalculator(smoothTime)
-//
-//		//steps := int(math.Floor(float64(newPos - previousActualPos) / STEPSIZE_MM))
-//
-//		steps := int(float64(newPos - previousActualPos) / STEPSIZE_MM)
-//
-//		// Cap steps to the max, just hope that a future value will catch up, will probably want to panic in the case of 2 axis movement
-//		if steps > 32 {
-//			steps = 32
-//		}
-//		if steps < -32 {
-//			steps = -32
-//		}
-//		previousActualPos = previousActualPos + Position(float64(steps) * STEPSIZE_MM);
-//
-//		var encodedSteps byte
-//		if (steps < 0) {
-//			encodedSteps = byte(-steps) | 0x80
-//		} else {
-//			encodedSteps = byte(steps)
-//		}
-//		stepProfile = append(stepProfile, encodedSteps)
-//
-//		//fmt.Println(curTime, "Target", newPos, "Actual", previousActualPos, "steps", steps)
-//		fmt.Printf("%v\t%v\t%v\t%v\t%v\r\n", curTime, newPos, previousActualPos, steps, encodedSteps);
-//	}
-//
-//	return
-//}
-
 // Given GCodeData, returns all of the 
-func GenerateGcodePath(data GcodeData, plotCoords chan Coordinate) {
+func GenerateGcodePath(data GcodeData, plotCoords chan<- Coordinate) {
 
 	defer close(plotCoords)
 
@@ -98,11 +21,18 @@ func GenerateGcodePath(data GcodeData, plotCoords chan Coordinate) {
 
 // Parameters needed to generate a spiral
 type Spiral struct {
-	RadiusBegin, RadiusEnd, RadiusDeltaPerRev float64
+	// Initial radius of spiral
+	RadiusBegin float64
+
+	// Spiral ends when this radius is reached
+	RadiusEnd float64
+
+	// How much each revolution changes the radius
+	RadiusDeltaPerRev float64
 }
 
 // Generate a spiral
-func GenerateSpiral(setup Spiral, plotCoords chan Coordinate) {
+func GenerateSpiral(setup Spiral, plotCoords chan<- Coordinate) {
 
 	defer close(plotCoords)
 
@@ -111,6 +41,8 @@ func GenerateSpiral(setup Spiral, plotCoords chan Coordinate) {
 	theta := 0.0
 
 	for radius := setup.RadiusBegin; radius >= setup.RadiusEnd; {
+
+		plotCoords <- Coordinate{X: radius * math.Cos(theta), Y: radius * math.Sin(theta)}
 
 		// use right triangle to approximate arc distance along spiral, ignores radiusDelta for this calculation
 		thetaDelta := 2.0 * math.Asin(moveDist/(2.0*radius))
@@ -124,6 +56,60 @@ func GenerateSpiral(setup Spiral, plotCoords chan Coordinate) {
 
 		//fmt.Println("Radius", radius, "Radius delta", radiusDelta, "Theta", theta, "Theta delta", thetaDelta)
 
-		plotCoords <- Coordinate{X: radius * math.Cos(theta), Y: radius * math.Sin(theta)}
 	}
+}
+
+// Parameters needed to generate a sliding circle
+type SlidingCircle struct {
+
+	// Radius of the circle
+	Radius float64
+
+	// Distance traveled while one circle is traced
+	CircleDisplacement Coordinate
+
+	// Number of cirlces that will be drawn
+	NumbCircles int
+}
+
+// Generate a circle that slides along a given axis
+func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
+
+	defer close(plotCoords)
+
+	// MM that will be moved in a single step, used to calc what the new position along spiral will be after one time slice
+	moveDist := Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0
+
+	theta := 0.0
+	thetaDelta := 2.8 * math.Asin(moveDist/(2.0*setup.Radius))
+	origin := Coordinate{X: 0.0, Y: 0.0}
+
+	for drawnCircles := 0; drawnCircles < setup.NumbCircles; {
+
+		circlePos := Coordinate{X: setup.Radius * math.Cos(theta), Y: setup.Radius * math.Sin(theta)}
+		origin = origin.Add(setup.CircleDisplacement.Scaled(thetaDelta / (2.0 * math.Pi)))
+
+		plotCoords <- circlePos.Add(origin)
+
+		theta += thetaDelta
+		if theta > 2.0*math.Pi {
+			theta -= 2.0 * math.Pi
+			drawnCircles++
+		}
+	}
+}
+
+// Parameters needed for hilbert curve
+type HilbertCurve struct {
+
+	// how complex
+	Order int
+
+	// how big the entire curve will be
+	Size float64
+}
+
+// Generate a Hilbert curve
+func GenerateHilbertCurve(setup HilbertCurve, plotCoords chan<- Coordinate) {
+	panic("Not implemented")
 }

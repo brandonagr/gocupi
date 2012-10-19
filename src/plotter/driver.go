@@ -8,13 +8,9 @@ import (
 )
 
 // Output the coordinates to the screen
-func OutputCoords(plotCoords chan Coordinate) {
+func OutputCoords(plotCoords <-chan Coordinate) {
 
-	for {
-		coord, chanOpen := <-plotCoords
-		if !chanOpen {
-			break
-		}
+	for coord := range plotCoords {
 
 		fmt.Println(coord)
 	}
@@ -23,7 +19,7 @@ func OutputCoords(plotCoords chan Coordinate) {
 }
 
 // Takes in coordinates and outputs stepData
-func GenerateStepsLinear(plotCoords chan Coordinate, stepData chan byte) {
+func GenerateStepsLinear(plotCoords <-chan Coordinate, stepData chan<- byte) {
 
 	defer close(stepData)
 
@@ -90,14 +86,10 @@ func GenerateStepsLinear(plotCoords chan Coordinate, stepData chan byte) {
 }
 
 // Generates steps from plotCoords and sends those steps to the serial port
-func CountSteps(stepData chan byte) {
+func CountSteps(stepData <-chan byte) {
 
 	stepCount := 0
-	for {
-		_, chanOpen := <-stepData
-		if !chanOpen {
-			break
-		}
+	for _ = range stepData {
 
 		stepCount++
 	}
