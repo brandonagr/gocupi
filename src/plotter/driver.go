@@ -135,12 +135,9 @@ func WriteStepsToSerial(stepData <-chan byte) {
 		}
 
 		curTime := time.Now()
-		fmt.Println("Sending data after", curTime.Sub(previousSend))
-		previousSend = curTime
-
-		sendTime := time.Now()
 		s.Write(writeData)
-		fmt.Println("Send took ", time.Now().Sub(sendTime))
+		fmt.Println("Send after", curTime.Sub(previousSend), "took", time.Now().Sub(curTime))
+		previousSend = curTime
 	}
 }
 
@@ -149,8 +146,8 @@ func PerformManualAlignment() {
 	alignStepData := make(chan byte, 1024)
 	defer close(alignStepData)
 
-	//go WriteStepsToSerial(alignStepData)
-	go CountSteps(alignStepData)
+	go WriteStepsToSerial(alignStepData)
+	//go CountSteps(alignStepData)
 	// go func() {
 	// 	for step := range alignStepData {
 	// 		fmt.Println("Step", step)
@@ -168,7 +165,7 @@ func PerformManualAlignment() {
 
 		side = strings.ToLower(side)
 
-		idealTime := math.Abs(distance) / (Settings.MaxSpeed_MM_S * 0.5)
+		idealTime := math.Abs(distance) / (Settings.MaxSpeed_MM_S)
 		numberOfSlices := math.Ceil(idealTime / (Settings.TimeSlice_US / 1000000))
 		position := 0.0
 
