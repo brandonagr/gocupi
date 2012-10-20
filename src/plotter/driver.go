@@ -6,6 +6,8 @@ import (
 	"math"
 	"strings"
 	"time"
+	"io"
+	"os"
 )
 
 // Output the coordinates to the screen
@@ -95,6 +97,30 @@ func CountSteps(stepData <-chan byte) {
 		stepCount++
 	}
 	fmt.Println("Steps ", stepCount/2, "Time", time.Duration(float64(stepCount)*0.5*Settings.TimeSlice_US)*time.Microsecond)
+}
+
+// Sends the given stepData to a file
+func WriteStepsToFile(stepData <-chan byte) {
+	
+	file, err := os.OpenFile("stepData.txt", os.O_CREATE | os.O_TRUNC | os.O_RDWR, 0666)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	var byteDataL, byteDataR byte
+	size := 0
+	for stepDataOpen := true; stepDataOpen; {
+
+		byteDataL, stepDataOpen = <-stepData
+		byteDataR, stepDataOpen = <-stepData
+
+		io.WriteString(file, fmt.Sprintln((byteDataL & 0x7F), (byteDataR & 0x7F)))	
+		size++
+		if size > 10000 {
+			return
+		}
+	}
 }
 
 // Sends the given stepData to the stepper driver
