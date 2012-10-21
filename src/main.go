@@ -23,7 +23,7 @@ func main() {
 	//DrawToImage("output.png", plotCoords)
 
 	stepData := make(chan byte, 1024)
-	go GenerateStepsLinear(plotCoords, stepData)
+	go GenerateSteps(plotCoords, stepData)
 
 	//CountSteps(stepData)
 	WriteStepsToSerial(stepData)

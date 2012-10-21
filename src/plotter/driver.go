@@ -3,11 +3,11 @@ package plotter
 import (
 	"fmt"
 	serial "github.com/tarm/goserial"
+	"io"
 	"math"
+	"os"
 	"strings"
 	"time"
-	"io"
-	"os"
 )
 
 // Output the coordinates to the screen
@@ -22,7 +22,7 @@ func OutputCoords(plotCoords <-chan Coordinate) {
 }
 
 // Takes in coordinates and outputs stepData
-func GenerateStepsLinear(plotCoords <-chan Coordinate, stepData chan<- byte) {
+func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- byte) {
 
 	defer close(stepData)
 
@@ -55,6 +55,10 @@ func GenerateStepsLinear(plotCoords <-chan Coordinate, stepData chan<- byte) {
 		for slice := 1.0; slice <= numberOfSlices; slice++ {
 
 			percentageAlongLine := slice / numberOfSlices
+			if numberOfSlices > 3 {
+				percentageAlongLine = CubicSmooth(percentageAlongLine)
+			}
+
 			sliceTarget := origin.Add(targetVector.Scaled(percentageAlongLine))
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
 
@@ -88,6 +92,18 @@ func GenerateStepsLinear(plotCoords <-chan Coordinate, stepData chan<- byte) {
 	fmt.Println("Done generating steps")
 }
 
+// Given a value from 0 to 1, use cubic spline to smooth it out, where derivative at 0 and 1 is 0
+// See http://www.paulinternet.nl/?page=bicubic
+// results in ~50% higher max speed
+func CubicSmooth(x float64) float64 {
+	if x < 0 || x > 1 {
+		panic("Argument x out of range, must be between 0 and 1")
+	}
+
+	xSquared := x * x
+	return -2.0*xSquared*x + 3*xSquared
+}
+
 // Generates steps from plotCoords and sends those steps to the serial port
 func CountSteps(stepData <-chan byte) {
 
@@ -101,8 +117,8 @@ func CountSteps(stepData <-chan byte) {
 
 // Sends the given stepData to a file
 func WriteStepsToFile(stepData <-chan byte) {
-	
-	file, err := os.OpenFile("stepData.txt", os.O_CREATE | os.O_TRUNC | os.O_RDWR, 0666)
+
+	file, err := os.OpenFile("stepData.txt", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -115,7 +131,7 @@ func WriteStepsToFile(stepData <-chan byte) {
 		byteDataL, stepDataOpen = <-stepData
 		byteDataR, stepDataOpen = <-stepData
 
-		io.WriteString(file, fmt.Sprintln((byteDataL & 0x7F), (byteDataR & 0x7F)))	
+		io.WriteString(file, fmt.Sprintln((byteDataL&0x7F), (byteDataR&0x7F)))
 		size++
 		if size > 10000 {
 			return
@@ -167,10 +183,10 @@ func WriteStepsToSerial(stepData <-chan byte) {
 
 			fmt.Println("Sent 100 messages after", curTime.Sub(previousSend))
 			totalSends = 0
-		
+
 			previousSend = curTime
 		}
-		
+
 		s.Write(writeData)
 	}
 }
