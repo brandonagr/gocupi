@@ -19,7 +19,6 @@ func DrawToImage(imageName string, plotCoords <-chan Coordinate) {
 
 	for point := range plotCoords {
 		point = point.Scaled(4.0)
-		point.Y = -point.Y
 		points = append(points, point)
 
 		if point.X < minPoint.X {

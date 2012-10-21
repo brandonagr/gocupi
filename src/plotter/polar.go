@@ -47,6 +47,12 @@ func (coord Coordinate) Clamp(max, min float64) Coordinate {
 	return Coordinate{X: math.Min(max, math.Max(coord.X, min)), Y: math.Min(max, math.Max(coord.Y, min))}
 }
 
+// Normalize the vector
+func (coord Coordinate) Normalized() Coordinate {
+	len := coord.Len()
+	return Coordinate{coord.X / len, coord.Y / len}
+}
+
 // PolarSystem information, 0,0 is always the upper left motor
 type PolarSystem struct {
 	XOffset, YOffset float64 // The location of X,Y origin relative to the motors
