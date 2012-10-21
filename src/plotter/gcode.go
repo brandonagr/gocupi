@@ -80,6 +80,7 @@ func ParseGcode(fileData []string) (data GcodeData) {
 					if err != nil {
 						panic(err)
 					}
+					coord.Y = -coord.Y
 				}
 			}
 

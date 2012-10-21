@@ -215,7 +215,7 @@ func PerformManualAlignment() {
 
 		side = strings.ToLower(side)
 
-		idealTime := math.Abs(distance) / (Settings.MaxSpeed_MM_S)
+		idealTime := math.Abs(distance) / (Settings.MaxSpeed_MM_S * 2.0)
 		numberOfSlices := math.Ceil(idealTime / (Settings.TimeSlice_US / 1000000))
 		position := 0.0
 
@@ -223,7 +223,7 @@ func PerformManualAlignment() {
 
 		for slice := 0.0; slice <= numberOfSlices; slice++ {
 
-			percentageAlongLine := slice / numberOfSlices
+			percentageAlongLine := CubicSmooth(slice / numberOfSlices)
 			sliceTarget := distance * percentageAlongLine
 
 			// calc integer number of steps that will be made this time slice

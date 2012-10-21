@@ -8,13 +8,13 @@ import (
 )
 
 // Given GCodeData, returns all of the 
-func GenerateGcodePath(data GcodeData, plotCoords chan<- Coordinate) {
+func GenerateGcodePath(data GcodeData, scale float64, plotCoords chan<- Coordinate) {
 
 	defer close(plotCoords)
 
 	for _, curTarget := range data.Lines {
 		fmt.Println("Sending", curTarget.Dest)
-		plotCoords <- curTarget.Dest
+		plotCoords <- curTarget.Dest.Scaled(scale)
 	}
 
 }
