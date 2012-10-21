@@ -158,14 +158,10 @@ func WriteStepsToSerial(stepData <-chan byte) {
 	previousSend := time.Now()
 	var totalSends int = 0
 	var byteData byte = 0
+
+	readData[0] = 128 // assume that the hardware has already requested 128 bytes
+
 	for stepDataOpen := true; stepDataOpen; {
-		n, err := s.Read(readData)
-		if err != nil {
-			panic(err)
-		}
-		if n != 1 {
-			panic("Expected only 1 byte on s.Read")
-		}
 
 		dataToWrite := int(readData[0])
 		for i := 0; i < dataToWrite; i += 2 {
@@ -188,21 +184,25 @@ func WriteStepsToSerial(stepData <-chan byte) {
 		}
 
 		s.Write(writeData)
+
+		if stepDataOpen {
+			// wait for next data request
+			n, err := s.Read(readData)
+			if err != nil {
+				panic(err)
+			}
+			if n != 1 {
+				panic("Expected only 1 byte on s.Read")
+			}
+			if readData[0] != 128 {
+				panic("Expected data request to be for 128 bytes")
+			}
+		}
 	}
 }
 
 // Used to manually adjust length of each step
 func PerformManualAlignment() {
-	alignStepData := make(chan byte, 1024)
-	defer close(alignStepData)
-
-	go WriteStepsToSerial(alignStepData)
-	//go CountSteps(alignStepData)
-	// go func() {
-	// 	for step := range alignStepData {
-	// 		fmt.Println("Step", step)
-	// 	}
-	// }()
 
 	for {
 
@@ -220,6 +220,9 @@ func PerformManualAlignment() {
 		position := 0.0
 
 		fmt.Println("Moving ", side, distance, "Slices", numberOfSlices)
+
+		alignStepData := make(chan byte, 1024)
+		go WriteStepsToSerial(alignStepData)
 
 		for slice := 0.0; slice <= numberOfSlices; slice++ {
 
@@ -247,6 +250,8 @@ func PerformManualAlignment() {
 				}
 			}
 		}
+
+		close(alignStepData)
 	}
 }
 
