@@ -249,3 +249,41 @@ func PerformManualAlignment() {
 		}
 	}
 }
+
+// Combine straight line segments
+func SmoothStraightCoords(plotCoords <-chan Coordinate, straightCoords chan<- Coordinate) {
+
+	defer close(straightCoords)
+
+	firstPoint, chanOpen := <-plotCoords
+	if !chanOpen {
+		return
+	}
+
+	secondPoint, chanOpen := <-plotCoords
+	if !chanOpen {
+		straightCoords <- firstPoint
+		return
+	}
+
+	for {
+		thirdPoint, chanOpen := <-plotCoords
+		if !chanOpen {
+			straightCoords <- firstPoint
+			straightCoords <- secondPoint
+			return
+		}
+
+		// check if 
+		thirdDiff := thirdPoint.Minus(firstPoint).Normalized()
+		secondDiff := secondPoint.Minus(firstPoint).Normalized()
+
+		diff := thirdDiff.Minus(secondDiff)
+		if diff.Len() <= 0.001 { // combine them
+			secondPoint = thirdPoint
+		} else { // dont combine
+			straightCoords <- firstPoint
+			firstPoint, secondPoint = secondPoint, thirdPoint
+		}
+	}
+}
