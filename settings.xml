@@ -6,7 +6,7 @@
 	<HorizontalDistance_MM>760</HorizontalDistance_MM>
 	<MinVertical_MM>50</MinVertical_MM>
 	<MaxVertical_MM>610</MaxVertical_MM>
-	<MaxSpeed_MM_S>100</MaxSpeed_MM_S>
-	<StartingLeftDist_MM>620</StartingLeftDist_MM>
-	<StartingRightDist_MM>465</StartingRightDist_MM>
+	<MaxSpeed_MM_S>25</MaxSpeed_MM_S>
+	<StartingLeftDist_MM>290</StartingLeftDist_MM>
+	<StartingRightDist_MM>585</StartingRightDist_MM>
 </SettingsData>

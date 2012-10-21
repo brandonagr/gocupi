@@ -140,6 +140,7 @@ func WriteStepsToSerial(stepData <-chan byte) {
 	// convert plotCoords to 
 
 	previousSend := time.Now()
+	var totalSends int = 0
 	var byteData byte = 0
 	for stepDataOpen := true; stepDataOpen; {
 		n, err := s.Read(readData)
@@ -160,10 +161,17 @@ func WriteStepsToSerial(stepData <-chan byte) {
 			writeData[i+1] = byteData
 		}
 
-		curTime := time.Now()
+		totalSends++
+		if totalSends >= 100 {
+			curTime := time.Now()
+
+			fmt.Println("Sent 100 messages after", curTime.Sub(previousSend))
+			totalSends = 0
+		
+			previousSend = curTime
+		}
+		
 		s.Write(writeData)
-		fmt.Println("Send after", curTime.Sub(previousSend), "took", time.Now().Sub(curTime))
-		previousSend = curTime
 	}
 }
 

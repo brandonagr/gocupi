@@ -13,7 +13,7 @@ int rightDirPin = 10;
 
 // Global variables
 // --------------------------------------
-const unsigned int TIME_SLICE_US = 10000; // number of microseconds per time step
+const unsigned int TIME_SLICE_US = 2000; // number of microseconds per time step
 
 const unsigned int MOVE_DATA_CAPACITY = 1024;
 byte moveData[MOVE_DATA_CAPACITY]; // buffer of move data, circular buffer
@@ -130,11 +130,9 @@ void UpdateStepperPins() {
 
     currentTimeSlice -= TIME_SLICE_US;
     SetStepVariables();
-
-    if (currentTimeSlice >= TIME_SLICE_US) {
-      // how could sampling be so slow that we jumped past an entire time slice !?
-      UpdateErrorLed(true);
-    }
+    
+    // how could sampling be so slow that we jumped past an entire time slice !?
+    UpdateErrorLed(currentTimeSlice >= TIME_SLICE_US);
   }
 }
 
