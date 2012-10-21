@@ -55,8 +55,8 @@ func GenerateSpiral(setup Spiral, plotCoords chan<- Coordinate) {
 		radius -= radiusDelta
 
 		//fmt.Println("Radius", radius, "Radius delta", radiusDelta, "Theta", theta, "Theta delta", thetaDelta)
-
 	}
+	plotCoords <- Coordinate{0,0}
 }
 
 // Parameters needed to generate a sliding circle
@@ -97,6 +97,7 @@ func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
 			drawnCircles++
 		}
 	}
+	plotCoords <- Coordinate{0,0}
 }
 
 // Parameters needed for hilbert curve
@@ -127,6 +128,7 @@ func GenerateHilbertCurve(setup HilbertCurve, plotCoords chan<- Coordinate) {
 
 		plotCoords <- Coordinate{float64(x), float64(y)}.Scaled(scale)
 	}
+	plotCoords <- Coordinate{0,0}
 }
 
 //convert d to (x,y)
@@ -156,4 +158,46 @@ func hilbert_rot(n int, x *int, y *int, rx int, ry int) {
 		//Swap x and y
 		*x, *y = *y, *x
 	}
+}
+
+// Parameters for parabolic curve
+type Parabolic struct {
+
+	// Height of each axis
+	Height float64
+
+	// Number of lines
+	Lines int
+}
+
+// Generate parabolic curv
+func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
+
+	defer close(plotCoords)
+
+	delta := setup.Height / float64(setup.Lines)
+
+	for lineIndex := 0; lineIndex < setup.Lines; lineIndex++ {
+
+		if lineIndex % 2 == 0 {
+			plotCoords <- Coordinate{0, delta * float64(lineIndex)}
+			plotCoords <- Coordinate{delta * float64(lineIndex+1), setup.Height}
+		} else {
+			plotCoords <- Coordinate{delta * float64(lineIndex+1), setup.Height}
+			plotCoords <- Coordinate{0, delta * float64(lineIndex)} 
+		}
+	}
+	plotCoords <- Coordinate{0,0}
+
+	for lineIndex := 0; lineIndex < setup.Lines; lineIndex++ {
+
+		if lineIndex % 2 == 0 {
+			plotCoords <- Coordinate{delta * float64(lineIndex), 0}
+			plotCoords <- Coordinate{setup.Height, delta * float64(lineIndex+1)}
+		} else {
+			plotCoords <- Coordinate{setup.Height, delta * float64(lineIndex+1)}
+			plotCoords <- Coordinate{delta * float64(lineIndex), 0}
+		}
+	}
+	plotCoords <- Coordinate{0,0}
 }

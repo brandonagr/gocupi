@@ -13,11 +13,13 @@ func main() {
 	plotCoords := make(chan Coordinate, 1024)
 	//go GenerateSpiral(Spiral{RadiusBegin: 100, RadiusEnd: 0.1, RadiusDeltaPerRev: 2}, plotCoords)
 
-	//go GenerateSlidingCircle(SlidingCircle{Radius: 100, CircleDisplacement: Coordinate{2, 0}, NumbCircles: 50}, plotCoords)
+	go GenerateSlidingCircle(SlidingCircle{Radius: 25, CircleDisplacement: Coordinate{3, 0}, NumbCircles: 70}, plotCoords)
 
-	go GenerateHilbertCurve(HilbertCurve{Degree: 6, Size: 350.0}, plotCoords)
+	//go GenerateHilbertCurve(HilbertCurve{Degree: 4, Size: 270.0}, plotCoords)
 
-	//data := ParseGcodeFile("../data/allegro lines hires.ngc")
+	//go GenerateParabolic(Parabolic{Height: 270, Lines: 80}, plotCoords)
+
+	//data := ParseGcodeFile("../data/star50.ngc")
 	//go GenerateGcodePath(data, plotCoords)
 
 	//DrawToImage("output.png", plotCoords)
