@@ -104,7 +104,7 @@ func CubicSmooth(x float64) float64 {
 	return -2.0*xSquared*x + 3*xSquared
 }
 
-// Generates steps from plotCoords and sends those steps to the serial port
+// Count steps
 func CountSteps(stepData <-chan byte) {
 
 	stepCount := 0

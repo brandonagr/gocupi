@@ -95,23 +95,26 @@ func main() {
 		go SmoothStraightCoords(plotCoords, combineStraightCoords)
 		plotCoords = combineStraightCoords
 
+	default:
+		PrintUsage()
+		return
 	}
 
 	if *toImageFlag {
 		fmt.Println("Outputting to image")
 		DrawToImage("output.png", plotCoords)
-	} else {
-		stepData := make(chan byte, 1024)
-		go GenerateSteps(plotCoords, stepData)
+		return
+	}
 
-		switch {
-		case *countFlag:
-			CountSteps(stepData)
-		case *toFileFlag:
-			WriteStepsToFile(stepData)
-		default:
-			WriteStepsToSerial(stepData)
-		}
+	stepData := make(chan byte, 1024)
+	go GenerateSteps(plotCoords, stepData)
+	switch {
+	case *countFlag:
+		CountSteps(stepData)
+	case *toFileFlag:
+		WriteStepsToFile(stepData)
+	default:
+		WriteStepsToSerial(stepData)
 	}
 }
 
