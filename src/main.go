@@ -52,6 +52,18 @@ func main() {
 		fmt.Println("Generating spiro")
 		go GenerateSpiro(spiroSetup, plotCoords)
 
+	case "lissa":
+		lissajous := Lissajous{}
+		lissajous.Scale, _ = strconv.ParseFloat(args[1], 64)
+		lissajous.A, _ = strconv.ParseFloat(args[2], 64)
+		lissajous.B, _ = strconv.ParseFloat(args[3], 64)
+
+		if lissajous.Scale == 0 || lissajous.A == 0 || lissajous.B == 0 {
+			panic("Missing parameters")
+		}
+		fmt.Println("Generating Lissajous curve")
+		go GenerateLissajous(lissajous, plotCoords)
+
 	case "spiral":
 		spiralSetup := Spiral{}
 		spiralSetup.RadiusBegin, _ = strconv.ParseFloat(args[1], 64)
@@ -127,6 +139,7 @@ func PrintUsage() {
 -count
 gcode s "path" (s scale)
 spiro R r p (R first circle radius) (r second circle radius) (p pen distance)
+lissa s a b (s scale of drawing) (a factor) (b factor)
 spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)
 circle R d n (R radius) (d displacement per revolution) (n number of circles)
 hilbert d s (d degree(ie 1 to 6)) (s size)

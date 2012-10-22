@@ -66,6 +66,53 @@ func GenerateSpiro(setup Spiro, plotCoords chan<- Coordinate) {
 	}
 }
 
+// Parameters needed to generate spirograph
+type Lissajous struct {
+
+	// Size of entire object
+	Scale float64
+
+	// A factor
+	A float64
+
+	// B factor
+	B float64
+}
+
+// Generate spirograph
+func GenerateLissajous(setup Lissajous, plotCoords chan<- Coordinate) {
+	defer close(plotCoords)
+
+	posFunc := func(t float64) Coordinate {
+		return Coordinate{
+			setup.Scale * math.Cos(setup.A*t+math.Pi/2.0),
+			setup.Scale * math.Sin(setup.B*t)}
+	}
+
+	initialPosition := posFunc(0)
+	//moveDist := Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 10000000.0
+	thetaDelta := (2.0 * math.Pi) / 4000 //(moveDist / setup.BigR) * 100.0
+	numberSteps := 0
+
+	theta := thetaDelta
+	curPosition := posFunc(theta)
+	plotCoords <- curPosition.Minus(initialPosition)
+
+	for !curPosition.Equals(initialPosition) {
+
+		numberSteps++
+		if numberSteps > 100000000 {
+			fmt.Println("Hitting", numberSteps, " step limit")
+			break
+		}
+
+		theta += thetaDelta
+
+		curPosition = posFunc(theta)
+		plotCoords <- curPosition.Minus(initialPosition)
+	}
+}
+
 // Parameters needed to generate a spiral
 type Spiral struct {
 	// Initial radius of spiral
