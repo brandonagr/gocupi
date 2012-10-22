@@ -159,9 +159,16 @@ func WriteStepsToSerial(stepData <-chan byte) {
 	var totalSends int = 0
 	var byteData byte = 0
 
-	readData[0] = 128 // assume that the hardware has already requested 128 bytes
-
 	for stepDataOpen := true; stepDataOpen; {
+
+		// wait for next data request
+		n, err := s.Read(readData)
+		if err != nil {
+			panic(err)
+		}
+		if n != 1 {
+			panic(err)
+		}
 
 		dataToWrite := int(readData[0])
 		for i := 0; i < dataToWrite; i += 2 {
@@ -184,20 +191,6 @@ func WriteStepsToSerial(stepData <-chan byte) {
 		}
 
 		s.Write(writeData)
-
-		if stepDataOpen {
-			// wait for next data request
-			n, err := s.Read(readData)
-			if err != nil {
-				panic(err)
-			}
-			if n != 1 {
-				panic("Expected only 1 byte on s.Read")
-			}
-			if readData[0] != 128 {
-				panic("Expected data request to be for 128 bytes")
-			}
-		}
 	}
 }
 
