@@ -284,7 +284,7 @@ func SmoothStraightCoords(plotCoords <-chan Coordinate, straightCoords chan<- Co
 		secondDiff := secondPoint.Minus(firstPoint).Normalized()
 
 		diff := thirdDiff.Minus(secondDiff)
-		if diff.Len() <= 0.001 { // combine them
+		if diff.Len() == 0.0 { // combine them
 			secondPoint = thirdPoint
 		} else { // dont combine
 			straightCoords <- firstPoint

@@ -11,7 +11,7 @@ func main() {
 	//return
 
 	plotCoords := make(chan Coordinate, 1024)
-	//go GenerateSpiral(Spiral{RadiusBegin: 100, RadiusEnd: 0.1, RadiusDeltaPerRev: 2}, plotCoords)
+	//go GenerateSpiral(Spiral{RadiusBegin: 100, RadiusEnd: 0.1, RadiusDeltaPerRev: 10}, plotCoords)
 
 	//go GenerateSlidingCircle(SlidingCircle{Radius: 25, CircleDisplacement: Coordinate{3, 0}, NumbCircles: 70}, plotCoords)
 
