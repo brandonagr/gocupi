@@ -13,10 +13,57 @@ func GenerateGcodePath(data GcodeData, scale float64, plotCoords chan<- Coordina
 	defer close(plotCoords)
 
 	for _, curTarget := range data.Lines {
-		fmt.Println("Sending", curTarget.Dest)
 		plotCoords <- curTarget.Dest.Scaled(scale)
 	}
 
+}
+
+// Parameters needed to generate spirograph
+type Spiro struct {
+
+	// radius of first circle
+	BigR float64
+
+	// radius of second rotating circle, must be < BigR
+	LittleR float64
+
+	// pen distance from center of circle
+	Pen float64
+}
+
+// Generate spirograph
+func GenerateSpiro(setup Spiro, plotCoords chan<- Coordinate) {
+	defer close(plotCoords)
+
+	posFunc := func(t float64) Coordinate {
+		return Coordinate{
+			(setup.BigR-setup.LittleR)*math.Cos(t) + setup.Pen*math.Cos(((setup.BigR-setup.LittleR)/setup.LittleR)*t),
+			(setup.BigR-setup.LittleR)*math.Sin(t) - setup.Pen*math.Sin(((setup.BigR-setup.LittleR)/setup.LittleR)*t),
+		}
+	}
+
+	initialPosition := posFunc(0)
+	//moveDist := Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 10000000.0
+	thetaDelta := (2.0 * math.Pi) / 2000 //(moveDist / setup.BigR) * 100.0
+	numberSteps := 0
+
+	theta := thetaDelta
+	curPosition := posFunc(theta)
+	plotCoords <- curPosition.Minus(initialPosition)
+
+	for !curPosition.Equals(initialPosition) {
+
+		numberSteps++
+		if numberSteps > 100000000 {
+			fmt.Println("Hitting", numberSteps, " step limit")
+			break
+		}
+
+		theta += thetaDelta
+
+		curPosition = posFunc(theta)
+		plotCoords <- curPosition.Minus(initialPosition)
+	}
 }
 
 // Parameters needed to generate a spiral
@@ -56,7 +103,7 @@ func GenerateSpiral(setup Spiral, plotCoords chan<- Coordinate) {
 
 		//fmt.Println("Radius", radius, "Radius delta", radiusDelta, "Theta", theta, "Theta delta", thetaDelta)
 	}
-	plotCoords <- Coordinate{0,0}
+	plotCoords <- Coordinate{0, 0}
 }
 
 // Parameters needed to generate a sliding circle
@@ -66,7 +113,7 @@ type SlidingCircle struct {
 	Radius float64
 
 	// Distance traveled while one circle is traced
-	CircleDisplacement Coordinate
+	CircleDisplacement float64
 
 	// Number of cirlces that will be drawn
 	NumbCircles int
@@ -79,6 +126,7 @@ func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
 
 	// MM that will be moved in a single step, used to calc what the new position along spiral will be after one time slice
 	moveDist := Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0
+	displacement := Coordinate{setup.CircleDisplacement, 0}
 
 	theta := 0.0
 	thetaDelta := 2.8 * math.Asin(moveDist/(2.0*setup.Radius))
@@ -87,7 +135,7 @@ func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
 	for drawnCircles := 0; drawnCircles < setup.NumbCircles; {
 
 		circlePos := Coordinate{X: setup.Radius * math.Cos(theta), Y: setup.Radius * math.Sin(theta)}
-		origin = origin.Add(setup.CircleDisplacement.Scaled(thetaDelta / (2.0 * math.Pi)))
+		origin = origin.Add(displacement.Scaled(thetaDelta / (2.0 * math.Pi)))
 
 		plotCoords <- circlePos.Add(origin)
 
@@ -97,7 +145,7 @@ func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
 			drawnCircles++
 		}
 	}
-	plotCoords <- Coordinate{0,0}
+	plotCoords <- Coordinate{0, 0}
 }
 
 // Parameters needed for hilbert curve
@@ -128,7 +176,7 @@ func GenerateHilbertCurve(setup HilbertCurve, plotCoords chan<- Coordinate) {
 
 		plotCoords <- Coordinate{float64(x), float64(y)}.Scaled(scale)
 	}
-	plotCoords <- Coordinate{0,0}
+	plotCoords <- Coordinate{0, 0}
 }
 
 //convert d to (x,y)
@@ -179,19 +227,19 @@ func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
 
 	for lineIndex := 0; lineIndex < setup.Lines; lineIndex++ {
 
-		if lineIndex % 2 == 0 {
+		if lineIndex%2 == 0 {
 			plotCoords <- Coordinate{0, delta * float64(lineIndex)}
 			plotCoords <- Coordinate{delta * float64(lineIndex+1), setup.Height}
 		} else {
 			plotCoords <- Coordinate{delta * float64(lineIndex+1), setup.Height}
-			plotCoords <- Coordinate{0, delta * float64(lineIndex)} 
+			plotCoords <- Coordinate{0, delta * float64(lineIndex)}
 		}
 	}
-	plotCoords <- Coordinate{0,0}
+	plotCoords <- Coordinate{0, 0}
 
 	for lineIndex := 0; lineIndex < setup.Lines; lineIndex++ {
 
-		if lineIndex % 2 == 0 {
+		if lineIndex%2 == 0 {
 			plotCoords <- Coordinate{delta * float64(lineIndex), 0}
 			plotCoords <- Coordinate{setup.Height, delta * float64(lineIndex+1)}
 		} else {
@@ -199,5 +247,5 @@ func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
 			plotCoords <- Coordinate{delta * float64(lineIndex), 0}
 		}
 	}
-	plotCoords <- Coordinate{0,0}
+	plotCoords <- Coordinate{0, 0}
 }

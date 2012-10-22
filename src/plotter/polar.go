@@ -53,6 +53,12 @@ func (coord Coordinate) Normalized() Coordinate {
 	return Coordinate{coord.X / len, coord.Y / len}
 }
 
+// Test if the two coordinates are equal within a constant epsilon
+func (coord Coordinate) Equals(other Coordinate) bool {
+	diff := coord.Minus(other)
+	return diff.Len() < 0.0001
+}
+
 // PolarSystem information, 0,0 is always the upper left motor
 type PolarSystem struct {
 	XOffset, YOffset float64 // The location of X,Y origin relative to the motors
