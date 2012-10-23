@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
 	. "plotter"
 	"strconv"
 )
@@ -14,6 +15,7 @@ func main() {
 	toImageFlag := flag.Bool("toimage", false, "Output result to an image file instead of to the stepper")
 	toFileFlag := flag.Bool("tofile", false, "Output steps to a text file")
 	countFlag := flag.Bool("count", false, "Outputs the time it would take to draw")
+	cubicSmoothFlag := flag.Bool("cubicsmooth", false, "Uses cubic spline for straight lines to speed up / slow down")
 	flag.Parse()
 
 	if *alignFlag {
@@ -41,38 +43,50 @@ func main() {
 		go GenerateGcodePath(data, scale, plotCoords)
 
 	case "svg":
-		scale, _ := strconv.ParseFloat(args[1], 64)
-		if scale == 0 {
-			scale = 1
+		size, _ := strconv.ParseFloat(args[1], 64)
+		if size == 0 {
+			size = 1
 		}
 
 		fmt.Println("Generating svg path")
 		data := ParseSvgFile(args[2])
-		go GenerateSvgPath(data, scale, plotCoords)
+		go GenerateSvgPath(data, size, plotCoords)
 
 	case "spiro":
-		spiroSetup := Spiro{}
-		spiroSetup.BigR, _ = strconv.ParseFloat(args[1], 64)
-		spiroSetup.LittleR, _ = strconv.ParseFloat(args[2], 64)
-		spiroSetup.Pen, _ = strconv.ParseFloat(args[3], 64)
+		bigR, _ := strconv.ParseFloat(args[1], 64)
+		littleR, _ := strconv.ParseFloat(args[2], 64)
+		pen, _ := strconv.ParseFloat(args[3], 64)
 
-		if spiroSetup.BigR == 0 || spiroSetup.LittleR == 0 || spiroSetup.Pen == 0 {
+		if bigR == 0 || littleR == 0 || pen == 0 {
 			panic("Missing parameters")
 		}
+		posFunc := func(t float64) Coordinate {
+			return Coordinate{
+				(bigR-littleR)*math.Cos(t) + pen*math.Cos(((bigR-littleR)/littleR)*t),
+				(bigR-littleR)*math.Sin(t) - pen*math.Sin(((bigR-littleR)/littleR)*t),
+			}
+		}
+
 		fmt.Println("Generating spiro")
-		go GenerateSpiro(spiroSetup, plotCoords)
+		go GenerateParametric(posFunc, plotCoords)
 
 	case "lissa":
-		lissajous := Lissajous{}
-		lissajous.Scale, _ = strconv.ParseFloat(args[1], 64)
-		lissajous.A, _ = strconv.ParseFloat(args[2], 64)
-		lissajous.B, _ = strconv.ParseFloat(args[3], 64)
+		scale, _ := strconv.ParseFloat(args[1], 64)
+		factorA, _ := strconv.ParseFloat(args[2], 64)
+		factorB, _ := strconv.ParseFloat(args[3], 64)
 
-		if lissajous.Scale == 0 || lissajous.A == 0 || lissajous.B == 0 {
+		if scale == 0 || factorA == 0 || factorB == 0 {
 			panic("Missing parameters")
 		}
+		posFunc := func(t float64) Coordinate {
+			return Coordinate{
+				scale * math.Cos(factorA*t+math.Pi/2.0),
+				scale * math.Sin(factorB*t),
+			}
+		}
+
 		fmt.Println("Generating Lissajous curve")
-		go GenerateLissajous(lissajous, plotCoords)
+		go GenerateParametric(posFunc, plotCoords)
 
 	case "spiral":
 		spiralSetup := Spiral{}
@@ -117,6 +131,18 @@ func main() {
 		go SmoothStraightCoords(plotCoords, combineStraightCoords)
 		plotCoords = combineStraightCoords
 
+	case "parabolic":
+		parabolicSetup := Parabolic{}
+		parabolicSetup.Height, _ = strconv.ParseFloat(args[1], 64)
+		n, _ := strconv.ParseInt(args[2], 10, 32)
+		parabolicSetup.Lines = int(n)
+
+		if parabolicSetup.Height == 0 || parabolicSetup.Lines == 0 {
+			panic("Missing parameters")
+		}
+		fmt.Println("Generating parabolic graph")
+		go GenerateParabolic(parabolicSetup, plotCoords)
+
 	default:
 		PrintUsage()
 		return
@@ -129,7 +155,7 @@ func main() {
 	}
 
 	stepData := make(chan byte, 1024)
-	go GenerateSteps(plotCoords, stepData)
+	go GenerateSteps(plotCoords, stepData, *cubicSmoothFlag)
 	switch {
 	case *countFlag:
 		CountSteps(stepData)
@@ -142,12 +168,17 @@ func main() {
 
 // output valid command line arguments
 func PrintUsage() {
-	fmt.Println(`Usage:
--align
--toimage
--tofile
--count
+	fmt.Println(`Usage: (flags) COMMAND PARAMS...
+Flags:
+-align, runs alignment mode where you can wind the spools a certain distance
+-toimage, outputs data to an image of what the render should look like
+-tofile, outputs step data to a file
+-count, outputs number of steps and render time
+-cubicsmooth, uses cubic spline smoothing when generating steps
+
+Commands:
 gcode s "path" (s scale)
+svg s "path" (s size)
 spiro R r p (R first circle radius) (r second circle radius) (p pen distance)
 lissa s a b (s scale of drawing) (a factor) (b factor)
 spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)

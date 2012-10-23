@@ -7,76 +7,9 @@ import (
 	"math"
 )
 
-// Parameters needed to generate spirograph
-type Spiro struct {
-
-	// radius of first circle
-	BigR float64
-
-	// radius of second rotating circle, must be < BigR
-	LittleR float64
-
-	// pen distance from center of circle
-	Pen float64
-}
-
 // Generate spirograph
-func GenerateSpiro(setup Spiro, plotCoords chan<- Coordinate) {
+func GenerateParametric(posFunc func(float64) Coordinate, plotCoords chan<- Coordinate) {
 	defer close(plotCoords)
-
-	posFunc := func(t float64) Coordinate {
-		return Coordinate{
-			(setup.BigR-setup.LittleR)*math.Cos(t) + setup.Pen*math.Cos(((setup.BigR-setup.LittleR)/setup.LittleR)*t),
-			(setup.BigR-setup.LittleR)*math.Sin(t) - setup.Pen*math.Sin(((setup.BigR-setup.LittleR)/setup.LittleR)*t),
-		}
-	}
-
-	initialPosition := posFunc(0)
-	//moveDist := Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 10000000.0
-	thetaDelta := (2.0 * math.Pi) / 2000 //(moveDist / setup.BigR) * 100.0
-	numberSteps := 0
-
-	theta := thetaDelta
-	curPosition := posFunc(theta)
-	plotCoords <- curPosition.Minus(initialPosition)
-
-	for !curPosition.Equals(initialPosition) {
-
-		numberSteps++
-		if numberSteps > 100000000 {
-			fmt.Println("Hitting", numberSteps, " step limit")
-			break
-		}
-
-		theta += thetaDelta
-
-		curPosition = posFunc(theta)
-		plotCoords <- curPosition.Minus(initialPosition)
-	}
-}
-
-// Parameters needed to generate spirograph
-type Lissajous struct {
-
-	// Size of entire object
-	Scale float64
-
-	// A factor
-	A float64
-
-	// B factor
-	B float64
-}
-
-// Generate spirograph
-func GenerateLissajous(setup Lissajous, plotCoords chan<- Coordinate) {
-	defer close(plotCoords)
-
-	posFunc := func(t float64) Coordinate {
-		return Coordinate{
-			setup.Scale * math.Cos(setup.A*t+math.Pi/2.0),
-			setup.Scale * math.Sin(setup.B*t)}
-	}
 
 	initialPosition := posFunc(0)
 	//moveDist := Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 10000000.0

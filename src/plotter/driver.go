@@ -22,7 +22,7 @@ func OutputCoords(plotCoords <-chan Coordinate) {
 }
 
 // Takes in coordinates and outputs stepData
-func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- byte) {
+func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- byte, useCubicSmooth bool) {
 
 	defer close(stepData)
 
@@ -55,7 +55,7 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- byte) {
 		for slice := 1.0; slice <= numberOfSlices; slice++ {
 
 			percentageAlongLine := slice / numberOfSlices
-			if numberOfSlices > 3 {
+			if useCubicSmooth && numberOfSlices > 3 {
 				percentageAlongLine = CubicSmooth(percentageAlongLine)
 			}
 
