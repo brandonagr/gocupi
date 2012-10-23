@@ -40,6 +40,16 @@ func main() {
 		data := ParseGcodeFile(args[2])
 		go GenerateGcodePath(data, scale, plotCoords)
 
+	case "svg":
+		scale, _ := strconv.ParseFloat(args[1], 64)
+		if scale == 0 {
+			scale = 1
+		}
+
+		fmt.Println("Generating svg path")
+		data := ParseSvgFile(args[2])
+		go GenerateSvgPath(data, scale, plotCoords)
+
 	case "spiro":
 		spiroSetup := Spiro{}
 		spiroSetup.BigR, _ = strconv.ParseFloat(args[1], 64)

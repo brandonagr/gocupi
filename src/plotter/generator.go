@@ -7,17 +7,6 @@ import (
 	"math"
 )
 
-// Given GCodeData, returns all of the 
-func GenerateGcodePath(data GcodeData, scale float64, plotCoords chan<- Coordinate) {
-
-	defer close(plotCoords)
-
-	for _, curTarget := range data.Lines {
-		plotCoords <- curTarget.Dest.Scaled(scale)
-	}
-
-}
-
 // Parameters needed to generate spirograph
 type Spiro struct {
 
