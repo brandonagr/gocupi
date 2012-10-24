@@ -53,13 +53,11 @@ func main() {
 		go GenerateSvgPath(data, size, plotCoords)
 
 	case "spiro":
-		bigR, _ := strconv.ParseFloat(args[1], 64)
-		littleR, _ := strconv.ParseFloat(args[2], 64)
-		pen, _ := strconv.ParseFloat(args[3], 64)
+		params := GetArgsAsFloats(args[1:], 3)
+		bigR := params[0]
+		littleR := params[1]
+		pen := params[2]
 
-		if bigR == 0 || littleR == 0 || pen == 0 {
-			panic("Missing parameters")
-		}
 		posFunc := func(t float64) Coordinate {
 			return Coordinate{
 				(bigR-littleR)*math.Cos(t) + pen*math.Cos(((bigR-littleR)/littleR)*t),
@@ -71,17 +69,11 @@ func main() {
 		go GenerateParametric(posFunc, plotCoords)
 
 	case "lissa":
-		scale, _ := strconv.ParseFloat(args[1], 64)
-		factorA, _ := strconv.ParseFloat(args[2], 64)
-		factorB, _ := strconv.ParseFloat(args[3], 64)
-
-		if scale == 0 || factorA == 0 || factorB == 0 {
-			panic("Missing parameters")
-		}
+		params := GetArgsAsFloats(args[1:], 3)
 		posFunc := func(t float64) Coordinate {
 			return Coordinate{
-				scale * math.Cos(factorA*t+math.Pi/2.0),
-				scale * math.Sin(factorB*t),
+				params[0] * math.Cos(params[1]*t+math.Pi/2.0),
+				params[0] * math.Sin(params[2]*t),
 			}
 		}
 
@@ -89,38 +81,32 @@ func main() {
 		go GenerateParametric(posFunc, plotCoords)
 
 	case "spiral":
-		spiralSetup := Spiral{}
-		spiralSetup.RadiusBegin, _ = strconv.ParseFloat(args[1], 64)
-		spiralSetup.RadiusEnd, _ = strconv.ParseFloat(args[2], 64)
-		spiralSetup.RadiusDeltaPerRev, _ = strconv.ParseFloat(args[3], 64)
-
-		if spiralSetup.RadiusBegin == 0 || spiralSetup.RadiusEnd == 0 || spiralSetup.RadiusDeltaPerRev == 0 {
-			panic("Missing parameters")
+		params := GetArgsAsFloats(args[1:], 3)
+		spiralSetup := Spiral{
+			RadiusBegin:       params[0],
+			RadiusEnd:         params[1],
+			RadiusDeltaPerRev: params[2],
 		}
+
 		fmt.Println("Generating spiral")
 		go GenerateSpiral(spiralSetup, plotCoords)
 
 	case "circle":
-		circleSetup := SlidingCircle{}
-		circleSetup.Radius, _ = strconv.ParseFloat(args[1], 64)
-		circleSetup.CircleDisplacement, _ = strconv.ParseFloat(args[2], 64)
-		n, _ := strconv.ParseInt(args[3], 10, 32)
-		circleSetup.NumbCircles = int(n)
-
-		if circleSetup.Radius == 0 || circleSetup.CircleDisplacement == 0 || circleSetup.NumbCircles == 0 {
-			panic("Missing parameters")
+		params := GetArgsAsFloats(args[1:], 3)
+		circleSetup := SlidingCircle{
+			Radius:             params[0],
+			CircleDisplacement: params[1],
+			NumbCircles:        int(params[2]),
 		}
+
 		fmt.Println("Generating sliding circle")
 		go GenerateSlidingCircle(circleSetup, plotCoords)
 
 	case "hilbert":
-		hilbertSetup := HilbertCurve{}
-		hilbertSetup.Size, _ = strconv.ParseFloat(args[1], 64)
-		d, _ := strconv.ParseInt(args[2], 10, 32)
-		hilbertSetup.Degree = int(d)
-
-		if hilbertSetup.Degree == 0 || hilbertSetup.Size == 0 {
-			panic("Missing parameters")
+		params := GetArgsAsFloats(args[1:], 2)
+		hilbertSetup := HilbertCurve{
+			Size:   params[0],
+			Degree: int(params[1]),
 		}
 
 		fmt.Println("Generating hilbert curve")
@@ -132,14 +118,13 @@ func main() {
 		plotCoords = combineStraightCoords
 
 	case "parabolic":
-		parabolicSetup := Parabolic{}
-		parabolicSetup.Radius, _ = strconv.ParseFloat(args[1], 64)
-		parabolicSetup.PolygonEdgeCount, _ = strconv.ParseFloat(args[2], 64)
-		parabolicSetup.Lines, _ = strconv.ParseFloat(args[3], 64)
-
-		if parabolicSetup.Radius == 0 || parabolicSetup.PolygonEdgeCount == 0 || parabolicSetup.Lines == 0 {
-			panic("Missing parameters")
+		params := GetArgsAsFloats(args[1:], 3)
+		parabolicSetup := Parabolic{
+			Radius:           params[0],
+			PolygonEdgeCount: params[1],
+			Lines:            params[2],
 		}
+
 		fmt.Println("Generating parabolic graph")
 		go GenerateParabolic(parabolicSetup, plotCoords)
 
@@ -164,6 +149,30 @@ func main() {
 	default:
 		WriteStepsToSerial(stepData)
 	}
+}
+
+// Parse a series of numbers as floats
+func GetArgsAsFloats(args []string, expectedCount int) []float64 {
+
+	if len(args) < expectedCount {
+		PrintUsage()
+		panic(fmt.Sprint("Expected at least", expectedCount, "numeric parameters and only saw", len(args)))
+	}
+
+	numbers := make([]float64, expectedCount)
+
+	var err error
+	for argIndex := 0; argIndex < expectedCount; argIndex++ {
+		if numbers[argIndex], err = strconv.ParseFloat(args[argIndex], 64); err != nil {
+			panic(fmt.Sprint("Unable to parse", args[argIndex], "as a float: ", err))
+		}
+
+		if numbers[argIndex] == 0 {
+			panic(fmt.Sprint("0 is not a valid value for parameter", argIndex))
+		}
+	}
+
+	return numbers
 }
 
 // output valid command line arguments
