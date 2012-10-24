@@ -115,9 +115,9 @@ func main() {
 
 	case "hilbert":
 		hilbertSetup := HilbertCurve{}
-		d, _ := strconv.ParseInt(args[1], 10, 32)
+		hilbertSetup.Size, _ = strconv.ParseFloat(args[1], 64)
+		d, _ := strconv.ParseInt(args[2], 10, 32)
 		hilbertSetup.Degree = int(d)
-		hilbertSetup.Size, _ = strconv.ParseFloat(args[2], 64)
 
 		if hilbertSetup.Degree == 0 || hilbertSetup.Size == 0 {
 			panic("Missing parameters")
@@ -133,11 +133,11 @@ func main() {
 
 	case "parabolic":
 		parabolicSetup := Parabolic{}
-		parabolicSetup.Height, _ = strconv.ParseFloat(args[1], 64)
-		n, _ := strconv.ParseInt(args[2], 10, 32)
-		parabolicSetup.Lines = int(n)
+		parabolicSetup.Radius, _ = strconv.ParseFloat(args[1], 64)
+		parabolicSetup.PolygonEdgeCount, _ = strconv.ParseFloat(args[2], 64)
+		parabolicSetup.Lines, _ = strconv.ParseFloat(args[3], 64)
 
-		if parabolicSetup.Height == 0 || parabolicSetup.Lines == 0 {
+		if parabolicSetup.Radius == 0 || parabolicSetup.PolygonEdgeCount == 0 || parabolicSetup.Lines == 0 {
 			panic("Missing parameters")
 		}
 		fmt.Println("Generating parabolic graph")
@@ -183,6 +183,6 @@ spiro R r p (R first circle radius) (r second circle radius) (p pen distance)
 lissa s a b (s scale of drawing) (a factor) (b factor)
 spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)
 circle R d n (R radius) (d displacement per revolution) (n number of circles)
-hilbert d s (d degree(ie 1 to 6)) (s size)
-parabolic h n (h height of square) (n number of lines)`)
+hilbert s d (s size) (d degree(ie 1 to 6))
+parabolic R c l (R radius) (c count of polygon edges) (l number of lines)`)
 }

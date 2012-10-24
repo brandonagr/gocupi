@@ -181,10 +181,13 @@ func hilbert_rot(n int, x *int, y *int, rx int, ry int) {
 type Parabolic struct {
 
 	// Height of each axis
-	Height float64
+	Radius float64
+
+	// number of faces on polygon
+	PolygonEdgeCount float64
 
 	// Number of lines
-	Lines int
+	Lines float64
 }
 
 // Generate parabolic curv
@@ -192,28 +195,37 @@ func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
 
 	defer close(plotCoords)
 
-	delta := setup.Height / float64(setup.Lines)
+	edgeCountInt := int(setup.PolygonEdgeCount)
+	linesCount := int(setup.Lines)
 
-	for lineIndex := 0; lineIndex < setup.Lines; lineIndex++ {
-
-		if lineIndex%2 == 0 {
-			plotCoords <- Coordinate{0, delta * float64(lineIndex)}
-			plotCoords <- Coordinate{delta * float64(lineIndex+1), setup.Height}
-		} else {
-			plotCoords <- Coordinate{delta * float64(lineIndex+1), setup.Height}
-			plotCoords <- Coordinate{0, delta * float64(lineIndex)}
-		}
+	points := make([]Coordinate, edgeCountInt)
+	for edge := 0; edge < edgeCountInt; edge++ {
+		angle := ((2.0 * math.Pi) / setup.PolygonEdgeCount) * float64(edge)
+		points[edge] = Coordinate{setup.Radius * math.Cos(angle), setup.Radius * math.Sin(angle)}
 	}
-	plotCoords <- Coordinate{0, 0}
 
-	for lineIndex := 0; lineIndex < setup.Lines; lineIndex++ {
+	for edge := 0; edge < edgeCountInt; edge++ {
 
-		if lineIndex%2 == 0 {
-			plotCoords <- Coordinate{delta * float64(lineIndex), 0}
-			plotCoords <- Coordinate{setup.Height, delta * float64(lineIndex+1)}
-		} else {
-			plotCoords <- Coordinate{setup.Height, delta * float64(lineIndex+1)}
-			plotCoords <- Coordinate{delta * float64(lineIndex), 0}
+		sourceBegin := points[edge]
+		sourceEnd := points[(edge+1)%edgeCountInt]
+
+		destBegin := sourceEnd
+		destEnd := points[(edge+2)%edgeCountInt]
+
+		for lineIndex := 0; lineIndex < linesCount; lineIndex++ {
+			startPosition := float64(lineIndex) / float64(linesCount)
+			endPosition := float64(linesCount-lineIndex) / float64(linesCount)
+
+			start := sourceBegin.Minus(sourceEnd).Scaled(startPosition)
+			end := destBegin.Minus(destEnd).Scaled(endPosition)
+
+			if lineIndex%2 == 0 {
+				plotCoords <- start
+				plotCoords <- end
+			} else {
+				plotCoords <- end
+				plotCoords <- start
+			}
 		}
 	}
 	plotCoords <- Coordinate{0, 0}
