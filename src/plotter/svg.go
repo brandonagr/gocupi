@@ -5,6 +5,7 @@ package plotter
 import (
 	"encoding/xml"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -100,9 +101,21 @@ func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordina
 
 	defer close(plotCoords)
 
-	initialPosition := data[0]
+	// find top most svg point, so that the path can start there
+	topMostPointIndex := 0
+	topMostPoint := -100000.0
+	for index, point := range data {
+		if point.Y > topMostPoint {
+			topMostPointIndex = index
+			topMostPoint = point.Y
+		}
+	}
+
+	initialPosition := data[topMostPointIndex]
 	minPoint := Coordinate{100000, 100000}
 	maxPoint := Coordinate{-100000, -10000}
+
+	fmt.Println("Starting location is", initialPosition, "index", topMostPointIndex)
 
 	for _, curTarget := range data {
 		point := curTarget.Minus(initialPosition)
@@ -120,15 +133,13 @@ func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordina
 		}
 	}
 
-	imageSize := minPoint.Minus(maxPoint)
-	var scale float64
-	if imageSize.X > imageSize.Y {
-		scale = size / imageSize.X
-	} else {
-		scale = size / imageSize.Y
-	}
+	imageSize := maxPoint.Minus(minPoint)
+	scale := -size / math.Max(imageSize.X, imageSize.Y)
 
-	for _, curTarget := range data {
+	fmt.Println("Min", minPoint, "Max", maxPoint, "Scale", scale)
+
+	for index := 0; index < len(data); index++ {
+		curTarget := data[(index+topMostPointIndex)%len(data)]
 		plotCoords <- curTarget.Minus(initialPosition).Scaled(scale)
 	}
 }

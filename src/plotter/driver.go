@@ -46,7 +46,7 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- byte, useCubicS
 			break
 		}
 
-		targetVector := origin.Minus(curTarget)
+		targetVector := curTarget.Minus(origin)
 
 		actualDistance := targetVector.Len()
 		idealTime := actualDistance / Settings.MaxSpeed_MM_S
@@ -63,7 +63,7 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- byte, useCubicS
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
 
 			// calc integer number of steps that will be made this time slice
-			sliceSteps := previousPolarPos.Minus(polarSliceTarget).Scaled(1 / Settings.StepSize_MM)
+			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(1 / Settings.StepSize_MM)
 			sliceSteps = sliceSteps.Ceil().Clamp(127, -127)
 
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM))
@@ -273,10 +273,10 @@ func SmoothStraightCoords(plotCoords <-chan Coordinate, straightCoords chan<- Co
 		}
 
 		// check if 
-		thirdDiff := thirdPoint.Minus(firstPoint).Normalized()
-		secondDiff := secondPoint.Minus(firstPoint).Normalized()
+		thirdDiff := firstPoint.Minus(thirdPoint).Normalized()
+		secondDiff := firstPoint.Minus(secondPoint).Normalized()
 
-		diff := thirdDiff.Minus(secondDiff)
+		diff := secondDiff.Minus(thirdDiff)
 		if diff.Len() == 0.0 { // combine them
 			secondPoint = thirdPoint
 		} else { // dont combine

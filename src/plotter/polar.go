@@ -29,7 +29,7 @@ func (source Coordinate) Add(dest Coordinate) Coordinate {
 
 // Return the vector from source to dest
 func (source Coordinate) Minus(dest Coordinate) Coordinate {
-	return Coordinate{X: dest.X - source.X, Y: dest.Y - source.Y}
+	return Coordinate{X: source.X - dest.X, Y: source.Y - dest.Y}
 }
 
 // Scales the Coordinate by the specified factor
@@ -93,27 +93,27 @@ func (polarCoord PolarCoordinate) String() string {
 
 // Add two coordinates together
 func (source PolarCoordinate) Add(dest PolarCoordinate) PolarCoordinate {
-	return PolarCoordinate{LeftDist: dest.LeftDist + source.LeftDist, RightDist: dest.RightDist + source.RightDist}
+	return PolarCoordinate{dest.LeftDist + source.LeftDist, dest.RightDist + source.RightDist}
 }
 
 // Return the vector from source to dest
 func (source PolarCoordinate) Minus(dest PolarCoordinate) PolarCoordinate {
-	return PolarCoordinate{LeftDist: dest.LeftDist - source.LeftDist, RightDist: dest.RightDist - source.RightDist}
+	return PolarCoordinate{source.LeftDist - dest.LeftDist, source.RightDist - dest.RightDist}
 }
 
 // Scales the PolarCoordinate bRightDist the specified factor
 func (coord PolarCoordinate) Scaled(factor float64) PolarCoordinate {
-	return PolarCoordinate{LeftDist: coord.LeftDist * factor, RightDist: coord.RightDist * factor}
+	return PolarCoordinate{coord.LeftDist * factor, coord.RightDist * factor}
 }
 
 // ApplRightDist math.Ceil to each value
 func (coord PolarCoordinate) Ceil() PolarCoordinate {
-	return PolarCoordinate{LeftDist: math.Ceil(coord.LeftDist), RightDist: math.Ceil(coord.RightDist)}
+	return PolarCoordinate{math.Ceil(coord.LeftDist), math.Ceil(coord.RightDist)}
 }
 
 // Clamp the values of LeftDist,RightDist to the given maLeftDist/min
 func (coord PolarCoordinate) Clamp(max, min float64) PolarCoordinate {
-	return PolarCoordinate{LeftDist: math.Min(max, math.Max(coord.LeftDist, min)), RightDist: math.Min(max, math.Max(coord.RightDist, min))}
+	return PolarCoordinate{math.Min(max, math.Max(coord.LeftDist, min)), math.Min(max, math.Max(coord.RightDist, min))}
 }
 
 // Convert the given coordinate from X,Y to polar in the given PolarSystem

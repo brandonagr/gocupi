@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+// Minus should provide the correct result
+func TestMinus(t *testing.T) {
+	lhs := Coordinate{2, 2}
+	rhs := Coordinate{1, 1}
+	if !lhs.Minus(rhs).Equals(rhs) {
+		t.Error("Unexpected result for lhs - rhs", lhs.Minus(rhs))
+	}
+}
+
+// ToPolar should return expected result when converting from cartesian to polar
 func TestToPolar(t *testing.T) {
 	system := PolarSystem{
 		XOffset:        3,
@@ -28,6 +38,7 @@ func TestToPolar(t *testing.T) {
 	}
 }
 
+// ToCoord should return expected result when converting from polar to cartessian
 func TestToCoord(t *testing.T) {
 	system := PolarSystem{
 		XOffset:        3,

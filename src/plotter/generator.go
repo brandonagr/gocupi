@@ -190,7 +190,7 @@ type Parabolic struct {
 	Lines float64
 }
 
-// Generate parabolic curv
+// Generate parabolic curve out of a bunch of straight lines
 func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
 
 	defer close(plotCoords)
@@ -207,17 +207,21 @@ func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
 	for edge := 0; edge < edgeCountInt; edge++ {
 
 		sourceBegin := points[edge]
-		sourceEnd := points[(edge+1)%edgeCountInt]
+		sourceEnd := Coordinate{0, 0}
 
-		destBegin := sourceEnd
-		destEnd := points[(edge+2)%edgeCountInt]
+		destBegin := Coordinate{0, 0}
+		destEnd := points[(edge+1)%edgeCountInt]
+
+		//fmt.Println("Source", sourceBegin, sourceEnd, "Dest", destBegin, destEnd)
 
 		for lineIndex := 0; lineIndex < linesCount; lineIndex++ {
-			startPosition := float64(lineIndex) / float64(linesCount)
-			endPosition := float64(linesCount-lineIndex) / float64(linesCount)
+			startPercentage := float64(lineIndex) / float64(linesCount)
+			endPercentage := float64(lineIndex+1) / float64(linesCount)
 
-			start := sourceBegin.Minus(sourceEnd).Scaled(startPosition)
-			end := destBegin.Minus(destEnd).Scaled(endPosition)
+			//fmt.Println("Line", lineIndex, "StartFactor", startPercentage, "EndFactor", endPercentage)
+
+			start := sourceEnd.Minus(sourceBegin).Scaled(startPercentage).Add(sourceBegin)
+			end := destEnd.Minus(destBegin).Scaled(endPercentage).Add(destBegin)
 
 			if lineIndex%2 == 0 {
 				plotCoords <- start
@@ -227,6 +231,7 @@ func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
 				plotCoords <- start
 			}
 		}
+		plotCoords <- Coordinate{0, 0}
 	}
-	plotCoords <- Coordinate{0, 0}
+
 }
