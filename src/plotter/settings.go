@@ -41,7 +41,7 @@ type SettingsData struct {
 var Settings SettingsData
 
 // Read settings from file, setting the global variable
-func ReadSettings(settingsFile string){
+func ReadSettings(settingsFile string) {
 
 	fileData, err := ioutil.ReadFile(settingsFile)
 	if err != nil {
@@ -52,15 +52,16 @@ func ReadSettings(settingsFile string){
 	}
 
 	// setup default values
-	if (Settings.TimeSlice_US == 0) {
+	if Settings.TimeSlice_US == 0 {
 		Settings.TimeSlice_US = 10000
 	}
-	if (Settings.SpoolCircumference_MM == 0) {
+	if Settings.SpoolCircumference_MM == 0 {
 		Settings.SpoolCircumference_MM = 59
 	}
-	if (Settings.MaxSpeed_MM_S == 0) {
-		Settings.MaxSpeed_MM_S = 100
-	}
+
+	// use 2 because packing data into a byte is done by multiplying it by 64, so 128 is the max value
+	stepsPerRevolution := 360.0 / Settings.SpoolSingleStep_Degrees
+	Settings.MaxSpeed_MM_S = ((2 / (Settings.TimeSlice_US / 1000000)) / stepsPerRevolution) * Settings.SpoolCircumference_MM
 
 	// setup derived fields
 	Settings.StepSize_MM = (Settings.SpoolSingleStep_Degrees / 360.0) * Settings.SpoolCircumference_MM

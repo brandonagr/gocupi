@@ -92,6 +92,77 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- byte, useCubicS
 	fmt.Println("Done generating steps")
 }
 
+// Takes in coordinates and outputs stepData
+func GenerateStepsUsingInterpolation(plotCoords <-chan Coordinate, stepData chan<- byte, useCubicSmooth bool) {
+
+	defer close(stepData)
+
+	polarSystem := PolarSystemFromSettings()
+	previousPolarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
+	startingLocation := previousPolarPos.ToCoord(polarSystem)
+
+	fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
+	fmt.Println("MinY", Settings.MinVertical_MM, "MaxY", Settings.MaxVertical_MM)
+
+	// setup 0,0 as the initial location of the plot head
+	polarSystem.XOffset = startingLocation.X
+	polarSystem.YOffset = startingLocation.Y
+
+	origin := Coordinate{}
+	previousActualPos := origin
+
+	for {
+		curTarget, chanOpen := <-plotCoords
+		if !chanOpen {
+			break
+		}
+
+		targetVector := curTarget.Minus(origin)
+
+		actualDistance := targetVector.Len()
+		idealTime := actualDistance / Settings.MaxSpeed_MM_S
+		numberOfSlices := math.Ceil(idealTime / (Settings.TimeSlice_US / 1000000))
+
+		for slice := 1.0; slice <= numberOfSlices; slice++ {
+
+			percentageAlongLine := slice / numberOfSlices
+
+			sliceTarget := origin.Add(targetVector.Scaled(percentageAlongLine))
+			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
+
+			// calc integer number of steps * 64 that will be made this time slice
+			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(64.0 / Settings.StepSize_MM)
+
+			if sliceSteps.LeftDist > 128.0 || sliceSteps.RightDist > 128.0 {
+				fmt.Println("SliceSteps exceeded 2", sliceSteps)
+			}
+
+			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 64.0))
+			previousActualPos = previousPolarPos.ToCoord(polarSystem)
+
+			//fmt.Println("Coord target", sliceTarget, "actual", previousActualPos, "Abs Actual", previousActualPos.Add(startingLocation))
+			//fmt.Println("Polar target", polarSliceTarget, "actual", previousPolarPos)
+			//fmt.Println("Steps", sliceSteps, "Actual", previousActualPos)
+
+			var encodedSteps byte
+			if sliceSteps.LeftDist < 0 {
+				encodedSteps = byte(-sliceSteps.LeftDist)
+			} else {
+				encodedSteps = byte(sliceSteps.LeftDist) | 0x80
+			}
+			stepData <- encodedSteps
+			if sliceSteps.RightDist < 0 {
+				encodedSteps = byte(-sliceSteps.RightDist) | 0x80
+			} else {
+				encodedSteps = byte(sliceSteps.RightDist)
+			}
+			stepData <- encodedSteps
+		}
+		origin = previousActualPos
+	}
+	fmt.Println("Done generating steps")
+}
+
 // Given a value from 0 to 1, use cubic spline to smooth it out, where derivative at 0 and 1 is 0
 // See http://www.paulinternet.nl/?page=bicubic
 // results in ~50% higher max speed

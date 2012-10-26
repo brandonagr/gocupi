@@ -16,7 +16,16 @@ func main() {
 	toFileFlag := flag.Bool("tofile", false, "Output steps to a text file")
 	countFlag := flag.Bool("count", false, "Outputs the time it would take to draw")
 	cubicSmoothFlag := flag.Bool("cubicsmooth", false, "Uses cubic spline for straight lines to speed up / slow down")
+	speedSlowFactor := flag.Float64("slowfactor", 1.0, "Divide max speed by this number")
 	flag.Parse()
+
+	if *speedSlowFactor < 1.0 {
+		panic("slowfactor must be greater than 1")
+	}
+	// apply slow factor to max speed
+	Settings.MaxSpeed_MM_S /= *speedSlowFactor
+
+	fmt.Println("speed", Settings.MaxSpeed_MM_S)
 
 	if *alignFlag {
 		PerformManualAlignment()
@@ -140,7 +149,7 @@ func main() {
 	}
 
 	stepData := make(chan byte, 1024)
-	go GenerateSteps(plotCoords, stepData, *cubicSmoothFlag)
+	go GenerateStepsUsingInterpolation(plotCoords, stepData, *cubicSmoothFlag)
 	switch {
 	case *countFlag:
 		CountSteps(stepData)
