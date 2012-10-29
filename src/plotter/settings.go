@@ -15,6 +15,12 @@ type SettingsData struct {
 	// Degrees in a single step, set based on the stepper motor & microstepping
 	SpoolSingleStep_Degrees float64
 
+	// Number of seconds to accelerate from 0 to MaxSpeed_MM_S
+	Acceleration_Seconds float64
+
+	// Acceleration in mm / s^2
+	Acceleration_MM_S2 float64 `xml:"-"`
+
 	// Distance between the two motor spools
 	HorizontalDistance_MM float64
 
@@ -25,7 +31,7 @@ type SettingsData struct {
 	MaxVertical_MM float64
 
 	// Max speed of the plot head
-	MaxSpeed_MM_S float64
+	MaxSpeed_MM_S float64 `xml:"-"`
 
 	// Initial distance from head to left motor
 	StartingLeftDist_MM float64
@@ -53,18 +59,22 @@ func ReadSettings(settingsFile string) {
 
 	// setup default values
 	if Settings.TimeSlice_US == 0 {
-		Settings.TimeSlice_US = 10000
+		Settings.TimeSlice_US = 2048
 	}
 	if Settings.SpoolCircumference_MM == 0 {
-		Settings.SpoolCircumference_MM = 59
+		Settings.SpoolCircumference_MM = 60
 	}
+	if Settings.Acceleration_Seconds == 0 {
+		Settings.Acceleration_Seconds = 1
+	}
+
+	// setup derived fields
+	Settings.StepSize_MM = (Settings.SpoolSingleStep_Degrees / 360.0) * Settings.SpoolCircumference_MM
 
 	// use 4 because packing data into a byte is done by multiplying it by 32, so 128 is the max value
 	stepsPerRevolution := 360.0 / Settings.SpoolSingleStep_Degrees
 	Settings.MaxSpeed_MM_S = ((4 / (Settings.TimeSlice_US / 1000000)) / stepsPerRevolution) * Settings.SpoolCircumference_MM
-
-	// setup derived fields
-	Settings.StepSize_MM = (Settings.SpoolSingleStep_Degrees / 360.0) * Settings.SpoolCircumference_MM
+	Settings.Acceleration_MM_S2 = Settings.MaxSpeed_MM_S / Settings.Acceleration_Seconds
 }
 
 // Write settings to file

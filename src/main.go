@@ -24,8 +24,29 @@ func main() {
 	}
 	// apply slow factor to max speed
 	Settings.MaxSpeed_MM_S /= *speedSlowFactor
+	Settings.Acceleration_Seconds *= *speedSlowFactor
+	Settings.Acceleration_MM_S2 /= *speedSlowFactor
 
-	fmt.Println("speed", Settings.MaxSpeed_MM_S)
+	fmt.Println("MaxSpeed:", Settings.MaxSpeed_MM_S)
+
+	// TESTING
+	// interp := new(InterpolaterData)
+
+	// interp.Setup(Coordinate{0, 50}, Coordinate{0, 75}, Coordinate{25, 75})
+
+	// for slice := 1.0; slice <= interp.Slices(); slice++ {
+	// 	pos := interp.Position(slice)
+	// 	fmt.Println(pos.X)
+	// }
+
+	// interp.Setup(Coordinate{0, 75}, Coordinate{25, 75}, Coordinate{25, 50})
+
+	// for slice := 1.0; slice <= interp.Slices(); slice++ {
+	// 	pos := interp.Position(slice)
+	// 	fmt.Println(pos.X)
+	// }
+
+	// return
 
 	if *alignFlag {
 		PerformManualAlignment()
@@ -120,11 +141,6 @@ func main() {
 
 		fmt.Println("Generating hilbert curve")
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
-
-		// if there are multiple segments making up a single straight line, combine into just one line
-		combineStraightCoords := make(chan Coordinate, 1024)
-		go SmoothStraightCoords(plotCoords, combineStraightCoords)
-		plotCoords = combineStraightCoords
 
 	case "parabolic":
 		params := GetArgsAsFloats(args[1:], 3)

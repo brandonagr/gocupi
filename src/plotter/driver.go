@@ -108,29 +108,49 @@ func GenerateStepsUsingInterpolation(plotCoords <-chan Coordinate, stepData chan
 	polarSystem.XOffset = startingLocation.X
 	polarSystem.YOffset = startingLocation.Y
 
-	origin := Coordinate{}
+	interp := new(InterpolaterData)
 
-	for {
-		curTarget, chanOpen := <-plotCoords
+	//origin := Coordinate{}
+
+	origin, chanOpen := <-plotCoords
+	if !chanOpen {
+		return
+	}
+	target, chanOpen := <-plotCoords
+	if !chanOpen {
+		return
+	}
+	var anotherTarget bool = true
+
+	for anotherTarget {
+		nextTarget, chanOpen := <-plotCoords
 		if !chanOpen {
-			break
+			anotherTarget = false
+			nextTarget = target
 		}
 
-		targetVector := curTarget.Minus(origin)
+		interp.Setup(origin, target, nextTarget)
 
-		actualDistance := targetVector.Len()
-		idealTime := actualDistance / Settings.MaxSpeed_MM_S
-		numberOfSlices := math.Ceil(idealTime / (Settings.TimeSlice_US / 1000000))
+		for slice := 1.0; slice <= interp.Slices(); slice++ {
 
-		for slice := 1.0; slice <= numberOfSlices; slice++ {
-
-			percentageAlongLine := slice / numberOfSlices
-
-			sliceTarget := origin.Add(targetVector.Scaled(percentageAlongLine))
+			sliceTarget := interp.Position(slice)
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
 
 			// calc integer number of steps * 32 that will be made this time slice
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
+
+			//fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
+			//fmt.Println("Steps", sliceSteps)
+			// if sliceSteps.LeftDist == 127 || sliceSteps.LeftDist == -127 {
+
+			// 	fmt.Println(interp.Position(slice - 1))
+			// 	fmt.Println(interp.Position(slice))
+			// 	fmt.Println("Origin:", origin, "Target", target, "NextTarget", nextTarget)
+			// 	// fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
+			// 	// fmt.Println("Steps", sliceSteps)
+			// 	interp.WriteData()
+			// 	panic("Exceeded speed")
+			// }
 
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
 
@@ -142,20 +162,9 @@ func GenerateStepsUsingInterpolation(plotCoords <-chan Coordinate, stepData chan
 			stepData <- int8(-sliceSteps.RightDist)
 		}
 		origin = previousPolarPos.ToCoord(polarSystem)
+		target = nextTarget
 	}
 	fmt.Println("Done generating steps")
-}
-
-// Given a value from 0 to 1, use cubic spline to smooth it out, where derivative at 0 and 1 is 0
-// See http://www.paulinternet.nl/?page=bicubic
-// results in ~50% higher max speed
-func CubicSmooth(x float64) float64 {
-	if x < 0 || x > 1 {
-		panic("Argument x out of range, must be between 0 and 1")
-	}
-
-	xSquared := x * x
-	return -2.0*xSquared*x + 3*xSquared
 }
 
 // Count steps
@@ -261,25 +270,22 @@ func PerformManualAlignment() {
 		}
 
 		side = strings.ToLower(side)
-
-		idealTime := math.Abs(distance) / (Settings.MaxSpeed_MM_S * 2.0)
-		numberOfSlices := math.Ceil(idealTime / (Settings.TimeSlice_US / 1000000))
-		position := 0.0
-
-		fmt.Println("Moving ", side, distance, "Slices", numberOfSlices)
+		fmt.Println("Moving ", side, distance)
 
 		alignStepData := make(chan int8, 1024)
 		go WriteStepsToSerial(alignStepData)
 
-		for slice := 0.0; slice <= numberOfSlices; slice++ {
+		interp := new(InterpolaterData)
+		interp.Setup(Coordinate{}, Coordinate{distance, 0}, Coordinate{})
+		position := 0.0
 
-			percentageAlongLine := CubicSmooth(slice / numberOfSlices)
-			sliceTarget := distance * percentageAlongLine
+		for slice := 1.0; slice <= interp.Slices(); slice++ {
+
+			sliceTarget := interp.Position(slice)
 
 			// calc integer number of steps that will be made this time slice
-			sliceSteps := (sliceTarget - position) * (1 / Settings.StepSize_MM)
-			sliceSteps = math.Ceil(sliceSteps)
-			position = position + sliceSteps*Settings.StepSize_MM
+			sliceSteps := math.Ceil((sliceTarget.X - position) * (32.0 / Settings.StepSize_MM))
+			position = position + sliceSteps*(Settings.StepSize_MM/32.0)
 
 			if side == "l" {
 				alignStepData <- int8(sliceSteps)
@@ -291,43 +297,5 @@ func PerformManualAlignment() {
 		}
 
 		close(alignStepData)
-	}
-}
-
-// Combine straight line segments
-func SmoothStraightCoords(plotCoords <-chan Coordinate, straightCoords chan<- Coordinate) {
-
-	defer close(straightCoords)
-
-	firstPoint, chanOpen := <-plotCoords
-	if !chanOpen {
-		return
-	}
-
-	secondPoint, chanOpen := <-plotCoords
-	if !chanOpen {
-		straightCoords <- firstPoint
-		return
-	}
-
-	for {
-		thirdPoint, chanOpen := <-plotCoords
-		if !chanOpen {
-			straightCoords <- firstPoint
-			straightCoords <- secondPoint
-			return
-		}
-
-		// check if 
-		thirdDiff := firstPoint.Minus(thirdPoint).Normalized()
-		secondDiff := firstPoint.Minus(secondPoint).Normalized()
-
-		diff := secondDiff.Minus(thirdDiff)
-		if diff.Len() == 0.0 { // combine them
-			secondPoint = thirdPoint
-		} else { // dont combine
-			straightCoords <- firstPoint
-			firstPoint, secondPoint = secondPoint, thirdPoint
-		}
 	}
 }

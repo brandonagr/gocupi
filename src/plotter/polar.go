@@ -53,6 +53,11 @@ func (coord Coordinate) Normalized() Coordinate {
 	return Coordinate{coord.X / len, coord.Y / len}
 }
 
+// Dot product between two vectors
+func (coord Coordinate) DotProduct(other Coordinate) float64 {
+	return coord.X*other.X + coord.Y*other.Y
+}
+
 // Test if the two coordinates are equal within a constant epsilon
 func (coord Coordinate) Equals(other Coordinate) bool {
 	diff := coord.Minus(other)
