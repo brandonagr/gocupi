@@ -15,8 +15,8 @@ int rightDirPin = 10;
 // --------------------------------------
 const unsigned int TIME_SLICE_US = 2048; // number of microseconds per time step
 const unsigned int TIME_SLICE_US_LOG = 11; // log base 2 of TIME_SLICE_US
-const unsigned int POS_FACTOR = 64; // factor each position is multiplied by
-const unsigned int POS_FACTOR_LOG = 6; // log base 2 of POS_FACTOR
+const unsigned int POS_FACTOR = 32; // factor each position is multiplied by
+const unsigned int POS_FACTOR_LOG = 5; // log base 2 of POS_FACTOR
 
 const unsigned int MOVE_DATA_CAPACITY = 1024;
 byte moveData[MOVE_DATA_CAPACITY]; // buffer of move data, circular buffer
@@ -107,6 +107,8 @@ void UpdateStepperPins(long curSliceTime) {
         leftCurPos -= POS_FACTOR;
       }
       leftSteps--;
+      
+      //UpdateStatusLeds(leftCurPos >> 9);
     }
 
     if (rightSteps) {
@@ -121,10 +123,11 @@ void UpdateStepperPins(long curSliceTime) {
 
     if (leftSteps || rightSteps) {
       delayMicroseconds(50); // delay a small amount of time before refiring the steps to smooth things out
+      UpdateErrorLed(true);
     } else {
       break;
     }
-  } while(true)
+  } while(true);
 }
 
 // Update status leds
@@ -175,8 +178,10 @@ void ReadSerialMoveData() {
 
     // if reading in data when there was no data previously, be sure to reset sliceStartTime
     if (moveDataLength == 0) {
-      sliceStartTime = time;
+      sliceStartTime = curTime;
+      
     }
+    UpdateStatusLeds(moveDataRequestPending>>3);
 
     MoveDataPut(Serial.read());
     moveDataRequestPending--;

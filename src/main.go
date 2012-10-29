@@ -193,6 +193,7 @@ Flags:
 -tofile, outputs step data to a file
 -count, outputs number of steps and render time
 -cubicsmooth, uses cubic spline smoothing when generating steps
+-slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 
 Commands:
 gcode s "path" (s scale)

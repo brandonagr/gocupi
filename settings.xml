@@ -1,11 +1,11 @@
 
 <SettingsData>
-	<TimeSlice_US>2000</TimeSlice_US>
+	<TimeSlice_US>2048</TimeSlice_US>
 	<SpoolCircumference_MM>60.946897</SpoolCircumference_MM>
-	<SpoolSingleStep_Degrees>0.45</SpoolSingleStep_Degrees>
-	<HorizontalDistance_MM>760</HorizontalDistance_MM>
+	<SpoolSingleStep_Degrees>0.225</SpoolSingleStep_Degrees>
+	<HorizontalDistance_MM>625</HorizontalDistance_MM>
 	<MinVertical_MM>50</MinVertical_MM>
-	<MaxVertical_MM>610</MaxVertical_MM>
-	<StartingLeftDist_MM>523</StartingLeftDist_MM>
-	<StartingRightDist_MM>518</StartingRightDist_MM>
+	<MaxVertical_MM>600</MaxVertical_MM>
+	<StartingLeftDist_MM>392</StartingLeftDist_MM>
+	<StartingRightDist_MM>394</StartingRightDist_MM>
 </SettingsData>

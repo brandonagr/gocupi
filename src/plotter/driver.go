@@ -129,10 +129,10 @@ func GenerateStepsUsingInterpolation(plotCoords <-chan Coordinate, stepData chan
 			sliceTarget := origin.Add(targetVector.Scaled(percentageAlongLine))
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
 
-			// calc integer number of steps * 64 that will be made this time slice
-			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(64.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
+			// calc integer number of steps * 32 that will be made this time slice
+			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
 
-			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 64.0))
+			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
 
 			//fmt.Println("Coord target", sliceTarget, "actual", previousActualPos, "Abs Actual", previousActualPos.Add(startingLocation))
 			//fmt.Println("Polar target", polarSliceTarget, "actual", previousPolarPos)

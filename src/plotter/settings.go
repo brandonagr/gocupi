@@ -59,9 +59,9 @@ func ReadSettings(settingsFile string) {
 		Settings.SpoolCircumference_MM = 59
 	}
 
-	// use 2 because packing data into a byte is done by multiplying it by 64, so 128 is the max value
+	// use 4 because packing data into a byte is done by multiplying it by 32, so 128 is the max value
 	stepsPerRevolution := 360.0 / Settings.SpoolSingleStep_Degrees
-	Settings.MaxSpeed_MM_S = ((2 / (Settings.TimeSlice_US / 1000000)) / stepsPerRevolution) * Settings.SpoolCircumference_MM
+	Settings.MaxSpeed_MM_S = ((4 / (Settings.TimeSlice_US / 1000000)) / stepsPerRevolution) * Settings.SpoolCircumference_MM
 
 	// setup derived fields
 	Settings.StepSize_MM = (Settings.SpoolSingleStep_Degrees / 360.0) * Settings.SpoolCircumference_MM
