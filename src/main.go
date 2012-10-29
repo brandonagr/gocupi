@@ -26,27 +26,7 @@ func main() {
 	Settings.MaxSpeed_MM_S /= *speedSlowFactor
 	Settings.Acceleration_Seconds *= *speedSlowFactor
 	Settings.Acceleration_MM_S2 /= *speedSlowFactor
-
 	fmt.Println("MaxSpeed:", Settings.MaxSpeed_MM_S)
-
-	// TESTING
-	// interp := new(InterpolaterData)
-
-	// interp.Setup(Coordinate{0, 50}, Coordinate{0, 75}, Coordinate{25, 75})
-
-	// for slice := 1.0; slice <= interp.Slices(); slice++ {
-	// 	pos := interp.Position(slice)
-	// 	fmt.Println(pos.X)
-	// }
-
-	// interp.Setup(Coordinate{0, 75}, Coordinate{25, 75}, Coordinate{25, 50})
-
-	// for slice := 1.0; slice <= interp.Slices(); slice++ {
-	// 	pos := interp.Position(slice)
-	// 	fmt.Println(pos.X)
-	// }
-
-	// return
 
 	if *alignFlag {
 		PerformManualAlignment()
@@ -165,7 +145,7 @@ func main() {
 	}
 
 	stepData := make(chan int8, 1024)
-	go GenerateStepsUsingInterpolation(plotCoords, stepData, *cubicSmoothFlag)
+	go GenerateSteps(plotCoords, stepData, *cubicSmoothFlag)
 	switch {
 	case *countFlag:
 		CountSteps(stepData)

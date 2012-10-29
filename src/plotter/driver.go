@@ -21,79 +21,8 @@ func OutputCoords(plotCoords <-chan Coordinate) {
 	fmt.Println("Done plotting")
 }
 
-// // Takes in coordinates and outputs stepData
-// func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- byte, useCubicSmooth bool) {
-
-// 	defer close(stepData)
-
-// 	polarSystem := PolarSystemFromSettings()
-// 	previousPolarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
-// 	startingLocation := previousPolarPos.ToCoord(polarSystem)
-
-// 	fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
-// 	fmt.Println("MinY", Settings.MinVertical_MM, "MaxY", Settings.MaxVertical_MM)
-
-// 	// setup 0,0 as the initial location of the plot head
-// 	polarSystem.XOffset = startingLocation.X
-// 	polarSystem.YOffset = startingLocation.Y
-
-// 	origin := Coordinate{}
-// 	previousActualPos := origin
-
-// 	for {
-// 		curTarget, chanOpen := <-plotCoords
-// 		if !chanOpen {
-// 			break
-// 		}
-
-// 		targetVector := curTarget.Minus(origin)
-
-// 		actualDistance := targetVector.Len()
-// 		idealTime := actualDistance / Settings.MaxSpeed_MM_S
-// 		numberOfSlices := math.Ceil(idealTime / (Settings.TimeSlice_US / 1000000))
-
-// 		for slice := 1.0; slice <= numberOfSlices; slice++ {
-
-// 			percentageAlongLine := slice / numberOfSlices
-// 			if useCubicSmooth && numberOfSlices > 3 {
-// 				percentageAlongLine = CubicSmooth(percentageAlongLine)
-// 			}
-
-// 			sliceTarget := origin.Add(targetVector.Scaled(percentageAlongLine))
-// 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
-
-// 			// calc integer number of steps that will be made this time slice
-// 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(1 / Settings.StepSize_MM)
-// 			sliceSteps = sliceSteps.Ceil().Clamp(127, -127)
-
-// 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM))
-// 			previousActualPos = previousPolarPos.ToCoord(polarSystem)
-
-// 			//fmt.Println("Coord target", sliceTarget, "actual", previousActualPos, "Abs Actual", previousActualPos.Add(startingLocation))
-// 			//fmt.Println("Polar target", polarSliceTarget, "actual", previousPolarPos)
-// 			//fmt.Println("Steps", sliceSteps, "Actual", previousActualPos)
-
-// 			var encodedSteps byte
-// 			if sliceSteps.LeftDist < 0 {
-// 				encodedSteps = byte(-sliceSteps.LeftDist)
-// 			} else {
-// 				encodedSteps = byte(sliceSteps.LeftDist) | 0x80
-// 			}
-// 			stepData <- encodedSteps
-// 			if sliceSteps.RightDist < 0 {
-// 				encodedSteps = byte(-sliceSteps.RightDist) | 0x80
-// 			} else {
-// 				encodedSteps = byte(sliceSteps.RightDist)
-// 			}
-// 			stepData <- encodedSteps
-// 		}
-// 		origin = previousActualPos
-// 	}
-// 	fmt.Println("Done generating steps")
-// }
-
 // Takes in coordinates and outputs stepData
-func GenerateStepsUsingInterpolation(plotCoords <-chan Coordinate, stepData chan<- int8, useCubicSmooth bool) {
+func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8, useCubicSmooth bool) {
 
 	defer close(stepData)
 
@@ -108,9 +37,8 @@ func GenerateStepsUsingInterpolation(plotCoords <-chan Coordinate, stepData chan
 	polarSystem.XOffset = startingLocation.X
 	polarSystem.YOffset = startingLocation.Y
 
-	interp := new(InterpolaterData)
-
-	//origin := Coordinate{}
+	//var interp PositionInterpolater = new(LinearInterpolater)
+	var interp PositionInterpolater = new(TrapezoidInterpolater)
 
 	origin, chanOpen := <-plotCoords
 	if !chanOpen {
@@ -139,24 +67,20 @@ func GenerateStepsUsingInterpolation(plotCoords <-chan Coordinate, stepData chan
 			// calc integer number of steps * 32 that will be made this time slice
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
 
-			//fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
-			//fmt.Println("Steps", sliceSteps)
+			// fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
+			// fmt.Println("Steps", sliceSteps)
 			// if sliceSteps.LeftDist == 127 || sliceSteps.LeftDist == -127 {
 
 			// 	fmt.Println(interp.Position(slice - 1))
 			// 	fmt.Println(interp.Position(slice))
 			// 	fmt.Println("Origin:", origin, "Target", target, "NextTarget", nextTarget)
-			// 	// fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
-			// 	// fmt.Println("Steps", sliceSteps)
-			// 	interp.WriteData()
+			// 	fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
+			// 	fmt.Println("Steps", sliceSteps)
+			// 	//interp.WriteData()
 			// 	panic("Exceeded speed")
 			// }
 
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
-
-			//fmt.Println("Coord target", sliceTarget, "actual", previousActualPos, "Abs Actual", previousActualPos.Add(startingLocation))
-			//fmt.Println("Polar target", polarSliceTarget, "actual", previousPolarPos)
-			//fmt.Println("Steps", sliceSteps, "Polar target", polarSliceTarget, "Polar actual", previousPolarPos)
 
 			stepData <- int8(sliceSteps.LeftDist)
 			stepData <- int8(-sliceSteps.RightDist)
@@ -275,7 +199,7 @@ func PerformManualAlignment() {
 		alignStepData := make(chan int8, 1024)
 		go WriteStepsToSerial(alignStepData)
 
-		interp := new(InterpolaterData)
+		interp := new(TrapezoidInterpolater)
 		interp.Setup(Coordinate{}, Coordinate{distance, 0}, Coordinate{})
 		position := 0.0
 
