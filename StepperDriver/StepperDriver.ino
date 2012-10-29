@@ -13,7 +13,10 @@ int rightDirPin = 10;
 
 // Global variables
 // --------------------------------------
-const unsigned int TIME_SLICE_US = 2000; // number of microseconds per time step
+const unsigned int TIME_SLICE_US = 2048; // number of microseconds per time step
+const unsigned int TIME_SLICE_US_LOG = 11; // log base 2 of TIME_SLICE_US
+const unsigned int POS_FACTOR = 64; // factor each position is multiplied by
+const unsigned int POS_FACTOR_LOG = 6; // log base 2 of POS_FACTOR
 
 const unsigned int MOVE_DATA_CAPACITY = 1024;
 byte moveData[MOVE_DATA_CAPACITY]; // buffer of move data, circular buffer
@@ -21,21 +24,12 @@ unsigned int moveDataStart = 0; // where data is currently being read from
 unsigned int moveDataLength = 0; // the number of items in the moveDataBuffer
 unsigned int moveDataRequestPending = 0; // number of bytes requested
 
-unsigned int currentTimeSlice = 0; // the amount of microseconds that have been observed
-unsigned int timeSinceStepLeft = 0;
-unsigned int timeSinceStepRight = 0;
-unsigned int stepDelayLeft = 0;
-unsigned int stepDelayRight = 0;
-unsigned int stepsLeft = 0;
-unsigned int stepsRight = 0;
-unsigned int targetStepsLeft = 0;
-unsigned int targetStepsRight = 0;
-byte leftDir = 0;
-byte rightDir = 0;
+char leftDelta, rightDelta; // delta in the current slice
+long leftStartPos, rightStartPos; // start position for this slice
+long leftCurPos, rightCurPos; // current position of the spools
 
-unsigned long currentTime = 0; // microseconds
-unsigned long previousTime = 0; // microseconds since last
-unsigned int deltaTime = 0; // microseconds since last loop
+unsigned long curTime; // current time in microseconds
+unsigned long sliceStartTime; // start of current slice in microseconds
 
 
 // setup
@@ -54,7 +48,7 @@ void setup() {
   pinMode(rightStepPin, OUTPUT);
   pinMode(rightDirPin, OUTPUT);	
 
-  SetStepVariables();
+  leftDelta = rightDelta = leftStartPos = rightStartPos = leftCurPos = rightCurPos = 0;
 
   delay(500);
   UpdateErrorLed(false);
@@ -65,14 +59,72 @@ void setup() {
 // --------------------------------------
 void loop() {
 
-  currentTime = micros();
-  deltaTime = (int)(currentTime - previousTime); // assuming we wont go over 65,536 microseconds per loop
+  curTime = micros();
+  if (curTime < sliceStartTime) { // protect against 70 minute overflow
+    sliceStartTime = 0;
+  }
 
-  UpdateStepperPins();
+  // move to next slice if necessary
+  long curSliceTime = curTime - sliceStartTime;
+  while(curSliceTime > TIME_SLICE_US) {
+    SetSliceVariables();
+    curSliceTime -= TIME_SLICE_US;
+    sliceStartTime += TIME_SLICE_US;
+  }
+
+  UpdateStepperPins(curSliceTime);
   ReadSerialMoveData();
   RequestMoreSerialMoveData();
+}
 
-  previousTime = currentTime;
+// Update stepper pins
+// --------------------------------------
+void UpdateStepperPins(long curSliceTime) {
+
+  long leftTarget = ((long(leftDelta) * curSliceTime) >> TIME_SLICE_US_LOG) + leftStartPos;
+  long rightTarget = ((long(rightDelta) * curSliceTime) >> TIME_SLICE_US_LOG) + rightStartPos;
+
+  int leftSteps = (leftTarget - leftCurPos) >> POS_FACTOR_LOG;
+  int rightSteps = (rightTarget - rightCurPos) >> POS_FACTOR_LOG;
+
+  boolean leftPositiveDir = true;
+  if (leftSteps < 0) {
+    leftPositiveDir = false;
+    leftSteps = -leftSteps;
+  }
+  boolean rightPositiveDir = true;
+  if (rightSteps < 0) {
+    rightPositiveDir = false;
+    rightSteps = -rightSteps;
+  }
+
+  do {
+    if (leftSteps) {
+      Step(leftStepPin, leftDirPin, leftPositiveDir);
+      if (leftPositiveDir) {
+        leftCurPos += POS_FACTOR;
+      } else {
+        leftCurPos -= POS_FACTOR;
+      }
+      leftSteps--;
+    }
+
+    if (rightSteps) {
+      Step(rightStepPin, rightDirPin, rightPositiveDir);
+      if (rightPositiveDir) {
+        rightCurPos += POS_FACTOR;
+      } else {
+        rightCurPos -= POS_FACTOR;
+      }
+      rightSteps--;
+    }
+
+    if (leftSteps || rightSteps) {
+      delayMicroseconds(50); // delay a small amount of time before refiring the steps to smooth things out
+    } else {
+      break;
+    }
+  } while(true)
 }
 
 // Update status leds
@@ -102,67 +154,16 @@ void Step(int stepPin, int dirPin, boolean dir) {
   digitalWrite(stepPin, HIGH);
 }
 
-// Update stepper pins
+// Set all variables based on the data currently in the buffer
 // --------------------------------------
-void UpdateStepperPins() {
+void SetSliceVariables() {
 
-  currentTimeSlice += deltaTime;
+  // set slice start pos to previous slice start plus previous delta
+  leftStartPos = leftStartPos + long(leftDelta);
+  rightStartPos = rightStartPos + long(rightDelta);
 
-  // need to make sure the correct number of steps are taken
-  // want to be able to
-
-  timeSinceStepLeft += deltaTime;
-  while (timeSinceStepLeft >= stepDelayLeft && stepsLeft < targetStepsLeft) {
-    Step(leftStepPin, leftDirPin, leftDir);
-    stepsLeft++;
-    timeSinceStepLeft -= stepDelayLeft;
-  }
-
-  timeSinceStepRight += deltaTime;
-  while (timeSinceStepRight >= stepDelayRight && stepsRight < targetStepsRight) {
-    Step(rightStepPin, rightDirPin, rightDir);
-    stepsRight++;
-    timeSinceStepRight -= stepDelayRight;
-  }
-
-  // move to next time slice
-  if (currentTimeSlice >= TIME_SLICE_US) {
-
-    currentTimeSlice -= TIME_SLICE_US;
-    SetStepVariables();
-    
-    // how could sampling be so slow that we jumped past an entire time slice !?
-    UpdateErrorLed(currentTimeSlice >= TIME_SLICE_US);
-  }
-}
-
-// Set all step variables based on the data currently in the buffer
-// --------------------------------------
-void SetStepVariables() {
-
-  stepsLeft = 0;
-  stepsRight = 0;
-  timeSinceStepLeft = 0;
-  timeSinceStepRight = 0;
-
-  // just delay and do nothing if there is no data
-  if (moveDataLength < 2) {
-    stepDelayLeft = 0;
-    stepDelayRight = 0;
-    targetStepsLeft = 0;
-    targetStepsRight = 0;
-    return;
-  }
-
-  byte data = MoveDataGet();
-  leftDir = data & 0x80;
-  targetStepsLeft = data & 0x7F;
-  stepDelayLeft = (TIME_SLICE_US - currentTimeSlice) / targetStepsLeft;
-
-  data = MoveDataGet();
-  rightDir = data & 0x80;
-  targetStepsRight = data & 0x7F;
-  stepDelayRight = (TIME_SLICE_US - currentTimeSlice) / targetStepsRight;
+  leftDelta = MoveDataGet();
+  rightDelta = MoveDataGet();
 }
 
 
@@ -171,9 +172,14 @@ void SetStepVariables() {
 void ReadSerialMoveData() {
 
   while(Serial.available()) {
+
+    // if reading in data when there was no data previously, be sure to reset sliceStartTime
+    if (moveDataLength == 0) {
+      sliceStartTime = time;
+    }
+
     MoveDataPut(Serial.read());
     moveDataRequestPending--;
-    UpdateStatusLeds(moveDataRequestPending);
   }
 }
 
@@ -214,8 +220,6 @@ byte MoveDataGet() {
     moveDataStart = 0;
   }
   moveDataLength--;
-
-  //UpdateStatusLeds(moveDataLength >> 6);
 
   return result;
 }

@@ -148,7 +148,7 @@ func main() {
 		return
 	}
 
-	stepData := make(chan byte, 1024)
+	stepData := make(chan int8, 1024)
 	go GenerateStepsUsingInterpolation(plotCoords, stepData, *cubicSmoothFlag)
 	switch {
 	case *countFlag:
