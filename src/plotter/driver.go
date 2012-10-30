@@ -40,10 +40,7 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8, useCubicS
 	//var interp PositionInterpolater = new(LinearInterpolater)
 	var interp PositionInterpolater = new(TrapezoidInterpolater)
 
-	origin, chanOpen := <-plotCoords
-	if !chanOpen {
-		return
-	}
+	origin := Coordinate{0, 0}
 	target, chanOpen := <-plotCoords
 	if !chanOpen {
 		return
@@ -69,26 +66,26 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8, useCubicS
 			// calc integer number of steps * 32 that will be made this time slice
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
 
-			// totalSteps++
+			//totalSteps++
 			// if totalSteps > 128 {
+			// fmt.Println("Origin:", origin, "Target", target, "NextTarget", nextTarget)
+			// fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
+			// fmt.Println("Steps", sliceSteps, "Total", totalSteps)
+
+			// if sliceSteps.LeftDist == 127 || sliceSteps.LeftDist == -127 {
+
+			// 	fmt.Println("---------------")
+			// 	fmt.Println(interp.Position(slice - 1))
+			// 	fmt.Println(interp.Position(slice))
+			// 	fmt.Println("===============")
 			// 	fmt.Println("Origin:", origin, "Target", target, "NextTarget", nextTarget)
 			// 	fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
-			// 	fmt.Println("Steps", sliceSteps, "Total", totalSteps)
+			// 	fmt.Println("Steps", sliceSteps)
+			// 	fmt.Println("---------------")
 
-			// 	if sliceSteps.LeftDist == 127 || sliceSteps.LeftDist == -127 {
-
-			// 		fmt.Println("---------------")
-			// 		fmt.Println(interp.Position(slice - 1))
-			// 		fmt.Println(interp.Position(slice))
-			// 		fmt.Println("===============")
-			// 		fmt.Println("Origin:", origin, "Target", target, "NextTarget", nextTarget)
-			// 		fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
-			// 		fmt.Println("Steps", sliceSteps)
-			// 		fmt.Println("---------------")
-
-			// 		interp.WriteData()
-			// 		//panic("Exceeded speed")
-			// 	}
+			// 	interp.WriteData()
+			// 	panic("Exceeded speed")
+			// }
 
 			// 	if totalSteps > 133 {
 			// 		panic("Past error")

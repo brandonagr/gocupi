@@ -152,25 +152,21 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 				data.accelTime = (math.Sqrt(data.entrySpeed*data.entrySpeed+2*Settings.Acceleration_MM_S2*data.distance) - data.entrySpeed) / Settings.Acceleration_MM_S2
 				data.exitSpeed = data.entrySpeed + Settings.Acceleration_MM_S2*data.accelTime
 				data.cruiseSpeed = data.exitSpeed
-				data.accelDist = data.distance //0.5*Settings.Acceleration_MM_S2*data.accelTime*data.accelTime + data.entrySpeed*data.accelTime
+				data.accelDist = data.distance
 			} else { // need to decelerate to exit speed, by changing acceleration
 
-				fmt.Println("Warning, unable to decelerate to target exit speed, try adding -slowfactor=2")
+				fmt.Println("Warning, unable to decelerate to target exit speed using acceleration, try adding -slowfactor=2")
 
 				data.accelDist = 0
 				data.accelTime = 0
 				data.cruiseDist = 0
 				data.cruiseTime = 0
 
+				// determine time it will take to reach exit speed over the given distance
 				data.decelTime = 2.0 * data.distance / (data.exitSpeed + data.entrySpeed)
 				data.acceleration = (data.entrySpeed - data.exitSpeed) / data.decelTime
-
-				fmt.Println("Decel time", data.decelTime, "Accel", data.acceleration, "Distance", data.distance)
-				data.WriteData()
-
-				// determine time it will take to travel distance at the given deceleration
 				data.cruiseSpeed = data.entrySpeed
-				data.decelDist = data.distance // 0.5*-Settings.Acceleration_MM_S2*data.decelTime*data.decelTime + data.cruiseSpeed*data.decelTime
+				data.decelDist = data.distance
 			}
 		} else {
 			data.accelDist = 0.5*Settings.Acceleration_MM_S2*data.accelTime*data.accelTime + data.entrySpeed*data.accelTime

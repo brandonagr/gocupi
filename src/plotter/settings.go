@@ -74,6 +74,7 @@ func ReadSettings(settingsFile string) {
 	// use 4 because packing data into a byte is done by multiplying it by 32, so 128 is the max value
 	stepsPerRevolution := 360.0 / Settings.SpoolSingleStep_Degrees
 	Settings.MaxSpeed_MM_S = ((4 / (Settings.TimeSlice_US / 1000000)) / stepsPerRevolution) * Settings.SpoolCircumference_MM
+	Settings.MaxSpeed_MM_S *= 0.98 // give max speed some extra room to not hit 127 limit
 	Settings.Acceleration_MM_S2 = Settings.MaxSpeed_MM_S / Settings.Acceleration_Seconds
 }
 
