@@ -50,6 +50,8 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8, useCubicS
 	}
 	var anotherTarget bool = true
 
+	//totalSteps := 0
+
 	for anotherTarget {
 		nextTarget, chanOpen := <-plotCoords
 		if !chanOpen {
@@ -67,17 +69,30 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8, useCubicS
 			// calc integer number of steps * 32 that will be made this time slice
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
 
-			// fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
-			// fmt.Println("Steps", sliceSteps)
-			// if sliceSteps.LeftDist == 127 || sliceSteps.LeftDist == -127 {
-
-			// 	fmt.Println(interp.Position(slice - 1))
-			// 	fmt.Println(interp.Position(slice))
+			// totalSteps++
+			// if totalSteps > 128 {
 			// 	fmt.Println("Origin:", origin, "Target", target, "NextTarget", nextTarget)
 			// 	fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
-			// 	fmt.Println("Steps", sliceSteps)
-			// 	//interp.WriteData()
-			// 	panic("Exceeded speed")
+			// 	fmt.Println("Steps", sliceSteps, "Total", totalSteps)
+
+			// 	if sliceSteps.LeftDist == 127 || sliceSteps.LeftDist == -127 {
+
+			// 		fmt.Println("---------------")
+			// 		fmt.Println(interp.Position(slice - 1))
+			// 		fmt.Println(interp.Position(slice))
+			// 		fmt.Println("===============")
+			// 		fmt.Println("Origin:", origin, "Target", target, "NextTarget", nextTarget)
+			// 		fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
+			// 		fmt.Println("Steps", sliceSteps)
+			// 		fmt.Println("---------------")
+
+			// 		interp.WriteData()
+			// 		//panic("Exceeded speed")
+			// 	}
+
+			// 	if totalSteps > 133 {
+			// 		panic("Past error")
+			// 	}
 			// }
 
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))

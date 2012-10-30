@@ -18,9 +18,6 @@ type SettingsData struct {
 	// Number of seconds to accelerate from 0 to MaxSpeed_MM_S
 	Acceleration_Seconds float64
 
-	// Acceleration in mm / s^2, derived from Acceleration_Seconds and MaxSpeed_MM_S
-	Acceleration_MM_S2 float64 `xml:"-"`
-
 	// Distance between the two motor spools
 	HorizontalDistance_MM float64
 
@@ -30,9 +27,6 @@ type SettingsData struct {
 	// Maximum distance below motors that can be drawn
 	MaxVertical_MM float64
 
-	// Max speed of the plot head
-	MaxSpeed_MM_S float64 `xml:"-"`
-
 	// Initial distance from head to left motor
 	StartingLeftDist_MM float64
 
@@ -41,6 +35,12 @@ type SettingsData struct {
 
 	// MM traveled by a single step
 	StepSize_MM float64 `xml:"-"`
+
+	// Max speed of the plot head
+	MaxSpeed_MM_S float64 `xml:"-"`
+
+	// Acceleration in mm / s^2, derived from Acceleration_Seconds and MaxSpeed_MM_S
+	Acceleration_MM_S2 float64 `xml:"-"`
 }
 
 // Global settings variable

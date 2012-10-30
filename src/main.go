@@ -26,7 +26,8 @@ func main() {
 	Settings.MaxSpeed_MM_S /= *speedSlowFactor
 	Settings.Acceleration_Seconds *= *speedSlowFactor
 	Settings.Acceleration_MM_S2 /= *speedSlowFactor
-	fmt.Println("MaxSpeed:", Settings.MaxSpeed_MM_S)
+	fmt.Printf("MaxSpeed: %.3f Accel: %.3f", Settings.MaxSpeed_MM_S, Settings.Acceleration_MM_S2)
+	fmt.Println()
 
 	if *alignFlag {
 		PerformManualAlignment()
