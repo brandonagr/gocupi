@@ -43,6 +43,18 @@ func main() {
 	plotCoords := make(chan Coordinate, 1024)
 
 	switch args[0] {
+
+	case "circle":
+		params := GetArgsAsFloats(args[1:], 3)
+		circleSetup := SlidingCircle{
+			Radius:             params[0],
+			CircleDisplacement: params[1],
+			NumbCircles:        int(params[2]),
+		}
+
+		fmt.Println("Generating sliding circle")
+		go GenerateSlidingCircle(circleSetup, plotCoords)
+
 	case "gcode":
 		scale, _ := strconv.ParseFloat(args[1], 64)
 		if scale == 0 {
@@ -53,15 +65,59 @@ func main() {
 		data := ParseGcodeFile(args[2])
 		go GenerateGcodePath(data, scale, plotCoords)
 
-	case "svg":
-		size, _ := strconv.ParseFloat(args[1], 64)
-		if size == 0 {
-			size = 1
+	case "grid":
+		params := GetArgsAsFloats(args[1:], 2)
+		gridSetup := Grid{
+			Width: params[0],
+			Cells: params[1],
 		}
 
-		fmt.Println("Generating svg path")
-		data := ParseSvgFile(args[2])
-		go GenerateSvgPath(data, size, plotCoords)
+		fmt.Println("Generating grid")
+		go GenerateGrid(gridSetup, plotCoords)
+
+	case "hilbert":
+		params := GetArgsAsFloats(args[1:], 2)
+		hilbertSetup := HilbertCurve{
+			Size:   params[0],
+			Degree: int(params[1]),
+		}
+
+		fmt.Println("Generating hilbert curve")
+		go GenerateHilbertCurve(hilbertSetup, plotCoords)
+
+	case "lissa":
+		params := GetArgsAsFloats(args[1:], 3)
+		posFunc := func(t float64) Coordinate {
+			return Coordinate{
+				params[0] * math.Cos(params[1]*t+math.Pi/2.0),
+				params[0] * math.Sin(params[2]*t),
+			}
+		}
+
+		fmt.Println("Generating Lissajous curve")
+		go GenerateParametric(posFunc, plotCoords)
+
+	case "parabolic":
+		params := GetArgsAsFloats(args[1:], 3)
+		parabolicSetup := Parabolic{
+			Radius:           params[0],
+			PolygonEdgeCount: params[1],
+			Lines:            params[2],
+		}
+
+		fmt.Println("Generating parabolic graph")
+		go GenerateParabolic(parabolicSetup, plotCoords)
+
+	case "spiral":
+		params := GetArgsAsFloats(args[1:], 3)
+		spiralSetup := Spiral{
+			RadiusBegin:       params[0],
+			RadiusEnd:         params[1],
+			RadiusDeltaPerRev: params[2],
+		}
+
+		fmt.Println("Generating spiral")
+		go GenerateSpiral(spiralSetup, plotCoords)
 
 	case "spiro":
 		params := GetArgsAsFloats(args[1:], 3)
@@ -79,60 +135,15 @@ func main() {
 		fmt.Println("Generating spiro")
 		go GenerateParametric(posFunc, plotCoords)
 
-	case "lissa":
-		params := GetArgsAsFloats(args[1:], 3)
-		posFunc := func(t float64) Coordinate {
-			return Coordinate{
-				params[0] * math.Cos(params[1]*t+math.Pi/2.0),
-				params[0] * math.Sin(params[2]*t),
-			}
+	case "svg":
+		size, _ := strconv.ParseFloat(args[1], 64)
+		if size == 0 {
+			size = 1
 		}
 
-		fmt.Println("Generating Lissajous curve")
-		go GenerateParametric(posFunc, plotCoords)
-
-	case "spiral":
-		params := GetArgsAsFloats(args[1:], 3)
-		spiralSetup := Spiral{
-			RadiusBegin:       params[0],
-			RadiusEnd:         params[1],
-			RadiusDeltaPerRev: params[2],
-		}
-
-		fmt.Println("Generating spiral")
-		go GenerateSpiral(spiralSetup, plotCoords)
-
-	case "circle":
-		params := GetArgsAsFloats(args[1:], 3)
-		circleSetup := SlidingCircle{
-			Radius:             params[0],
-			CircleDisplacement: params[1],
-			NumbCircles:        int(params[2]),
-		}
-
-		fmt.Println("Generating sliding circle")
-		go GenerateSlidingCircle(circleSetup, plotCoords)
-
-	case "hilbert":
-		params := GetArgsAsFloats(args[1:], 2)
-		hilbertSetup := HilbertCurve{
-			Size:   params[0],
-			Degree: int(params[1]),
-		}
-
-		fmt.Println("Generating hilbert curve")
-		go GenerateHilbertCurve(hilbertSetup, plotCoords)
-
-	case "parabolic":
-		params := GetArgsAsFloats(args[1:], 3)
-		parabolicSetup := Parabolic{
-			Radius:           params[0],
-			PolygonEdgeCount: params[1],
-			Lines:            params[2],
-		}
-
-		fmt.Println("Generating parabolic graph")
-		go GenerateParabolic(parabolicSetup, plotCoords)
+		fmt.Println("Generating svg path")
+		data := ParseSvgFile(args[2])
+		go GenerateSvgPath(data, size, plotCoords)
 
 	default:
 		PrintUsage()
@@ -193,12 +204,13 @@ Flags:
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 
 Commands:
-gcode s "path" (s scale)
-svg s "path" (s size)
-spiro R r p (R first circle radius) (r second circle radius) (p pen distance)
-lissa s a b (s scale of drawing) (a factor) (b factor)
-spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)
 circle R d n (R radius) (d displacement per revolution) (n number of circles)
+gcode s "path" (s scale)
+grid s c (s size) (c number cells)
 hilbert s d (s size) (d degree(ie 1 to 6))
-parabolic R c l (R radius) (c count of polygon edges) (l number of lines)`)
+lissa s a b (s scale of drawing) (a factor) (b factor)
+parabolic R c l (R radius) (c count of polygon edges) (l number of lines)
+spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)
+spiro R r p (R first circle radius) (r second circle radius) (p pen distance)
+svg s "path" (s size)`)
 }
