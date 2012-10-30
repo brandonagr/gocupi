@@ -155,7 +155,7 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 				data.accelDist = data.distance
 			} else { // need to decelerate to exit speed, by changing acceleration
 
-				fmt.Println("Warning, unable to decelerate to target exit speed using acceleration, try adding -slowfactor=2")
+				//fmt.Println("Warning, unable to decelerate to target exit speed using acceleration, try adding -slowfactor=2")
 
 				data.accelDist = 0
 				data.accelTime = 0
