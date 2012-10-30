@@ -5,8 +5,8 @@
 	<SpoolSingleStep_Degrees>0.225</SpoolSingleStep_Degrees>
 	<Acceleration_Seconds>0.75</Acceleration_Seconds>
 	<HorizontalDistance_MM>625</HorizontalDistance_MM>
-	<MinVertical_MM>50</MinVertical_MM>
+	<MinVertical_MM>100</MinVertical_MM>
 	<MaxVertical_MM>600</MaxVertical_MM>
-	<StartingLeftDist_MM>392</StartingLeftDist_MM>
-	<StartingRightDist_MM>394</StartingRightDist_MM>
+	<StartingLeftDist_MM>270</StartingLeftDist_MM>
+	<StartingRightDist_MM>423</StartingRightDist_MM>
 </SettingsData>

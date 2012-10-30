@@ -253,36 +253,35 @@ func GenerateGrid(setup Grid, plotCoords chan<- Coordinate) {
 	cellInt := int(setup.Cells)
 	cellWidth := setup.Width / setup.Cells
 
+
 	for y := 0; y < cellInt; y++ {
 		yf := float64(y)
 
-		for x := 0; x < cellInt; x++ {
-			xf := float64(x)
-
-			if x%2 == 0 {
-				plotCoords <- Coordinate{xf * cellWidth, (yf + 1) * cellWidth}
-				plotCoords <- Coordinate{(xf + 1) * cellWidth, (yf + 1) * cellWidth}
-			} else {
-				plotCoords <- Coordinate{xf * cellWidth, yf * cellWidth}
-				plotCoords <- Coordinate{(xf + 1) * cellWidth, yf * cellWidth}
-			}
-		}
-
-		for x := cellInt - 1; x >= 0; x-- {
-			xf := float64(x)
-
-			if x%2 == 0 {
-				plotCoords <- Coordinate{(xf + 1) * cellWidth, (yf + 1) * cellWidth}
-				plotCoords <- Coordinate{xf * cellWidth, (yf + 1) * cellWidth}
-			} else {
-				plotCoords <- Coordinate{(xf + 1) * cellWidth, yf * cellWidth}
-				plotCoords <- Coordinate{xf * cellWidth, yf * cellWidth}
-			}
+		if y%2 == 0 {
+			plotCoords <- Coordinate{setup.Cells * cellWidth, yf * cellWidth}
+			plotCoords <- Coordinate{setup.Cells * cellWidth, (yf + 1) * cellWidth}
+		} else {
+			plotCoords <- Coordinate{0, yf * cellWidth}
+			plotCoords <- Coordinate{0, (yf + 1) * cellWidth}
 		}
 	}
 
 	plotCoords <- Coordinate{0, setup.Cells * cellWidth}
-	plotCoords <- Coordinate{setup.Cells * cellWidth, setup.Cells * cellWidth}
-	plotCoords <- Coordinate{setup.Cells * cellWidth, 0}
+
+	for x := 0; x < cellInt; x++ {
+		xf := float64(x)
+
+		if x%2 == 0 {
+			plotCoords <- Coordinate{xf * cellWidth, 0}
+			plotCoords <- Coordinate{(xf + 1) * cellWidth, 0}
+		} else {
+			plotCoords <- Coordinate{xf * cellWidth, setup.Cells * cellWidth}
+			plotCoords <- Coordinate{(xf + 1) * cellWidth, setup.Cells * cellWidth}
+		}
+	}
+
+	if cellInt%2 == 0 {
+		plotCoords <- Coordinate{setup.Cells * cellWidth, 0}
+	}
 	plotCoords <- Coordinate{0, 0}
 }
