@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	ReadSettings("../settings.xml")
+	Settings.Read()
 
 	toImageFlag := flag.Bool("toimage", false, "Output result to an image file instead of to the stepper")
 	toFileFlag := flag.Bool("tofile", false, "Output steps to a text file")

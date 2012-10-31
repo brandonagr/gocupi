@@ -46,41 +46,44 @@ type SettingsData struct {
 // Global settings variable
 var Settings SettingsData
 
+// location of the settings file
+var settingsFile string = "../settings.xml"
+
 // Read settings from file, setting the global variable
-func ReadSettings(settingsFile string) {
+func (settings *SettingsData) Read() {
 
 	fileData, err := ioutil.ReadFile(settingsFile)
 	if err != nil {
 		panic(err)
 	}
-	if err := xml.Unmarshal(fileData, &Settings); err != nil {
+	if err := xml.Unmarshal(fileData, settings); err != nil {
 		panic(err)
 	}
 
 	// setup default values
-	if Settings.TimeSlice_US == 0 {
-		Settings.TimeSlice_US = 2048
+	if settings.TimeSlice_US == 0 {
+		settings.TimeSlice_US = 2048
 	}
-	if Settings.SpoolCircumference_MM == 0 {
-		Settings.SpoolCircumference_MM = 60
+	if settings.SpoolCircumference_MM == 0 {
+		settings.SpoolCircumference_MM = 60
 	}
-	if Settings.Acceleration_Seconds == 0 {
-		Settings.Acceleration_Seconds = 1
+	if settings.Acceleration_Seconds == 0 {
+		settings.Acceleration_Seconds = 1
 	}
 
 	// setup derived fields
-	Settings.StepSize_MM = (Settings.SpoolSingleStep_Degrees / 360.0) * Settings.SpoolCircumference_MM
+	settings.StepSize_MM = (settings.SpoolSingleStep_Degrees / 360.0) * settings.SpoolCircumference_MM
 
 	// use 4 because packing data into a byte is done by multiplying it by 32, so 128 is the max value
-	stepsPerRevolution := 360.0 / Settings.SpoolSingleStep_Degrees
-	Settings.MaxSpeed_MM_S = ((4 / (Settings.TimeSlice_US / 1000000)) / stepsPerRevolution) * Settings.SpoolCircumference_MM
-	Settings.MaxSpeed_MM_S *= 0.98 // give max speed some extra room to not hit 127 limit
-	Settings.Acceleration_MM_S2 = Settings.MaxSpeed_MM_S / Settings.Acceleration_Seconds
+	stepsPerRevolution := 360.0 / settings.SpoolSingleStep_Degrees
+	settings.MaxSpeed_MM_S = ((4 / (settings.TimeSlice_US / 1000000)) / stepsPerRevolution) * settings.SpoolCircumference_MM
+	settings.MaxSpeed_MM_S *= 0.98 // give max speed some extra room to not hit 127 limit
+	settings.Acceleration_MM_S2 = settings.MaxSpeed_MM_S / settings.Acceleration_Seconds
 }
 
 // Write settings to file
-func WriteSettings(settingsFile string) {
-	fileData, err := xml.MarshalIndent(Settings, "", "\t")
+func (settings *SettingsData) Write() {
+	fileData, err := xml.MarshalIndent(settings, "", "\t")
 	if err != nil {
 		panic(err)
 	}
