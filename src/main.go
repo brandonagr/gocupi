@@ -145,6 +145,15 @@ func main() {
 		data := ParseSvgFile(args[2])
 		go GenerateSvgPath(data, size, plotCoords)
 
+	case "text":
+		height, _ := strconv.ParseFloat(args[1], 64)
+		if height == 0 {
+			height = 40
+		}
+
+		fmt.Println("Generating text path")
+		go GenerateTextPath(args[2], height, plotCoords)
+
 	default:
 		PrintUsage()
 		return
@@ -212,5 +221,6 @@ lissa s a b (s scale of drawing) (a factor) (b factor)
 parabolic R c l (R radius) (c count of polygon edges) (l number of lines)
 spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)
 spiro R r p (R first circle radius) (r second circle radius) (p pen distance)
-svg s "path" (s size)`)
+svg s "path" (s size)
+text h "string" (h letter height)`)
 }

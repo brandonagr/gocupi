@@ -152,11 +152,13 @@ func WriteStepsToSerial(stepData <-chan int8) {
 	writeData := make([]byte, 128)
 	readData := make([]byte, 1)
 
-	// convert plotCoords to 
-
 	previousSend := time.Now()
 	var totalSends int = 0
 	var byteData int8 = 0
+
+	// send a -128 to force the arduino to restart and rerequest data
+	sentintelValue := int8(-128)
+	s.Write([]byte{byte(sentintelValue)})
 
 	for stepDataOpen := true; stepDataOpen; {
 

@@ -5,7 +5,7 @@
  */
 
 int ledPins[5] = {
-  2,3,4,5,8}; // the pins of all of the leds, first 4 are status lights, 5th is error indicator
+  2,3,4,5,8}; // the pins of all of the leds, first 4 are status lights, 5th is receive indicator
 int leftStepPin = 7;
 int leftDirPin = 6;
 int rightStepPin = 9;
@@ -17,9 +17,10 @@ const unsigned int TIME_SLICE_US = 2048; // number of microseconds per time step
 const unsigned int TIME_SLICE_US_LOG = 11; // log base 2 of TIME_SLICE_US
 const unsigned int POS_FACTOR = 32; // factor each position is multiplied by
 const unsigned int POS_FACTOR_LOG = 5; // log base 2 of POS_FACTOR
+const char RESTART_SENTINEL = -128; // when it gets this value over serial it resets
 
 const unsigned int MOVE_DATA_CAPACITY = 1024;
-byte moveData[MOVE_DATA_CAPACITY]; // buffer of move data, circular buffer
+char moveData[MOVE_DATA_CAPACITY]; // buffer of move data, circular buffer
 unsigned int moveDataStart = 0; // where data is currently being read from
 unsigned int moveDataLength = 0; // the number of items in the moveDataBuffer
 unsigned int moveDataRequestPending = 0; // number of bytes requested
@@ -48,11 +49,19 @@ void setup() {
   pinMode(rightStepPin, OUTPUT);
   pinMode(rightDirPin, OUTPUT);	
 
-  leftDelta = rightDelta = leftStartPos = rightStartPos = leftCurPos = rightCurPos = 0;
+  ResetMovementVariables();
 
   delay(500);
-  UpdateErrorLed(false);
+  UpdateReceiveLed(false);
+  UpdateStatusLeds(0);
+}
 
+// Reset all movement variables
+// --------------------------------------
+void ResetMovementVariables()
+{
+  leftDelta = rightDelta = leftStartPos = rightStartPos = leftCurPos = rightCurPos = 0;
+  sliceStartTime = curTime;
 }
 
 // Main execution loop
@@ -108,7 +117,7 @@ void UpdateStepperPins(long curSliceTime) {
       }
       leftSteps--;
       
-      //UpdateStatusLeds(leftCurPos >> 9);
+      UpdateStatusLeds(leftCurPos >> 13);
     }
 
     if (rightSteps) {
@@ -123,7 +132,6 @@ void UpdateStepperPins(long curSliceTime) {
 
     if (leftSteps || rightSteps) {
       delayMicroseconds(50); // delay a small amount of time before refiring the steps to smooth things out
-      UpdateErrorLed(true);
     } else {
       break;
     }
@@ -141,9 +149,9 @@ void UpdateStatusLeds(int value) {
   digitalWrite(ledPins[3], value & 0x8);
 }
 
-// Update status leds
+// Update receive leds
 // --------------------------------------
-void UpdateErrorLed(boolean value) {
+void UpdateReceiveLed(boolean value) {
   digitalWrite(ledPins[4], value);
 }
 
@@ -165,8 +173,12 @@ void SetSliceVariables() {
   leftStartPos = leftStartPos + long(leftDelta);
   rightStartPos = rightStartPos + long(rightDelta);
 
-  leftDelta = MoveDataGet();
-  rightDelta = MoveDataGet();
+  if (moveDataLength < 2) {
+    leftDelta = rightDelta = 0;
+  } else {
+    leftDelta = MoveDataGet();
+    rightDelta = MoveDataGet();
+  }
 }
 
 
@@ -174,23 +186,33 @@ void SetSliceVariables() {
 // --------------------------------------
 void ReadSerialMoveData() {
 
-  while(Serial.available()) {
+  if(Serial.available()) {
+    char value = Serial.read();
 
-    // if reading in data when there was no data previously, be sure to reset sliceStartTime
+    // if reading in data when there was no data previously, reset everything because right now is the beginning of the first slice
     if (moveDataLength == 0) {
-      sliceStartTime = curTime;
-      
-    }
-    UpdateStatusLeds(moveDataRequestPending>>3);
+      ResetMovementVariables();
 
-    MoveDataPut(Serial.read());
+      // got sentinel value, then we need to restart and issue a new request
+      if (value == RESTART_SENTINEL) { 
+        moveDataRequestPending = 0;
+        UpdateReceiveLed(false);
+        return;
+      }  
+    }
+
+    MoveDataPut(value);
     moveDataRequestPending--;
+
+    if (!moveDataRequestPending) {
+      UpdateReceiveLed(false);
+    }
   }
 }
 
 // Put a value onto the end of the move data buffer
 // --------------------------------------
-void MoveDataPut(byte value) {
+void MoveDataPut(char value) {
 
   int writePosition = moveDataStart + moveDataLength;
   if (writePosition >= MOVE_DATA_CAPACITY) {
@@ -200,7 +222,6 @@ void MoveDataPut(byte value) {
   moveData[writePosition] = value;
 
   if (moveDataLength == MOVE_DATA_CAPACITY) { // full, overwrite existing data
-    UpdateErrorLed(true);
     moveDataStart++;
     if (moveDataStart == MOVE_DATA_CAPACITY) {
       moveDataStart = 0;
@@ -213,13 +234,13 @@ void MoveDataPut(byte value) {
 
 // Return the amount of data sitting in the moveData buffer
 // --------------------------------------
-byte MoveDataGet() {
+char MoveDataGet() {
 
   if (moveDataLength == 0) {
     return 0;
   }
 
-  byte result = moveData[moveDataStart];
+  char result = moveData[moveDataStart];
   moveDataStart++;
   if (moveDataStart == MOVE_DATA_CAPACITY) {
     moveDataStart = 0;
@@ -238,6 +259,7 @@ void RequestMoreSerialMoveData() {
   // request 128 bytes of data
   Serial.write(128);
   moveDataRequestPending = 128;
+  UpdateReceiveLed(true);
 }
 
 
