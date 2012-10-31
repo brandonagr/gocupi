@@ -17,7 +17,6 @@ const unsigned int TIME_SLICE_US = 2048; // number of microseconds per time step
 const unsigned int TIME_SLICE_US_LOG = 11; // log base 2 of TIME_SLICE_US
 const unsigned int POS_FACTOR = 32; // factor each position is multiplied by
 const unsigned int POS_FACTOR_LOG = 5; // log base 2 of POS_FACTOR
-const char RESTART_SENTINEL = -128; // when it gets this value over serial it resets
 
 const unsigned int MOVE_DATA_CAPACITY = 1024;
 char moveData[MOVE_DATA_CAPACITY]; // buffer of move data, circular buffer
@@ -37,7 +36,7 @@ unsigned long sliceStartTime; // start of current slice in microseconds
 // --------------------------------------
 void setup() {
   Serial.begin(57600);
-  Serial.setTimeout(1);
+  Serial.setTimeout(0);
 
   // setup pins
   for(int ledIndex = 0; ledIndex < 5; ledIndex++) {
@@ -181,6 +180,22 @@ void SetSliceVariables() {
   }
 }
 
+// Stop everything and blink the status led value times
+// --------------------------------------
+void Blink(char value) {
+ int counts = value;
+  if (counts<0) counts=-counts;
+
+  UpdateReceiveLed(false);
+  for(int i=0;i<counts;i++) {
+   delay(1000);
+   UpdateReceiveLed(true);
+   delay(1000);
+   UpdateReceiveLed(false);
+    
+  }
+  delay(100000);
+}
 
 // Read serial data if its available
 // --------------------------------------
@@ -188,17 +203,14 @@ void ReadSerialMoveData() {
 
   if(Serial.available()) {
     char value = Serial.read();
-
-    // if reading in data when there was no data previously, reset everything because right now is the beginning of the first slice
-    if (moveDataLength == 0) {
+    
+    // Check if this value is the sentinel reset value
+    if (value == char(0x80)) {
       ResetMovementVariables();
-
-      // got sentinel value, then we need to restart and issue a new request
-      if (value == RESTART_SENTINEL) { 
-        moveDataRequestPending = 0;
-        UpdateReceiveLed(false);
-        return;
-      }  
+      moveDataRequestPending = 0;
+      moveDataLength = 0;
+      UpdateReceiveLed(false);
+      return;
     }
 
     MoveDataPut(value);
@@ -213,6 +225,7 @@ void ReadSerialMoveData() {
 // Put a value onto the end of the move data buffer
 // --------------------------------------
 void MoveDataPut(char value) {
+  
 
   int writePosition = moveDataStart + moveDataLength;
   if (writePosition >= MOVE_DATA_CAPACITY) {

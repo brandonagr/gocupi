@@ -157,11 +157,9 @@ func WriteStepsToSerial(stepData <-chan int8) {
 	var byteData int8 = 0
 
 	// send a -128 to force the arduino to restart and rerequest data
-	sentintelValue := int8(-128)
-	s.Write([]byte{byte(sentintelValue)})
+	s.Write([]byte{0x80})
 
 	for stepDataOpen := true; stepDataOpen; {
-
 		// wait for next data request
 		n, err := s.Read(readData)
 		if err != nil {
