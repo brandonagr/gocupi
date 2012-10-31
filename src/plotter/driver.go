@@ -22,7 +22,7 @@ func OutputCoords(plotCoords <-chan Coordinate) {
 }
 
 // Takes in coordinates and outputs stepData
-func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8, useCubicSmooth bool) {
+func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 
 	defer close(stepData)
 

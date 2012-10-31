@@ -64,7 +64,7 @@ func printCharacter(asciiLetter int, plotCoords chan<- Coordinate, horizontalPos
 			}
 		}
 
-		plotCoords <- Coordinate{pointData[0].X - 10, 0}
+		plotCoords <- Coordinate{pointData[0].X, 0}
 	}
 
 	// play coordinates forwards and backwards in order to exit at same entrance
@@ -76,7 +76,7 @@ func printCharacter(asciiLetter int, plotCoords chan<- Coordinate, horizontalPos
 	}
 
 	if len(pointData) > 0 {
-		plotCoords <- Coordinate{pointData[0].X - 10, 0}
+		plotCoords <- Coordinate{pointData[0].X, 0}
 	}
 	//plotCoords <- Coordinate{horizontalPosition + float64(width)*scale, 0}
 

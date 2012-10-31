@@ -11,11 +11,9 @@ import (
 func main() {
 	ReadSettings("../settings.xml")
 
-	alignFlag := flag.Bool("align", false, "Run interactive spool alignment mode")
 	toImageFlag := flag.Bool("toimage", false, "Output result to an image file instead of to the stepper")
 	toFileFlag := flag.Bool("tofile", false, "Output steps to a text file")
 	countFlag := flag.Bool("count", false, "Outputs the time it would take to draw")
-	cubicSmoothFlag := flag.Bool("cubicsmooth", false, "Uses cubic spline for straight lines to speed up / slow down")
 	speedSlowFactor := flag.Float64("slowfactor", 1.0, "Divide max speed by this number")
 	flag.Parse()
 
@@ -29,13 +27,8 @@ func main() {
 	fmt.Printf("MaxSpeed: %.3f Accel: %.3f", Settings.MaxSpeed_MM_S, Settings.Acceleration_MM_S2)
 	fmt.Println()
 
-	if *alignFlag {
-		PerformManualAlignment()
-		return
-	}
-
 	args := flag.Args()
-	if len(args) < 2 {
+	if len(args) < 1 {
 		PrintUsage()
 		return
 	}
@@ -43,6 +36,10 @@ func main() {
 	plotCoords := make(chan Coordinate, 1024)
 
 	switch args[0] {
+
+	case "align":
+		PerformManualAlignment()
+		return
 
 	case "circle":
 		params := GetArgsAsFloats(args[1:], 3)
@@ -84,6 +81,9 @@ func main() {
 
 		fmt.Println("Generating hilbert curve")
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
+
+	case "interactive":
+		go GenerateMousePath("/dev/input/event2", plotCoords)
 
 	case "lissa":
 		params := GetArgsAsFloats(args[1:], 3)
@@ -166,7 +166,7 @@ func main() {
 	}
 
 	stepData := make(chan int8, 1024)
-	go GenerateSteps(plotCoords, stepData, *cubicSmoothFlag)
+	go GenerateSteps(plotCoords, stepData)
 	switch {
 	case *countFlag:
 		CountSteps(stepData)
@@ -205,18 +205,18 @@ func GetArgsAsFloats(args []string, expectedCount int) []float64 {
 func PrintUsage() {
 	fmt.Println(`Usage: (flags) COMMAND PARAMS...
 Flags:
--align, runs alignment mode where you can wind the spools a certain distance
 -toimage, outputs data to an image of what the render should look like
 -tofile, outputs step data to a file
 -count, outputs number of steps and render time
--cubicsmooth, uses cubic spline smoothing when generating steps
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 
 Commands:
+align
 circle R d n (R radius) (d displacement per revolution) (n number of circles)
 gcode s "path" (s scale)
 grid s c (s size) (c number cells)
 hilbert s d (s size) (d degree(ie 1 to 6))
+interactive
 lissa s a b (s scale of drawing) (a factor) (b factor)
 parabolic R c l (R radius) (c count of polygon edges) (l number of lines)
 spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)
