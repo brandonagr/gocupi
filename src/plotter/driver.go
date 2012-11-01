@@ -211,8 +211,7 @@ func PerformManualAlignment() {
 func PerformMouseTracking() {
 
 	fmt.Println("Opening mouse reader")
-	mouse := &UnixMouseReader{}
-	mouse.Start("/dev/input/event2")
+	mouse := CreateAndStartMouseReader()
 	defer mouse.Close()
 
 	fmt.Println("Opening com port")
@@ -260,9 +259,11 @@ func PerformMouseTracking() {
 			return
 		}
 
-		mousePos := mouse.GetPos()
+		mouseX, mouseY := mouse.GetPos()
+		mousePos := Coordinate{float64(mouseX) / 5.0, float64(mouseY) / 5.0}
 		direction := mousePos.Minus(currentPos)
 		distance := direction.Len()
+		direction = direction.Normalized()
 		if distance > maxDistance {
 			distance = maxDistance
 		}
@@ -270,7 +271,7 @@ func PerformMouseTracking() {
 		dataToWrite := int(readData[0])
 		for i := 0; i < dataToWrite; i += 2 {
 
-			sliceTarget := currentPos.Add(direction.Scaled(float64(i) / 128.0))
+			sliceTarget := currentPos.Add(direction.Scaled(float64(i) * distance / 128.0))
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
 
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)

@@ -1,13 +1,12 @@
 package plotter
 
-// Allows mouse movement to be used to generate a plotCoords path
+// Allows current mouse position to be read
 
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"os"
-	"sync"
+	"sync/atomic"
 	"syscall"
 	"unsafe"
 )
@@ -16,29 +15,34 @@ import (
 type MouseReader interface {
 	Start(string)
 	Close()
-	GetPos() Coordinate
+	GetPos() (int32, int32)
 	GetLeftButton() bool
 	GetRightButton() bool
 }
 
 // Data needed by MouseReader
-type UnixMouseReader struct {
+type linuxMouseReader struct {
 	eventFile *os.File
 
-	currentPos         Coordinate
+	currentXPos        int32
+	currentYPos        int32
 	leftButtonPressed  bool
 	rightButtonPressed bool
+}
 
-	lock sync.Mutex
+// Return an implementation of MouseReader specific to the current platform
+func CreateAndStartMouseReader() MouseReader {
+	// todo: implement windows supports?
+	var mouse = &linuxMouseReader{}
+	mouse.Start("/dev/input/event2")
+	return mouse
 }
 
 // Launches a gorountine which updates
-func (mouse *UnixMouseReader) Start(eventPath string) {
-
+func (mouse *linuxMouseReader) Start(eventPath string) {
 	var err error
 	mouse.eventFile, err = os.Open(eventPath)
 	if err != nil {
-		fmt.Println("Unable to open", eventPath)
 		panic(err)
 	}
 
@@ -54,7 +58,7 @@ type inputEvent struct {
 }
 
 // Runs an infinite loop reading from the event file
-func (mouse *UnixMouseReader) readDriver() {
+func (mouse *linuxMouseReader) readDriver() {
 	event := inputEvent{}
 	buffer := make([]byte, int(unsafe.Sizeof(event)))
 
@@ -81,42 +85,34 @@ func (mouse *UnixMouseReader) readDriver() {
 		case 2: // EV_REL movement event
 			switch event.Code {
 			case 0: // REL_X
-				mouse.movePos(Coordinate{float64(event.Value) / 5.0, 0})
+				x := atomic.LoadInt32(&mouse.currentXPos)
+				x += event.Value
+				atomic.StoreInt32(&mouse.currentXPos, x)
 			case 1: // REL_Y
-				mouse.movePos(Coordinate{0, float64(event.Value) / 5.0})
+				y := atomic.LoadInt32(&mouse.currentYPos)
+				y += event.Value
+				atomic.StoreInt32(&mouse.currentYPos, y)
 			}
 		}
 	}
 }
 
 // Stop the mouse
-func (mouse *UnixMouseReader) Close() {
-
+func (mouse *linuxMouseReader) Close() {
 	mouse.eventFile.Close()
 }
 
 // Return the current mouse position
-func (mouse *UnixMouseReader) GetPos() Coordinate {
-	mouse.lock.Lock()
-	defer mouse.lock.Unlock()
-
-	return mouse.currentPos
-}
-
-// Update the current position
-func (mouse *UnixMouseReader) movePos(delta Coordinate) {
-	mouse.lock.Lock()
-	defer mouse.lock.Unlock()
-
-	mouse.currentPos = mouse.currentPos.Add(delta)
+func (mouse *linuxMouseReader) GetPos() (x, y int32) {
+	return atomic.LoadInt32(&mouse.currentXPos), atomic.LoadInt32(&mouse.currentYPos)
 }
 
 // Return true if left button has ever been pressed
-func (mouse *UnixMouseReader) GetLeftButton() bool {
+func (mouse *linuxMouseReader) GetLeftButton() bool {
 	return mouse.leftButtonPressed
 }
 
 // Return true if right button has ever been pressed
-func (mouse *UnixMouseReader) GetRightButton() bool {
+func (mouse *linuxMouseReader) GetRightButton() bool {
 	return mouse.rightButtonPressed
 }
