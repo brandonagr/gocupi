@@ -30,8 +30,8 @@ func GenerateMousePath(eventPath string, plotCoords chan<- Coordinate) {
 	}
 	defer mouse.Close()
 
-	fmt.Println("Left click to exit updating polar position in settings")
-	fmt.Println("Right click to exit without updating polar position in settings")
+	fmt.Println("Left click to exit")
+	fmt.Println("Right click to exit and manually enter X,Y position")
 
 	currentPosition := Coordinate{0, 0}
 	event := InputEvent{}
@@ -41,7 +41,25 @@ func GenerateMousePath(eventPath string, plotCoords chan<- Coordinate) {
 		b := bytes.NewBuffer(buffer)
 		binary.Read(b, binary.LittleEndian, &event)
 
-		fmt.Println("Read event Type", event.Type, "Code", event.Code, "Value", event.Value)
+		if event.Type == 1 && event.Value == 1 {
+
+			switch event.Code {
+			case 105:
+				currentPosition.X -= 10
+			case 106:
+				currentPosition.X += 10
+			case 103:
+				currentPosition.Y -= 10
+			case 108:
+				currentPosition.Y += 10
+			}
+			plotCoords <- currentPosition 			
+
+		}
+		continue
+			
+
+		//fmt.Println("Read event Type", event.Type, "Code", event.Code, "Value", event.Value)
 
 		switch event.Type {
 		case 1: // EV_KEY button press
@@ -61,7 +79,21 @@ func GenerateMousePath(eventPath string, plotCoords chan<- Coordinate) {
 
 				return
 			case 273: // BTN_RIGHT right click
-				fmt.Println("Existing without updating ")
+				fmt.Print("Enter X,Y location of pen:")
+				var finalLocation Coordinate
+				if _, err := fmt.Scanln(&finalLocation.X,&finalLocation.Y); err != nil {
+					panic(err)
+				}
+				polarSystem := PolarSystemFromSettings()
+				finalPolarPos := finalLocation.ToPolar(polarSystem)
+
+				fmt.Println("Updating Left from", Settings.StartingLeftDist_MM, "to", finalPolarPos.LeftDist)
+				fmt.Println("Updating Right from", Settings.StartingRightDist_MM, "to", finalPolarPos.RightDist)
+				
+				Settings.StartingLeftDist_MM = finalPolarPos.LeftDist
+				Settings.StartingRightDist_MM = finalPolarPos.RightDist
+				Settings.Write()
+				
 				return
 			}
 

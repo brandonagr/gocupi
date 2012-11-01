@@ -83,7 +83,7 @@ func main() {
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
 
 	case "interactive":
-		go GenerateMousePath("/dev/input/event2", plotCoords)
+		go GenerateMousePath("/dev/input/event0", plotCoords)
 
 	case "lissa":
 		params := GetArgsAsFloats(args[1:], 3)
