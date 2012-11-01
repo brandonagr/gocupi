@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -34,30 +35,15 @@ func GenerateMousePath(eventPath string, plotCoords chan<- Coordinate) {
 	fmt.Println("Right click to exit and manually enter X,Y position")
 
 	currentPosition := Coordinate{0, 0}
+	previousSent := Coordinate{0, 0}
+	previousSendTime := time.Now()
+
 	event := InputEvent{}
 	buffer := make([]byte, int(unsafe.Sizeof(event)))
 	for {
 		mouse.Read(buffer)
 		b := bytes.NewBuffer(buffer)
 		binary.Read(b, binary.LittleEndian, &event)
-
-		if event.Type == 1 && event.Value == 1 {
-
-			switch event.Code {
-			case 105:
-				currentPosition.X -= 10
-			case 106:
-				currentPosition.X += 10
-			case 103:
-				currentPosition.Y -= 10
-			case 108:
-				currentPosition.Y += 10
-			}
-			plotCoords <- currentPosition 			
-
-		}
-		continue
-			
 
 		//fmt.Println("Read event Type", event.Type, "Code", event.Code, "Value", event.Value)
 
@@ -81,7 +67,7 @@ func GenerateMousePath(eventPath string, plotCoords chan<- Coordinate) {
 			case 273: // BTN_RIGHT right click
 				fmt.Print("Enter X,Y location of pen:")
 				var finalLocation Coordinate
-				if _, err := fmt.Scanln(&finalLocation.X,&finalLocation.Y); err != nil {
+				if _, err := fmt.Scanln(&finalLocation.X, &finalLocation.Y); err != nil {
 					panic(err)
 				}
 				polarSystem := PolarSystemFromSettings()
@@ -89,24 +75,30 @@ func GenerateMousePath(eventPath string, plotCoords chan<- Coordinate) {
 
 				fmt.Println("Updating Left from", Settings.StartingLeftDist_MM, "to", finalPolarPos.LeftDist)
 				fmt.Println("Updating Right from", Settings.StartingRightDist_MM, "to", finalPolarPos.RightDist)
-				
+
 				Settings.StartingLeftDist_MM = finalPolarPos.LeftDist
 				Settings.StartingRightDist_MM = finalPolarPos.RightDist
 				Settings.Write()
-				
+
 				return
 			}
 
 		case 2: // EV_REL movement event
 			switch event.Code {
 			case 0: // REL_X
-				currentPosition.X += float64(event.Value)
+				currentPosition.X += float64(event.Value) / 4.0
 			case 1: // REL_Y
-				currentPosition.Y += float64(event.Value)
+				currentPosition.Y += float64(event.Value) / 4.0
 			}
 
-			plotCoords <- currentPosition
+			if currentPosition.Minus(previousSent).Len() > 10.0 && time.Since(previousSendTime).Seconds() > 1.0 {
+				// send twice so that command doesnt get stuck in interpolation pipeline
+				plotCoords <- currentPosition
+				plotCoords <- currentPosition
 
+				previousSent = currentPosition
+				previousSendTime = time.Now()
+			}
 		}
 
 		if event.Type != 2 {

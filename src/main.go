@@ -37,10 +37,6 @@ func main() {
 
 	switch args[0] {
 
-	case "align":
-		PerformManualAlignment()
-		return
-
 	case "circle":
 		params := GetArgsAsFloats(args[1:], 3)
 		circleSetup := SlidingCircle{
@@ -82,9 +78,6 @@ func main() {
 		fmt.Println("Generating hilbert curve")
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
 
-	case "interactive":
-		go GenerateMousePath("/dev/input/event0", plotCoords)
-
 	case "lissa":
 		params := GetArgsAsFloats(args[1:], 3)
 		posFunc := func(t float64) Coordinate {
@@ -96,6 +89,9 @@ func main() {
 
 		fmt.Println("Generating Lissajous curve")
 		go GenerateParametric(posFunc, plotCoords)
+
+	case "move":
+		go GenerateMousePath("/dev/input/event2", plotCoords)
 
 	case "parabolic":
 		params := GetArgsAsFloats(args[1:], 3)
@@ -134,6 +130,10 @@ func main() {
 
 		fmt.Println("Generating spiro")
 		go GenerateParametric(posFunc, plotCoords)
+
+	case "spool":
+		PerformManualAlignment()
+		return
 
 	case "svg":
 		size, _ := strconv.ParseFloat(args[1], 64)
@@ -211,16 +211,16 @@ Flags:
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 
 Commands:
-align
 circle R d n (R radius) (d displacement per revolution) (n number of circles)
 gcode s "path" (s scale)
 grid s c (s size) (c number cells)
 hilbert s d (s size) (d degree(ie 1 to 6))
-interactive
 lissa s a b (s scale of drawing) (a factor) (b factor)
+move
 parabolic R c l (R radius) (c count of polygon edges) (l number of lines)
 spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)
 spiro R r p (R first circle radius) (r second circle radius) (p pen distance)
+spool
 svg s "path" (s size)
 text h "string" (h letter height)`)
 }
