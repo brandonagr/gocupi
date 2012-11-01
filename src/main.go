@@ -91,7 +91,8 @@ func main() {
 		go GenerateParametric(posFunc, plotCoords)
 
 	case "move":
-		go GenerateMousePath("/dev/input/event2", plotCoords)
+		PerformMouseTracking()
+		return
 
 	case "parabolic":
 		params := GetArgsAsFloats(args[1:], 3)

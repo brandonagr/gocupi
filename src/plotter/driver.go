@@ -47,8 +47,6 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 	}
 	var anotherTarget bool = true
 
-	//totalSteps := 0
-
 	for anotherTarget {
 		nextTarget, chanOpen := <-plotCoords
 		if !chanOpen {
@@ -65,33 +63,6 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 
 			// calc integer number of steps * 32 that will be made this time slice
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
-
-			//totalSteps++
-			// if totalSteps > 128 {
-			// fmt.Println("Origin:", origin, "Target", target, "NextTarget", nextTarget)
-			// fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
-			// fmt.Println("Steps", sliceSteps, "Total", totalSteps)
-
-			// if sliceSteps.LeftDist == 127 || sliceSteps.LeftDist == -127 {
-
-			// 	fmt.Println("---------------")
-			// 	fmt.Println(interp.Position(slice - 1))
-			// 	fmt.Println(interp.Position(slice))
-			// 	fmt.Println("===============")
-			// 	fmt.Println("Origin:", origin, "Target", target, "NextTarget", nextTarget)
-			// 	fmt.Println("Cur slice target:", sliceTarget, "Previous", previousPolarPos, "Polar target", polarSliceTarget)
-			// 	fmt.Println("Steps", sliceSteps)
-			// 	fmt.Println("---------------")
-
-			// 	interp.WriteData()
-			// 	panic("Exceeded speed")
-			// }
-
-			// 	if totalSteps > 133 {
-			// 		panic("Past error")
-			// 	}
-			// }
-
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
 
 			stepData <- int8(sliceSteps.LeftDist)
@@ -234,4 +205,111 @@ func PerformManualAlignment() {
 
 		close(alignStepData)
 	}
+}
+
+// Do mouse tracking, must open up serial port directly in order to send steps in realtime as requested
+func PerformMouseTracking() {
+
+	fmt.Println("Opening mouse reader")
+	mouse := &UnixMouseReader{}
+	mouse.Start("/dev/input/event2")
+	defer mouse.Close()
+
+	fmt.Println("Opening com port")
+	c := &serial.Config{Name: "/dev/ttyAMA0", Baud: 57600}
+	s, err := serial.OpenPort(c)
+	if err != nil {
+		panic(err)
+	}
+	defer s.Close()
+
+	fmt.Println("Left click to exit, Right click to exit and enter X Y location of pen")
+
+	// buffers to use during serial communication
+	writeData := make([]byte, 128)
+	readData := make([]byte, 1)
+
+	polarSystem := PolarSystemFromSettings()
+	previousPolarPos := PolarCoordinate{Settings.StartingLeftDist_MM, Settings.StartingRightDist_MM}
+	startingPos := previousPolarPos.ToCoord(polarSystem)
+	polarSystem.XOffset = startingPos.X
+	polarSystem.YOffset = startingPos.Y
+
+	currentPos := Coordinate{0, 0}
+
+	// max distance that can be travelled in one batch
+	maxDistance := 64 * (Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0)
+
+	// send a -128 to force the arduino to restart and rerequest data
+	s.Write([]byte{0x80})
+	for stepDataOpen := true; stepDataOpen; {
+		// wait for next data request
+		n, err := s.Read(readData)
+		if err != nil {
+			panic(err)
+		}
+		if n != 1 {
+			panic(err)
+		}
+
+		if mouse.GetLeftButton() {
+			updateSettingsPosition(currentPos, polarSystem)
+			return
+		} else if mouse.GetRightButton() {
+			promptForSettingsPosition(polarSystem)
+			return
+		}
+
+		mousePos := mouse.GetPos()
+		direction := mousePos.Minus(currentPos)
+		distance := direction.Len()
+		if distance > maxDistance {
+			distance = maxDistance
+		}
+
+		dataToWrite := int(readData[0])
+		for i := 0; i < dataToWrite; i += 2 {
+
+			sliceTarget := currentPos.Add(direction.Scaled(float64(i) / 128.0))
+			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
+
+			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
+			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
+
+			writeData[i] = byte(int8(sliceSteps.LeftDist))
+			writeData[i+1] = byte(int8(-sliceSteps.RightDist))
+		}
+		currentPos = previousPolarPos.ToCoord(polarSystem)
+
+		s.Write(writeData)
+	}
+}
+
+// Update settings with the current position of the pen
+func updateSettingsPosition(currentPos Coordinate, polarSystem PolarSystem) {
+	finalPolarPos := currentPos.ToPolar(polarSystem)
+
+	fmt.Println("Updating Left from", Settings.StartingLeftDist_MM, "to", finalPolarPos.LeftDist)
+	fmt.Println("Updating Right from", Settings.StartingRightDist_MM, "to", finalPolarPos.RightDist)
+
+	Settings.StartingLeftDist_MM = finalPolarPos.LeftDist
+	Settings.StartingRightDist_MM = finalPolarPos.RightDist
+	Settings.Write()
+}
+
+// Ask user for X Y location and then update settings
+func promptForSettingsPosition(polarSystem PolarSystem) {
+	fmt.Print("Enter X Y location of pen:")
+	var finalLocation Coordinate
+	if _, err := fmt.Scanln(&finalLocation.X, &finalLocation.Y); err != nil {
+		panic(err)
+	}
+	finalPolarPos := finalLocation.ToPolar(polarSystem)
+
+	fmt.Println("Updating Left from", Settings.StartingLeftDist_MM, "to", finalPolarPos.LeftDist)
+	fmt.Println("Updating Right from", Settings.StartingRightDist_MM, "to", finalPolarPos.RightDist)
+
+	Settings.StartingLeftDist_MM = finalPolarPos.LeftDist
+	Settings.StartingRightDist_MM = finalPolarPos.RightDist
+	Settings.Write()
 }

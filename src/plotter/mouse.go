@@ -7,102 +7,116 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"sync"
 	"syscall"
-	"time"
 	"unsafe"
 )
 
+// Interface needed
+type MouseReader interface {
+	Start(string)
+	Close()
+	GetPos() Coordinate
+	GetLeftButton() bool
+	GetRightButton() bool
+}
+
+// Data needed by MouseReader
+type UnixMouseReader struct {
+	eventFile *os.File
+
+	currentPos         Coordinate
+	leftButtonPressed  bool
+	rightButtonPressed bool
+
+	lock sync.Mutex
+}
+
+// Launches a gorountine which updates
+func (mouse *UnixMouseReader) Start(eventPath string) {
+
+	var err error
+	mouse.eventFile, err = os.Open(eventPath)
+	if err != nil {
+		fmt.Println("Unable to open", eventPath)
+		panic(err)
+	}
+
+	go mouse.readDriver()
+}
+
 // Event data returned from event file
-type InputEvent struct {
+type inputEvent struct {
 	Time  syscall.Timeval // time in seconds since epoch at which event occurred
 	Type  uint16          // event type - one of ecodes.EV_*
 	Code  uint16          // event code related to the event type
 	Value int32           // event value related to the event type
 }
 
-// Generates a stream of Coordinates that follow the mouse movement
-func GenerateMousePath(eventPath string, plotCoords chan<- Coordinate) {
-	defer close(plotCoords)
-
-	mouse, err := os.Open(eventPath)
-	if err != nil {
-		fmt.Println("Unable to open", eventPath)
-		panic(err)
-	}
-	defer mouse.Close()
-
-	fmt.Println("Left click to exit")
-	fmt.Println("Right click to exit and manually enter X,Y position")
-
-	currentPosition := Coordinate{0, 0}
-	previousSent := Coordinate{0, 0}
-	previousSendTime := time.Now()
-
-	event := InputEvent{}
+// Runs an infinite loop reading from the event file
+func (mouse *UnixMouseReader) readDriver() {
+	event := inputEvent{}
 	buffer := make([]byte, int(unsafe.Sizeof(event)))
+
 	for {
-		mouse.Read(buffer)
+		_, err := mouse.eventFile.Read(buffer)
+		if err != nil {
+			return
+		}
+
 		b := bytes.NewBuffer(buffer)
 		binary.Read(b, binary.LittleEndian, &event)
 
-		//fmt.Println("Read event Type", event.Type, "Code", event.Code, "Value", event.Value)
-
 		switch event.Type {
 		case 1: // EV_KEY button press
+
 			switch event.Code {
 			case 272: // BTN_LEFT left click
-				polarSystem := PolarSystemFromSettings()
-				startingPolarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
-				finalLocation := startingPolarPos.ToCoord(polarSystem).Add(currentPosition)
-				finalPolarPos := finalLocation.ToPolar(polarSystem)
+				mouse.leftButtonPressed = true
 
-				fmt.Println("Updating Left from", Settings.StartingLeftDist_MM, "to", finalPolarPos.LeftDist)
-				fmt.Println("Updating Right from", Settings.StartingRightDist_MM, "to", finalPolarPos.RightDist)
-
-				Settings.StartingLeftDist_MM = finalPolarPos.LeftDist
-				Settings.StartingRightDist_MM = finalPolarPos.RightDist
-				Settings.Write()
-
-				return
 			case 273: // BTN_RIGHT right click
-				fmt.Print("Enter X,Y location of pen:")
-				var finalLocation Coordinate
-				if _, err := fmt.Scanln(&finalLocation.X, &finalLocation.Y); err != nil {
-					panic(err)
-				}
-				polarSystem := PolarSystemFromSettings()
-				finalPolarPos := finalLocation.ToPolar(polarSystem)
-
-				fmt.Println("Updating Left from", Settings.StartingLeftDist_MM, "to", finalPolarPos.LeftDist)
-				fmt.Println("Updating Right from", Settings.StartingRightDist_MM, "to", finalPolarPos.RightDist)
-
-				Settings.StartingLeftDist_MM = finalPolarPos.LeftDist
-				Settings.StartingRightDist_MM = finalPolarPos.RightDist
-				Settings.Write()
-
-				return
+				mouse.rightButtonPressed = true
 			}
 
 		case 2: // EV_REL movement event
 			switch event.Code {
 			case 0: // REL_X
-				currentPosition.X += float64(event.Value) / 4.0
+				mouse.movePos(Coordinate{float64(event.Value) / 5.0, 0})
 			case 1: // REL_Y
-				currentPosition.Y += float64(event.Value) / 4.0
+				mouse.movePos(Coordinate{0, float64(event.Value) / 5.0})
 			}
-
-			if currentPosition.Minus(previousSent).Len() > 10.0 && time.Since(previousSendTime).Seconds() > 1.0 {
-				// send twice so that command doesnt get stuck in interpolation pipeline
-				plotCoords <- currentPosition
-				plotCoords <- currentPosition
-
-				previousSent = currentPosition
-				previousSendTime = time.Now()
-			}
-		}
-
-		if event.Type != 2 {
-			continue
 		}
 	}
+}
+
+// Stop the mouse
+func (mouse *UnixMouseReader) Close() {
+
+	mouse.eventFile.Close()
+}
+
+// Return the current mouse position
+func (mouse *UnixMouseReader) GetPos() Coordinate {
+	mouse.lock.Lock()
+	defer mouse.lock.Unlock()
+
+	return mouse.currentPos
+}
+
+// Update the current position
+func (mouse *UnixMouseReader) movePos(delta Coordinate) {
+	mouse.lock.Lock()
+	defer mouse.lock.Unlock()
+
+	mouse.currentPos = mouse.currentPos.Add(delta)
+}
+
+// Return true if left button has ever been pressed
+func (mouse *UnixMouseReader) GetLeftButton() bool {
+	return mouse.leftButtonPressed
+}
+
+// Return true if right button has ever been pressed
+func (mouse *UnixMouseReader) GetRightButton() bool {
+	return mouse.rightButtonPressed
 }
