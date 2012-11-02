@@ -260,19 +260,27 @@ func PerformMouseTracking() {
 		}
 
 		mouseX, mouseY := mouse.GetPos()
-		mousePos := Coordinate{float64(mouseX) / 5.0, float64(mouseY) / 5.0}
+		mousePos := Coordinate{float64(mouseX) / 20.0, float64(mouseY) / 20.0}
 		direction := mousePos.Minus(currentPos)
 		distance := direction.Len()
-		direction = direction.Normalized()
+		if distance == 0.0 {
+			direction = Coordinate{1,0}
+		} else {
+			direction = direction.Normalized()
+		}
 		if distance > maxDistance {
 			distance = maxDistance
 		}
+		//fmt.Println("Got mouse pos", mousePos)
 
 		dataToWrite := int(readData[0])
 		for i := 0; i < dataToWrite; i += 2 {
 
+
 			sliceTarget := currentPos.Add(direction.Scaled(float64(i) * distance / 128.0))
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
+
+			//fmt.Println("i", i, "pos", currentPos, "target", sliceTarget);
 
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
@@ -305,7 +313,7 @@ func promptForSettingsPosition(polarSystem PolarSystem) {
 	if _, err := fmt.Scanln(&finalLocation.X, &finalLocation.Y); err != nil {
 		panic(err)
 	}
-	finalPolarPos := finalLocation.ToPolar(polarSystem)
+	finalPolarPos := finalLocation.Minus(Coordinate{polarSystem.XOffset, polarSystem.YOffset}).ToPolar(polarSystem)
 
 	fmt.Println("Updating Left from", Settings.StartingLeftDist_MM, "to", finalPolarPos.LeftDist)
 	fmt.Println("Updating Right from", Settings.StartingRightDist_MM, "to", finalPolarPos.RightDist)
