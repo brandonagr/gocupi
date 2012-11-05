@@ -65,8 +65,8 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
 
-			stepData <- int8(sliceSteps.LeftDist)
-			stepData <- int8(-sliceSteps.RightDist)
+			stepData <- int8(-sliceSteps.LeftDist)
+			stepData <- int8(sliceSteps.RightDist)
 		}
 		origin = previousPolarPos.ToCoord(polarSystem)
 		target = nextTarget
@@ -195,11 +195,11 @@ func PerformManualAlignment() {
 			position = position + sliceSteps*(Settings.StepSize_MM/32.0)
 
 			if side == "l" {
-				alignStepData <- int8(sliceSteps)
+				alignStepData <- int8(-sliceSteps)
 				alignStepData <- 0
 			} else {
 				alignStepData <- 0
-				alignStepData <- int8(-sliceSteps)
+				alignStepData <- int8(sliceSteps)
 			}
 		}
 
@@ -285,8 +285,8 @@ func PerformMouseTracking() {
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
 
-			writeData[i] = byte(int8(sliceSteps.LeftDist))
-			writeData[i+1] = byte(int8(-sliceSteps.RightDist))
+			writeData[i] = byte(int8(-sliceSteps.LeftDist))
+			writeData[i+1] = byte(int8(sliceSteps.RightDist))
 		}
 		currentPos = previousPolarPos.ToCoord(polarSystem)
 

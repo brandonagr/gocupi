@@ -4,9 +4,9 @@
 	<SpoolCircumference_MM>60.946897</SpoolCircumference_MM>
 	<SpoolSingleStep_Degrees>0.225</SpoolSingleStep_Degrees>
 	<Acceleration_Seconds>0.75</Acceleration_Seconds>
-	<HorizontalDistance_MM>625</HorizontalDistance_MM>
-	<MinVertical_MM>100</MinVertical_MM>
-	<MaxVertical_MM>600</MaxVertical_MM>
-	<StartingLeftDist_MM>481.3188618735298</StartingLeftDist_MM>
-	<StartingRightDist_MM>379.6125049644649</StartingRightDist_MM>
+	<HorizontalDistance_MM>462</HorizontalDistance_MM>
+	<MinVertical_MM>50</MinVertical_MM>
+	<MaxVertical_MM>380</MaxVertical_MM>
+	<StartingLeftDist_MM>260.9450468168576</StartingLeftDist_MM>
+	<StartingRightDist_MM>503.75516581250963</StartingRightDist_MM>
 </SettingsData>
