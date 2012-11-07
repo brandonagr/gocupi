@@ -10,7 +10,7 @@ import (
 // Writes step data and position to a graph
 func WriteStepsToChart(stepData <-chan int8) {
 
-	maxNumberSteps := 4000
+	maxNumberSteps := 1500
 
 	leftVel := make(chartplotter.XYs, maxNumberSteps)
 	rightVel := make(chartplotter.XYs, maxNumberSteps)

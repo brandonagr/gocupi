@@ -41,6 +41,7 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 	var interp PositionInterpolater = new(TrapezoidInterpolater)
 
 	//var previousLeft int = 0
+	//var sliceTotal int = 0
 
 	origin := Coordinate{0, 0}
 	target, chanOpen := <-plotCoords
@@ -57,6 +58,8 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 		}
 
 		interp.Setup(origin, target, nextTarget)
+
+		//fmt.Println("Slice", sliceTotal, "------------------------")
 
 		for slice := 1.0; slice <= interp.Slices(); slice++ {
 
@@ -75,8 +78,10 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 
 			stepData <- int8(-sliceSteps.LeftDist)
 			stepData <- int8(sliceSteps.RightDist)
+			//sliceTotal++
 		}
 		origin = previousPolarPos.ToCoord(polarSystem)
+		//fmt.Println("Reprojection error", origin.Minus(target).Len(), "target", target, "actual", origin)
 		target = nextTarget
 	}
 	fmt.Println("Done generating steps")

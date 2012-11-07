@@ -130,6 +130,7 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 		nextDirection = nextDirection.Normalized()
 	}
 	cosAngle := data.direction.DotProduct(nextDirection)
+	cosAngle = math.Pow(cosAngle, 3) // use cube in order to make it smaller for non straight lines
 	data.exitSpeed = Settings.MaxSpeed_MM_S * math.Max(cosAngle, 0.0)
 
 	data.cruiseSpeed = Settings.MaxSpeed_MM_S
@@ -203,6 +204,8 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 // Calculate current position at the given time
 func (data *TrapezoidInterpolater) Position(slice float64) Coordinate {
 
+	//fmt.Println("Slice", slice, "out of", data.slices, "percent", slice/data.slices)
+
 	time := (slice / data.slices) * data.time
 	var distanceAlongMovement float64 = 0
 
@@ -210,7 +213,7 @@ func (data *TrapezoidInterpolater) Position(slice float64) Coordinate {
 
 		distanceAlongMovement = 0.5*Settings.Acceleration_MM_S2*time*time + data.entrySpeed*time
 
-		//fmt.Println("Accel", time, distanceAlongMovement)
+		//fmt.Println("Accel", time, distanceAlongMovement, "speed is", Settings.Acceleration_MM_S2*time+data.entrySpeed)
 	} else if time < data.accelTime+data.cruiseTime { // in cruise
 
 		time = time - data.accelTime
@@ -222,7 +225,7 @@ func (data *TrapezoidInterpolater) Position(slice float64) Coordinate {
 		time = time - (data.accelTime + data.cruiseTime)
 		distanceAlongMovement = data.accelDist + data.cruiseDist + 0.5*-data.acceleration*time*time + data.cruiseSpeed*time
 
-		//fmt.Println("Decel", time, distanceAlongMovement)
+		//fmt.Println("Decel", time, distanceAlongMovement, "speed is", -data.acceleration*time+data.cruiseSpeed)
 	}
 
 	return data.origin.Add(data.direction.Scaled(distanceAlongMovement))
