@@ -12,12 +12,13 @@ func GenerateParametric(posFunc func(float64) Coordinate, plotCoords chan<- Coor
 	defer close(plotCoords)
 
 	initialPosition := posFunc(0)
-	//moveDist := Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 10000000.0
-	thetaDelta := (2.0 * math.Pi) / 4000 //(moveDist / setup.BigR) * 100.0
+	moveDist := 100.0 * Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 10000000.0
+	thetaDelta := (2.0 * math.Pi) / 2000 //(moveDist / setup.BigR) * 100.0
 	numberSteps := 0
 
 	theta := thetaDelta
 	curPosition := posFunc(theta)
+	previousPosition := curPosition
 	plotCoords <- curPosition.Minus(initialPosition)
 
 	for !curPosition.Equals(initialPosition) {
@@ -29,9 +30,12 @@ func GenerateParametric(posFunc func(float64) Coordinate, plotCoords chan<- Coor
 		}
 
 		theta += thetaDelta
-
 		curPosition = posFunc(theta)
-		plotCoords <- curPosition.Minus(initialPosition)
+
+		if curPosition.Minus(previousPosition).Len() > moveDist {
+			plotCoords <- curPosition.Minus(initialPosition)
+			previousPosition = curPosition
+		}
 	}
 }
 
@@ -252,7 +256,6 @@ func GenerateGrid(setup Grid, plotCoords chan<- Coordinate) {
 
 	cellInt := int(setup.Cells)
 	cellWidth := setup.Width / setup.Cells
-
 
 	for y := 0; y < cellInt; y++ {
 		yf := float64(y)

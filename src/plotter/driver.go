@@ -40,6 +40,8 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 	//var interp PositionInterpolater = new(LinearInterpolater)
 	var interp PositionInterpolater = new(TrapezoidInterpolater)
 
+	//var previousLeft int = 0
+
 	origin := Coordinate{0, 0}
 	target, chanOpen := <-plotCoords
 	if !chanOpen {
@@ -64,6 +66,12 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 			// calc integer number of steps * 32 that will be made this time slice
 			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
 			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
+
+			//fmt.Println("Slice", slice, "From", previousPolarPos, "to", polarSliceTarget, "steps", sliceSteps)
+			//if previousLeft-int(sliceSteps.LeftDist) < -30 {
+			//panic("TOO FAR")
+			//}
+			//previousLeft = int(sliceSteps.LeftDist)
 
 			stepData <- int8(-sliceSteps.LeftDist)
 			stepData <- int8(sliceSteps.RightDist)
@@ -264,7 +272,7 @@ func PerformMouseTracking() {
 		direction := mousePos.Minus(currentPos)
 		distance := direction.Len()
 		if distance == 0.0 {
-			direction = Coordinate{1,0}
+			direction = Coordinate{1, 0}
 		} else {
 			direction = direction.Normalized()
 		}
@@ -275,7 +283,6 @@ func PerformMouseTracking() {
 
 		dataToWrite := int(readData[0])
 		for i := 0; i < dataToWrite; i += 2 {
-
 
 			sliceTarget := currentPos.Add(direction.Scaled(float64(i) * distance / 128.0))
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
