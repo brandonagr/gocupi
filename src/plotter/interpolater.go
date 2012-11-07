@@ -55,8 +55,9 @@ func (data *LinearInterpolater) WriteData() {
 
 // Data needed by the interpolater
 type TrapezoidInterpolater struct {
-	origin, destination Coordinate // positions currently interpolating between
-	direction           Coordinate // unit direction vector from origin to destination
+	origin      Coordinate // positions currently interpolating from
+	destination Coordinate // position currently interpolating towards
+	direction   Coordinate // unit direction vector from origin to destination
 
 	entrySpeed  float64 // speed at beginning at origin
 	cruiseSpeed float64 // maximum speed reached
@@ -95,9 +96,29 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 	// entry speed is whatever the previous exit speed was
 	data.entrySpeed = data.exitSpeed
 
+	// special case of not going anywhere
+	if origin == dest {
+		data.origin = origin
+		data.destination = data.destination
+		data.direction = Coordinate{0, 1}
+		data.distance = 0
+		data.exitSpeed = data.entrySpeed
+		data.cruiseSpeed = data.entrySpeed
+		data.accelDist = 0
+		data.accelTime = 0
+		data.cruiseDist = 0
+		data.cruiseTime = 0
+		data.decelDist = 0
+		data.decelTime = 0
+		data.acceleration = Settings.Acceleration_MM_S2
+		data.time = 0
+		data.slices = 0
+		return
+	}
+
 	data.origin = origin
 	data.destination = dest
-	data.direction = dest.Minus(origin)
+	data.direction = data.destination.Minus(origin)
 	data.distance = data.direction.Len()
 	data.direction = data.direction.Normalized()
 
@@ -176,21 +197,11 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 	}
 
 	data.time = data.accelTime + data.cruiseTime + data.decelTime
-	data.slices = math.Ceil(data.time / (Settings.TimeSlice_US / 1000000))
-
-	//data.WriteData()
+	data.slices = data.time / (Settings.TimeSlice_US / 1000000)
 }
 
 // Calculate current position at the given time
 func (data *TrapezoidInterpolater) Position(slice float64) Coordinate {
-
-	// on last interp just return the destination
-	if slice == data.slices {
-
-		//fmt.Println("End")
-
-		return data.destination
-	}
 
 	time := (slice / data.slices) * data.time
 	var distanceAlongMovement float64 = 0

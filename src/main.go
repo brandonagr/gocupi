@@ -13,6 +13,7 @@ func main() {
 
 	toImageFlag := flag.Bool("toimage", false, "Output result to an image file instead of to the stepper")
 	toFileFlag := flag.Bool("tofile", false, "Output steps to a text file")
+	toChartFlag := flag.Bool("tochart", false, "Output a chart of the movement and velocity")
 	countFlag := flag.Bool("count", false, "Outputs the time it would take to draw")
 	speedSlowFactor := flag.Float64("slowfactor", 1.0, "Divide max speed by this number")
 	flag.Parse()
@@ -173,6 +174,8 @@ func main() {
 		CountSteps(stepData)
 	case *toFileFlag:
 		WriteStepsToFile(stepData)
+	case *toChartFlag:
+		WriteStepsToChart(stepData)
 	default:
 		WriteStepsToSerial(stepData)
 	}
@@ -207,6 +210,7 @@ func PrintUsage() {
 	fmt.Println(`Usage: (flags) COMMAND PARAMS...
 Flags:
 -toimage, outputs data to an image of what the render should look like
+-tochart, outputs a graph of velocity and position
 -tofile, outputs step data to a file
 -count, outputs number of steps and render time
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
