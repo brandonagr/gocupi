@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	_ "image/gif"
+	_ "image/jpeg"
 	"image/png"
 	"os"
 )
@@ -120,4 +122,220 @@ func drawLine(start Coordinate, end Coordinate, minPoint Coordinate, maxPoint Co
 			cy = cy + sy
 		}
 	}
+}
+
+// Load image data
+func LoadImage(imageFileName string) image.Image {
+
+	file, err := os.Open(imageFileName)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	image, format, err := image.Decode(file)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Loaded", format, "Size", image.Bounds())
+
+	return SobelImage(image)
+
+	// image := image.NewRGBA(image.Rect(0, 0, int(maxPoint.X-minPoint.X), int(maxPoint.Y-minPoint.Y)))
+
+	// // plot each point in the image
+	// previousPoint := Coordinate{0, 0}
+	// for _, point := range points {
+	// 	//image.Set(int(point.X-minPoint.X), int(-(point.Y-minPoint.Y)+2*maxPoint.Y), color.RGBA{0, 0, 0, 255})
+	// 	drawLine(previousPoint, point, minPoint, maxPoint, image)
+
+	// 	previousPoint = point
+	// }
+
+	// file, err := os.OpenFile(imageName, os.O_CREATE|os.O_WRONLY, 0666)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer file.Close()
+
+	// if err = png.Encode(file, image); err != nil {
+	// 	panic(err)
+	// }
+
+	//return image
+}
+
+// Return a new image that is the result of applying the sobel filter on the image
+func SobelImage(imageData image.Image) image.Image {
+
+	fmt.Println("Applying edge detection...")
+
+	filtered := image.NewGray16(imageData.Bounds())
+	imageSize := imageData.Bounds().Max
+
+	for yPixel := 0; yPixel < imageSize.Y; yPixel++ {
+		filtered.SetGray16(0, yPixel, color.Gray16{32768})
+		filtered.SetGray16(imageSize.X-1, yPixel, color.Gray16{32768})
+	}
+	for xPixel := 0; xPixel < imageSize.X; xPixel++ {
+		filtered.SetGray16(xPixel, 0, color.Gray16{32768})
+		filtered.SetGray16(xPixel, imageSize.Y-1, color.Gray16{32768})
+	}
+
+	minColor := uint16(65535)
+	maxColor := uint16(0)
+
+	for yPixel := 1; yPixel < imageSize.Y-1; yPixel++ {
+		for xPixel := 1; xPixel < imageSize.X-1; xPixel++ {
+
+			var total float64
+			total -= average(imageData.At(xPixel-1, yPixel-1))
+			total -= 2 * average(imageData.At(xPixel-1, yPixel))
+			total -= average(imageData.At(xPixel-1, yPixel+1))
+
+			total += average(imageData.At(xPixel+1, yPixel-1))
+			total += 2 * average(imageData.At(xPixel+1, yPixel))
+			total += average(imageData.At(xPixel+1, yPixel+1))
+
+			total /= 6
+
+			newColor := uint16(total*32768 + 32768)
+			filtered.SetGray16(xPixel, yPixel, color.Gray16{newColor})
+
+			if newColor > maxColor {
+				maxColor = newColor
+			} else if newColor < minColor {
+				minColor = newColor
+			}
+		}
+	}
+
+	// scale image so contrast is maximized
+	scale := float64(maxColor-minColor) / 65535.0
+	//fmt.Println("Max", maxColor, "Min", minColor, "Scale", scale)
+
+	for yPixel := 1; yPixel < imageSize.Y-1; yPixel++ {
+		for xPixel := 1; xPixel < imageSize.X-1; xPixel++ {
+			oldColor, _, _, _ := filtered.At(xPixel, yPixel).RGBA()
+
+			newColor := uint16((float64(oldColor) - float64(minColor)) / scale)
+			//fmt.Println("From", oldColor, "to", newColor)
+			filtered.SetGray16(xPixel, yPixel, color.Gray16{newColor})
+		}
+	}
+
+	// dump test image to disk
+	// file, err := os.OpenFile("test.png", os.O_CREATE|os.O_WRONLY, 0666)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer file.Close()
+	// if err = png.Encode(file, filtered); err != nil {
+	// 	panic(err)
+	// }
+
+	return filtered
+}
+
+// Data needed to generate ImageContourPath
+type ImageContourSetup struct {
+	Width       float64 // width of drawn image in mm
+	LineSpacing float64 // distance between horizontal lines in mm
+}
+
+// Generate a path by generating horizontal contour traces
+func ImageContourPath(setup ImageContourSetup, imageData image.Image, plotCoords chan<- Coordinate) {
+	defer close(plotCoords)
+
+	imageSize := imageData.Bounds().Max
+	scale := setup.Width / float64(imageSize.X)
+	height := float64(imageSize.Y) * scale
+
+	fmt.Println("Width", setup.Width, "Scale", scale, "height", height)
+	lineScaleFactor := setup.LineSpacing * 2.0
+
+	exitOnOpposite := false
+	for traceVerticalPosition := setup.LineSpacing / 2.0; traceVerticalPosition < height; traceVerticalPosition += setup.LineSpacing {
+		for imageX := 0; imageX < imageSize.X; imageX++ {
+			imageY := traceVerticalPosition / scale
+
+			imageValue := sampleImageAt(imageData, Coordinate{float64(imageX), imageY})
+
+			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition + imageValue*lineScaleFactor}
+
+			//fmt.Println(imageX, imageY, imageValue)
+		}
+		traceVerticalPosition += setup.LineSpacing
+		if !(traceVerticalPosition < height) {
+			exitOnOpposite = true
+			break
+		}
+		for imageX := imageSize.X - 1; imageX >= 0; imageX-- {
+			imageY := traceVerticalPosition / scale
+
+			imageValue := sampleImageAt(imageData, Coordinate{float64(imageX), imageY})
+
+			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition + imageValue*lineScaleFactor}
+
+			//fmt.Println(imageX, imageY, imageValue)
+		}
+	}
+
+	if exitOnOpposite {
+		plotCoords <- Coordinate{0, height}
+	}
+
+	plotCoords <- Coordinate{0, 0}
+}
+
+// Test the value at a given point and return a single interpolated value
+func sampleImageAt(imageData image.Image, coord Coordinate) float64 {
+
+	minCoord := coord.Floor()
+	min := image.Point{int(minCoord.X), int(minCoord.Y)}
+	maxCoord := coord.Ceil()
+	max := image.Point{int(maxCoord.X), int(maxCoord.Y)}
+
+	imageBounds := imageData.Bounds()
+	if !min.In(imageBounds) {
+		panic(fmt.Sprint("Exceeded min bounds of image", imageBounds, min))
+	}
+	if !max.In(imageBounds) {
+		panic(fmt.Sprint("Exceeded max bounds of image", imageBounds, max))
+	}
+
+	//fmt.Println("Sample at", coord, "Pixels", min, max)
+
+	weight1 := (1.0 - (coord.X - minCoord.X)) * (1.0 - (coord.Y - minCoord.Y))
+	weight2 := (1.0 - (coord.X - minCoord.X)) * (coord.Y - minCoord.Y)
+	weight3 := (coord.X - minCoord.X) * (coord.Y - minCoord.Y)
+	weight4 := (coord.X - minCoord.X) * (1.0 - (coord.Y - minCoord.Y))
+
+	//fmt.Println("Weights", weight1, weight2, weight3, weight4)
+
+	total := 0.0
+	if weight1 != 0 {
+		total += average(imageData.At(min.X, min.Y)) * weight1
+	}
+	if weight2 != 0 {
+		total += average(imageData.At(min.X, max.Y)) * weight2
+	}
+	if weight3 != 0 {
+		total += average(imageData.At(max.X, max.Y)) * weight3
+	}
+	if weight4 != 0 {
+		total += average(imageData.At(max.X, min.Y)) * weight4
+	}
+
+	return total
+}
+
+// Returns an average of R,G,B from 0 to 1
+func average(pixelColor color.Color) float64 {
+	r, g, b, _ := pixelColor.RGBA()
+
+	//fmt.Println("Sampling", r, g, b)
+
+	return (float64(r)/65535.0 + float64(g)/65535.0 + float64(b)/65535.0) / 3.0
 }

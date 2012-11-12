@@ -42,6 +42,11 @@ func (coord Coordinate) Ceil() Coordinate {
 	return Coordinate{X: math.Ceil(coord.X), Y: math.Ceil(coord.Y)}
 }
 
+// Apply math.Floor to each value
+func (coord Coordinate) Floor() Coordinate {
+	return Coordinate{X: math.Floor(coord.X), Y: math.Floor(coord.Y)}
+}
+
 // Clamp the values of X,Y to the given max/min
 func (coord Coordinate) Clamp(max, min float64) Coordinate {
 	return Coordinate{X: math.Min(max, math.Max(coord.X, min)), Y: math.Min(max, math.Max(coord.Y, min))}

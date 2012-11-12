@@ -1,6 +1,6 @@
 package plotter
 
-// Tests for Polar
+// Tests for PolarCoordinate and Coordinate
 
 import (
 	"testing"

@@ -8,6 +8,12 @@ import (
 	"strconv"
 )
 
+// set flag usage variable so that entire help will be output
+func init() {
+	flag.Usage = PrintUsage
+}
+
+// main
 func main() {
 	Settings.Read()
 
@@ -78,6 +84,17 @@ func main() {
 
 		fmt.Println("Generating hilbert curve")
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
+
+	case "image":
+		params := GetArgsAsFloats(args[1:], 2)
+		imageSetup := ImageContourSetup{
+			Width:       params[0],
+			LineSpacing: params[1],
+		}
+
+		fmt.Println("Generating image contour path")
+		data := LoadImage(args[3])
+		go ImageContourPath(imageSetup, data, plotCoords)
 
 	case "lissa":
 		params := GetArgsAsFloats(args[1:], 3)
@@ -220,6 +237,7 @@ circle R d n (R radius) (d displacement per revolution) (n number of circles)
 gcode s "path" (s scale)
 grid s c (s size) (c number cells)
 hilbert s d (s size) (d degree(ie 1 to 6))
+image w l "path" (w width of image) (l vertical line spacing in mm) (path to jpg|png|gif)
 lissa s a b (s scale of drawing) (a factor) (b factor)
 move
 parabolic R c l (R radius) (c count of polygon edges) (l number of lines)
