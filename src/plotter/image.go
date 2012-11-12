@@ -140,30 +140,8 @@ func LoadImage(imageFileName string) image.Image {
 
 	fmt.Println("Loaded", format, "Size", image.Bounds())
 
-	return SobelImage(image)
-
-	// image := image.NewRGBA(image.Rect(0, 0, int(maxPoint.X-minPoint.X), int(maxPoint.Y-minPoint.Y)))
-
-	// // plot each point in the image
-	// previousPoint := Coordinate{0, 0}
-	// for _, point := range points {
-	// 	//image.Set(int(point.X-minPoint.X), int(-(point.Y-minPoint.Y)+2*maxPoint.Y), color.RGBA{0, 0, 0, 255})
-	// 	drawLine(previousPoint, point, minPoint, maxPoint, image)
-
-	// 	previousPoint = point
-	// }
-
-	// file, err := os.OpenFile(imageName, os.O_CREATE|os.O_WRONLY, 0666)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer file.Close()
-
-	// if err = png.Encode(file, image); err != nil {
-	// 	panic(err)
-	// }
-
-	//return image
+	return image
+	//return SobelImage(image) // turns out that runnign edge detection first does NOT help the image, it only removes information from the picture
 }
 
 // Return a new image that is the result of applying the sobel filter on the image
