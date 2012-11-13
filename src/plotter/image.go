@@ -9,6 +9,7 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	"image/png"
+	"math"
 	"os"
 )
 
@@ -218,7 +219,7 @@ func SobelImage(imageData image.Image) image.Image {
 
 // Data needed to generate ImageContourPath
 type ImageContourSetup struct {
-	Width       float64 // width of drawn image in mm
+	Size        float64 // width of drawn image in mm
 	LineSpacing float64 // distance between horizontal lines in mm
 }
 
@@ -227,40 +228,40 @@ func ImageContourPath(setup ImageContourSetup, imageData image.Image, plotCoords
 	defer close(plotCoords)
 
 	imageSize := imageData.Bounds().Max
-	scale := setup.Width / float64(imageSize.X)
+	scale := (setup.Size + 1.0) / math.Max(float64(imageSize.X), float64(imageSize.Y))
+	width := float64(imageSize.X) * scale
 	height := float64(imageSize.Y) * scale
 
-	fmt.Println("Width", setup.Width, "Scale", scale, "height", height)
-	lineScaleFactor := setup.LineSpacing * 2.0
+	fmt.Println("Width", width, "Scale", scale, "height", height)
+	lineScaleFactor := setup.LineSpacing * 1.15
 
 	exitOnOpposite := false
 	for traceVerticalPosition := setup.LineSpacing / 2.0; traceVerticalPosition < height; traceVerticalPosition += setup.LineSpacing {
-		for imageX := 0; imageX < imageSize.X; imageX++ {
+		for horizontalPosition := 0.0; horizontalPosition <= width; horizontalPosition++ {
+			imageX := horizontalPosition / scale
 			imageY := traceVerticalPosition / scale
 
 			imageValue := sampleImageAt(imageData, Coordinate{float64(imageX), imageY})
 
-			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition + imageValue*lineScaleFactor}
-
-			//fmt.Println(imageX, imageY, imageValue)
+			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition - imageValue*lineScaleFactor}
 		}
 		traceVerticalPosition += setup.LineSpacing
 		if !(traceVerticalPosition < height) {
 			exitOnOpposite = true
 			break
 		}
-		for imageX := imageSize.X - 1; imageX >= 0; imageX-- {
+		for horizontalPosition := width; horizontalPosition >= 0; horizontalPosition-- {
+			imageX := horizontalPosition / scale
 			imageY := traceVerticalPosition / scale
 
 			imageValue := sampleImageAt(imageData, Coordinate{float64(imageX), imageY})
 
-			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition + imageValue*lineScaleFactor}
-
-			//fmt.Println(imageX, imageY, imageValue)
+			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition - imageValue*lineScaleFactor}
 		}
 	}
 
 	if exitOnOpposite {
+		plotCoords <- Coordinate{width, height}
 		plotCoords <- Coordinate{0, height}
 	}
 
@@ -276,11 +277,11 @@ func sampleImageAt(imageData image.Image, coord Coordinate) float64 {
 	max := image.Point{int(maxCoord.X), int(maxCoord.Y)}
 
 	imageBounds := imageData.Bounds()
-	if !min.In(imageBounds) {
-		panic(fmt.Sprint("Exceeded min bounds of image", imageBounds, min))
+	if max.X >= imageBounds.Max.X {
+		max.X -= imageBounds.Max.X - 1
 	}
-	if !max.In(imageBounds) {
-		panic(fmt.Sprint("Exceeded max bounds of image", imageBounds, max))
+	if max.Y >= imageBounds.Max.Y {
+		max.Y = imageBounds.Max.Y - 1
 	}
 
 	//fmt.Println("Sample at", coord, "Pixels", min, max)
