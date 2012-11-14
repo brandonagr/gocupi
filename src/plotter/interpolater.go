@@ -235,3 +235,69 @@ func (data *TrapezoidInterpolater) Position(slice float64) Coordinate {
 func (data *TrapezoidInterpolater) Slices() float64 {
 	return data.slices
 }
+
+// Test code to use a larger buffer to do the look ahead:
+// package main
+
+// import "fmt"
+
+// func main() {
+// 	firstChannel := make(chan int, 5)
+// 	secondChannel := make(chan int, 5)
+
+// 	//go DoProcessing(firstChannel, secondChannel)
+// 	go DoProcessingBuffer(5, firstChannel, secondChannel)
+
+// 	go func() {
+// 		for data := 0; data < 10; data++ {
+// 			firstChannel <- data
+// 		}
+// 		close(firstChannel)
+// 	}()
+
+// 	// write resulting data to screen
+// 	for resultData := range secondChannel {
+// 		fmt.Println("=", resultData)
+// 	}
+// }
+
+// // Do processing with no buffer, just looks one value ahead
+// func DoProcessing(incomingData <-chan int, outgoingData chan<- int) {
+// 	defer close(outgoingData)
+
+// 	for data := range incomingData{
+// 		outgoingData <- data + 1
+// 	}
+// }
+
+// // Do processing with a buffer of size bufferSize
+// func DoProcessingBuffer(bufferSize int, incomingData <-chan int, outgoingData chan<- int) {
+// 	defer close(outgoingData)
+
+//  // would be more efficient with a circular buffer
+// 	dataBuffer := make([]int, 0, bufferSize)
+// 	chanOpen := true
+// 	var data int
+// 	for fillBuffer := 0; fillBuffer < bufferSize && chanOpen; fillBuffer++ {
+// 		data, chanOpen = <-incomingData
+// 		if chanOpen {
+// 			dataBuffer = append(dataBuffer, data)
+// 		}
+// 	}
+
+// 	for len(dataBuffer) > 0{
+// 		total := 0
+// 		for _, bufferValue := range dataBuffer {
+// 			total += bufferValue;
+// 			fmt.Print(bufferValue, ", ")
+// 		}
+// 		outgoingData <- total
+// 		fmt.Println()
+
+// 		dataBuffer = dataBuffer[1:]
+// 		data, chanOpen = <-incomingData
+// 		if chanOpen {
+// 			dataBuffer = append(dataBuffer, data)
+// 		}
+// 	}
+// }
