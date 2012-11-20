@@ -44,6 +44,17 @@ func main() {
 
 	switch args[0] {
 
+	case "arc":
+		params := GetArgsAsFloats(args[1:], 3)
+		arcSetup := Arc{
+			Width:   params[0],
+			Height:  params[1],
+			ArcDist: params[2],
+		}
+
+		fmt.Println("Generating arc")
+		go GenerateArc(arcSetup, plotCoords)
+
 	case "circle":
 		params := GetArgsAsFloats(args[1:], 3)
 		circleSetup := SlidingCircle{
@@ -88,7 +99,7 @@ func main() {
 	case "image":
 		params := GetArgsAsFloats(args[1:], 2)
 		imageSetup := ImageContourSetup{
-			Size:       params[0],
+			Size:        params[0],
 			LineSpacing: params[1],
 		}
 
@@ -233,6 +244,7 @@ Flags:
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 
 Commands:
+arc w h a (w width) (h height) (a distance between arcs)
 circle R d n (R radius) (d displacement per revolution) (n number of circles)
 gcode s "path" (s scale)
 grid s c (s size) (c number cells)

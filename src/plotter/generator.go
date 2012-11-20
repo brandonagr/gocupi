@@ -53,7 +53,6 @@ type Spiral struct {
 
 // Generate a spiral
 func GenerateSpiral(setup Spiral, plotCoords chan<- Coordinate) {
-
 	defer close(plotCoords)
 
 	// MM that will be moved in a single step, used to calc what the new position along spiral will be after one time slice
@@ -94,7 +93,6 @@ type SlidingCircle struct {
 
 // Generate a circle that slides along a given axis
 func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
-
 	defer close(plotCoords)
 
 	// MM that will be moved in a single step, used to calc what the new position along spiral will be after one time slice
@@ -133,7 +131,6 @@ type HilbertCurve struct {
 
 // Generate a Hilbert curve, based on code from http://en.wikipedia.org/wiki/Hilbert_curve
 func GenerateHilbertCurve(setup HilbertCurve, plotCoords chan<- Coordinate) {
-
 	defer close(plotCoords)
 
 	order := int(math.Pow(2, float64(setup.Degree)))
@@ -196,7 +193,6 @@ type Parabolic struct {
 
 // Generate parabolic curve out of a bunch of straight lines
 func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
-
 	defer close(plotCoords)
 
 	edgeCountInt := int(setup.PolygonEdgeCount)
@@ -239,19 +235,18 @@ func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
 	}
 }
 
-// Parameters for parabolic curve
+// Parameters for grid
 type Grid struct {
 
-	// Height of each axis
+	// Size of each axis
 	Width float64
 
-	// number of cells to divide grid into
+	// Number of cells to divide grid into, will be Cells x Cells total cells
 	Cells float64
 }
 
 // Generate parabolic curve out of a bunch of straight lines
 func GenerateGrid(setup Grid, plotCoords chan<- Coordinate) {
-
 	defer close(plotCoords)
 
 	cellInt := int(setup.Cells)
@@ -286,5 +281,93 @@ func GenerateGrid(setup Grid, plotCoords chan<- Coordinate) {
 	if cellInt%2 == 0 {
 		plotCoords <- Coordinate{setup.Cells * cellWidth, 0}
 	}
+	plotCoords <- Coordinate{0, 0}
+}
+
+// Parameters for arc
+type Arc struct {
+
+	// Width of drawing box in mm
+	Width float64
+
+	// Height of drawing box in mm
+	Height float64
+
+	// Distance between arcs
+	ArcDist float64
+}
+
+// Generate a series of arcs
+func GenerateArc(setup Arc, plotCoords chan<- Coordinate) {
+	defer close(plotCoords)
+
+	polarSystem := PolarSystemFromSettings()
+	polarPos := PolarCoordinate{Settings.StartingLeftDist_MM, Settings.StartingRightDist_MM}
+	startingPos := polarPos.ToCoord(polarSystem)
+
+	leftOrigin := Coordinate{0, 0}.Minus(startingPos)
+	//rightOrigin := leftOrigin.Add(Coordinate{Settings.HorizontalDistance_MM, 0})
+
+	beginRadius := leftOrigin.Len()
+	endRadius := Coordinate{setup.Width, setup.Height}.Minus(leftOrigin).Len()
+
+	fmt.Println("Origin", leftOrigin, "beginRadius", beginRadius, "endRadius", endRadius)
+
+	// sides of the drawing box
+	sides := [4]LineSegment{
+		LineSegment{Coordinate{0, 0}, Coordinate{setup.Width, 0}},                       // top
+		LineSegment{Coordinate{setup.Width, 0}, Coordinate{setup.Width, setup.Height}},  // right
+		LineSegment{Coordinate{setup.Width, setup.Height}, Coordinate{0, setup.Height}}, // bottom
+		LineSegment{Coordinate{0, setup.Height}, Coordinate{0, 0}},                      // left		
+	}
+
+	flipDir := false
+
+	for radius := beginRadius + setup.ArcDist; radius < endRadius; radius += setup.ArcDist {
+
+		// find two points of intersection
+		var topIntersection, botIntersection Coordinate
+		arc := Circle{leftOrigin, radius}
+
+		for _, side := range sides {
+			p1, p1Valid, _, _ := arc.Intersection(side)
+			if p1Valid {
+				if (topIntersection == Coordinate{0, 0}) {
+					topIntersection = p1
+				} else {
+					botIntersection = p1
+				}
+			}
+		}
+		if topIntersection.Y > botIntersection.Y {
+			topIntersection, botIntersection = botIntersection, topIntersection
+		}
+
+		//fmt.Println("Radius", radius, topIntersection, botIntersection)
+
+		// need beginAngle, endAngle, increment
+		topAngle := math.Atan2(topIntersection.Y-leftOrigin.Y, topIntersection.X-leftOrigin.X)
+		botAngle := math.Atan2(botIntersection.Y-leftOrigin.Y, botIntersection.X-leftOrigin.X)
+
+		thetaDelta := 2.0 * math.Asin(1.0/(2.0*radius))
+
+		//fmt.Println("topAngle", topAngle, "botAngle", botAngle, "thetaDelta", thetaDelta)
+
+		flipDir = !flipDir
+		if flipDir {
+			for theta := topAngle; theta <= botAngle; theta += thetaDelta {
+				plotCoords <- leftOrigin.Add(Coordinate{math.Cos(theta) * radius, math.Sin(theta) * radius})
+			}
+			plotCoords <- leftOrigin.Add(Coordinate{math.Cos(botAngle) * radius, math.Sin(botAngle) * radius})
+		} else {
+			for theta := botAngle; theta >= topAngle; theta -= thetaDelta {
+				plotCoords <- leftOrigin.Add(Coordinate{math.Cos(theta) * radius, math.Sin(theta) * radius})
+			}
+			plotCoords <- leftOrigin.Add(Coordinate{math.Cos(topAngle) * radius, math.Sin(topAngle) * radius})
+		}
+	}
+
+	plotCoords <- Coordinate{setup.Width, setup.Height}
+	plotCoords <- Coordinate{0, setup.Height}
 	plotCoords <- Coordinate{0, 0}
 }

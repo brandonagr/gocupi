@@ -60,3 +60,58 @@ func TestToCoord(t *testing.T) {
 		t.Error("Unexpected value for Y", coord.Y)
 	}
 }
+
+// Circle.Intersection(Line) should return expected results
+func TestCircleLineIntersection(t *testing.T) {
+
+	circle := Circle{Coordinate{0,0}, 5}
+	line := LineSegment{Coordinate{0,0}, Coordinate{2,0}}
+
+	p1, p1Valid, p2, p2Valid := circle.Intersection(line)
+	if (p1Valid || p2Valid) {
+		t.Error("Should have detected intersection for ", circle, line)
+	}
+
+	line = LineSegment{Coordinate{0,0}, Coordinate{6,0}}
+	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
+	if (!p1Valid || p1 != Coordinate{5,0} || p2Valid || p2 != Coordinate{0,0}) {
+		t.Error("Expected one intersection", p1, p2)
+	}
+
+	line = LineSegment{Coordinate{-5,0}, Coordinate{6,0}}
+	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
+	if (!p1Valid || p1 != Coordinate{5,0} || !p2Valid || p2 != Coordinate{-5,0}) {
+		t.Error("Expected two intersections", p1, p2)
+	}
+
+	line = LineSegment{Coordinate{5,0}, Coordinate{6,0}}
+	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
+	if (!p1Valid || p1 != Coordinate{5,0} || p2Valid || p2 != Coordinate{0,0}) {
+		t.Error("Expected one intersection", p1, p2)
+	}
+
+	line = LineSegment{Coordinate{-6,5}, Coordinate{6,5}}
+	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
+	if (!p1Valid || p1 != Coordinate{0,5} || p2Valid || p2 != Coordinate{0,0}) {
+		t.Error("Expected one intersection", p1, p2)
+	}
+
+	circle = Circle{Coordinate{5,0}, 5}
+	line = LineSegment{Coordinate{0,0}, Coordinate{0,1}}
+	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
+	if (!p1Valid || p1 != Coordinate{0,0} || p2Valid || p2 != Coordinate{0,0}) {
+		t.Error("Expected one intersection", p1, p2)
+	}
+
+	line = LineSegment{Coordinate{5,0}, Coordinate{5,10}}
+	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
+	if (!p1Valid || p1 != Coordinate{5,5} || p2Valid || p2 != Coordinate{0,0}) {
+		t.Error("Expected one intersection", p1, p2)
+	}
+
+	line = LineSegment{Coordinate{5,-10}, Coordinate{5,10}}
+	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
+	if (!p1Valid || p1 != Coordinate{5,5} || !p2Valid || p2 != Coordinate{5,-5}) {
+		t.Error("Expected one intersection", p1, p2)
+	}
+}

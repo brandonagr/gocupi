@@ -159,3 +159,58 @@ func (polarCoord PolarCoordinate) ToCoord(system PolarSystem) (coord Coordinate)
 
 	return
 }
+
+// Defines a circle
+type Circle struct {
+	// Center coordinates of circle
+	Center Coordinate
+
+	// Radius of circle
+	Radius float64
+}
+
+// Defines a line segment
+type LineSegment struct {
+	// Beginning point of line segment
+	Begin Coordinate
+
+	// End of line segment
+	End Coordinate
+}
+
+// Calculates the intersection between a circle and line segment, based on http://stackoverflow.com/questions/1073336/circle-line-collision-detection
+// If there is only one interesection it will always be in firstPoint
+func (circle Circle) Intersection(line LineSegment) (firstPoint Coordinate, firstPointValid bool, secondPoint Coordinate, secondPointValid bool) {
+	lineDir := line.End.Minus(line.Begin)
+	circleToLineDir := line.Begin.Minus(circle.Center)
+
+	a := lineDir.DotProduct(lineDir)
+	b := 2 * circleToLineDir.DotProduct(lineDir)
+	c := circleToLineDir.DotProduct(circleToLineDir) - (circle.Radius * circle.Radius)
+
+	discriminant := b*b - 4*a*c
+	if discriminant < 0 {
+		return // no intersection
+	} else {
+		discriminant = math.Sqrt(discriminant)
+
+		firstTime := (-b + discriminant) / (2 * a)
+		secondTime := (-b - discriminant) / (2 * a)
+
+		if 0 <= firstTime && firstTime <= 1 {
+			firstPointValid = true
+			firstPoint = line.Begin.Add(lineDir.Scaled(firstTime))
+		}
+		if 0 <= secondTime && secondTime <= 1 && firstTime != secondTime {
+			if !firstPointValid {
+				firstPointValid = true
+				firstPoint = line.Begin.Add(lineDir.Scaled(secondTime))
+			} else {
+				secondPointValid = true
+				secondPoint = line.Begin.Add(lineDir.Scaled(secondTime))
+			}
+		}
+	}
+
+	return
+}

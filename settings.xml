@@ -7,6 +7,6 @@
 	<HorizontalDistance_MM>800</HorizontalDistance_MM>
 	<MinVertical_MM>50</MinVertical_MM>
 	<MaxVertical_MM>800</MaxVertical_MM>
-	<StartingLeftDist_MM>800</StartingLeftDist_MM>
-	<StartingRightDist_MM>800</StartingRightDist_MM>
+	<StartingLeftDist_MM>300</StartingLeftDist_MM>
+	<StartingRightDist_MM>700</StartingRightDist_MM>
 </SettingsData>
