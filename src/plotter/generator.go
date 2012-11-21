@@ -4,6 +4,7 @@ package plotter
 
 import (
 	"fmt"
+	"image"
 	"math"
 )
 
@@ -287,38 +288,40 @@ func GenerateGrid(setup Grid, plotCoords chan<- Coordinate) {
 // Parameters for arc
 type Arc struct {
 
-	// Width of drawing box in mm
-	Width float64
-
-	// Height of drawing box in mm
-	Height float64
+	// Size of longest axis
+	Size float64
 
 	// Distance between arcs
 	ArcDist float64
 }
 
 // Generate a series of arcs
-func GenerateArc(setup Arc, plotCoords chan<- Coordinate) {
+func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate) {
 	defer close(plotCoords)
+
+	imageSize := imageData.Bounds().Max
+	scale := setup.Size / math.Max(float64(imageSize.X), float64(imageSize.Y))
+	width := float64(imageSize.X) * scale
+	height := float64(imageSize.Y) * scale
+	fmt.Println("Width", width, "Scale", scale, "height", height)
 
 	polarSystem := PolarSystemFromSettings()
 	polarPos := PolarCoordinate{Settings.StartingLeftDist_MM, Settings.StartingRightDist_MM}
 	startingPos := polarPos.ToCoord(polarSystem)
 
-	leftOrigin := Coordinate{0, 0}.Minus(startingPos)
-	//rightOrigin := leftOrigin.Add(Coordinate{Settings.HorizontalDistance_MM, 0})
+	arcOrigin := Coordinate{0, 0}.Minus(startingPos)
 
-	beginRadius := leftOrigin.Len()
-	endRadius := Coordinate{setup.Width, setup.Height}.Minus(leftOrigin).Len()
+	beginRadius := arcOrigin.Len()
+	endRadius := Coordinate{width, height}.Minus(arcOrigin).Len()
 
-	fmt.Println("Origin", leftOrigin, "beginRadius", beginRadius, "endRadius", endRadius)
+	fmt.Println("Origin", arcOrigin, "beginRadius", beginRadius, "endRadius", endRadius)
 
 	// sides of the drawing box
 	sides := [4]LineSegment{
-		LineSegment{Coordinate{0, 0}, Coordinate{setup.Width, 0}},                       // top
-		LineSegment{Coordinate{setup.Width, 0}, Coordinate{setup.Width, setup.Height}},  // right
-		LineSegment{Coordinate{setup.Width, setup.Height}, Coordinate{0, setup.Height}}, // bottom
-		LineSegment{Coordinate{0, setup.Height}, Coordinate{0, 0}},                      // left		
+		LineSegment{Coordinate{0, 0}, Coordinate{width, 0}},           // top
+		LineSegment{Coordinate{width, 0}, Coordinate{width, height}},  // right
+		LineSegment{Coordinate{width, height}, Coordinate{0, height}}, // bottom
+		LineSegment{Coordinate{0, height}, Coordinate{0, 0}},          // left		
 	}
 
 	flipDir := false
@@ -327,7 +330,7 @@ func GenerateArc(setup Arc, plotCoords chan<- Coordinate) {
 
 		// find two points of intersection
 		var topIntersection, botIntersection Coordinate
-		arc := Circle{leftOrigin, radius}
+		arc := Circle{arcOrigin, radius}
 
 		for _, side := range sides {
 			p1, p1Valid, _, _ := arc.Intersection(side)
@@ -346,28 +349,49 @@ func GenerateArc(setup Arc, plotCoords chan<- Coordinate) {
 		//fmt.Println("Radius", radius, topIntersection, botIntersection)
 
 		// need beginAngle, endAngle, increment
-		topAngle := math.Atan2(topIntersection.Y-leftOrigin.Y, topIntersection.X-leftOrigin.X)
-		botAngle := math.Atan2(botIntersection.Y-leftOrigin.Y, botIntersection.X-leftOrigin.X)
+		topAngle := math.Atan2(topIntersection.Y-arcOrigin.Y, topIntersection.X-arcOrigin.X)
+		botAngle := math.Atan2(botIntersection.Y-arcOrigin.Y, botIntersection.X-arcOrigin.X)
 
-		thetaDelta := 2.0 * math.Asin(1.0/(2.0*radius))
+		thetaDelta := 4.0 * math.Asin(1.0/(2.0*radius))
 
 		//fmt.Println("topAngle", topAngle, "botAngle", botAngle, "thetaDelta", thetaDelta)
 
 		flipDir = !flipDir
 		if flipDir {
 			for theta := topAngle; theta <= botAngle; theta += thetaDelta {
-				plotCoords <- leftOrigin.Add(Coordinate{math.Cos(theta) * radius, math.Sin(theta) * radius})
+
+				pos := arcOrigin.Add(Coordinate{math.Cos(theta) * radius, math.Sin(theta) * radius})
+				imageValue := 1.0 - sampleImageAt(imageData, pos.Scaled(1/scale))
+				offset := setup.ArcDist * 0.5 * imageValue
+
+				plotCoords <- pos
+				if imageValue > 0.05 {
+					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta) * (radius + offset), math.Sin(theta) * (radius + offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta+thetaDelta/2.0) * (radius + offset), math.Sin(theta+thetaDelta/2.0) * (radius + offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta+thetaDelta/2.0) * (radius - offset), math.Sin(theta+thetaDelta/2.0) * (radius - offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta+thetaDelta) * (radius - offset), math.Sin(theta+thetaDelta) * (radius - offset)})
+				}
 			}
-			plotCoords <- leftOrigin.Add(Coordinate{math.Cos(botAngle) * radius, math.Sin(botAngle) * radius})
+			plotCoords <- arcOrigin.Add(Coordinate{math.Cos(botAngle) * radius, math.Sin(botAngle) * radius})
 		} else {
 			for theta := botAngle; theta >= topAngle; theta -= thetaDelta {
-				plotCoords <- leftOrigin.Add(Coordinate{math.Cos(theta) * radius, math.Sin(theta) * radius})
+				pos := arcOrigin.Add(Coordinate{math.Cos(theta) * radius, math.Sin(theta) * radius})
+				imageValue := 1.0 - sampleImageAt(imageData, pos.Scaled(1/scale))
+				offset := setup.ArcDist * 0.5 * imageValue
+
+				plotCoords <- pos
+				if imageValue > 0.05 {
+					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta) * (radius + offset), math.Sin(theta) * (radius + offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta-thetaDelta/2.0) * (radius + offset), math.Sin(theta-thetaDelta/2.0) * (radius + offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta-thetaDelta/2.0) * (radius - offset), math.Sin(theta-thetaDelta/2.0) * (radius - offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta-thetaDelta) * (radius - offset), math.Sin(theta-thetaDelta) * (radius - offset)})
+				}
 			}
-			plotCoords <- leftOrigin.Add(Coordinate{math.Cos(topAngle) * radius, math.Sin(topAngle) * radius})
+			plotCoords <- arcOrigin.Add(Coordinate{math.Cos(topAngle) * radius, math.Sin(topAngle) * radius})
 		}
 	}
 
-	plotCoords <- Coordinate{setup.Width, setup.Height}
-	plotCoords <- Coordinate{0, setup.Height}
+	plotCoords <- Coordinate{width, height}
+	plotCoords <- Coordinate{0, height}
 	plotCoords <- Coordinate{0, 0}
 }

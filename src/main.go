@@ -45,15 +45,16 @@ func main() {
 	switch args[0] {
 
 	case "arc":
-		params := GetArgsAsFloats(args[1:], 3)
+		params := GetArgsAsFloats(args[1:], 2)
 		arcSetup := Arc{
-			Width:   params[0],
-			Height:  params[1],
-			ArcDist: params[2],
+			Size:    params[0],
+			ArcDist: params[1],
 		}
 
-		fmt.Println("Generating arc")
-		go GenerateArc(arcSetup, plotCoords)
+		fmt.Println("Generating arc path")
+		data := LoadImage(args[3])
+		data = GaussianImage(data)
+		go GenerateArc(arcSetup, data, plotCoords)
 
 	case "circle":
 		params := GetArgsAsFloats(args[1:], 3)
@@ -105,6 +106,7 @@ func main() {
 
 		fmt.Println("Generating image contour path")
 		data := LoadImage(args[3])
+		data = GaussianImage(data)
 		go ImageContourPath(imageSetup, data, plotCoords)
 
 	case "lissa":
@@ -244,7 +246,7 @@ Flags:
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 
 Commands:
-arc w h a (w width) (h height) (a distance between arcs)
+arc s a "path" (s size) (a distance between arcs)
 circle R d n (R radius) (d displacement per revolution) (n number of circles)
 gcode s "path" (s scale)
 grid s c (s size) (c number cells)

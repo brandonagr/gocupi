@@ -217,6 +217,88 @@ func SobelImage(imageData image.Image) image.Image {
 	return filtered
 }
 
+// Return a new image that is the result of applying a 3x3 gaussion blur to the image
+func GaussianImage(imageData image.Image) image.Image {
+
+	fmt.Println("Applying gaussian blur...")
+
+	filtered := image.NewGray16(imageData.Bounds())
+	imageSize := imageData.Bounds().Max
+
+	for yPixel := 0; yPixel < imageSize.Y; yPixel++ {
+		newColor := uint16(average(imageData.At(0, yPixel)) * 65535)
+		filtered.SetGray16(0, yPixel, color.Gray16{newColor})
+
+		newColor = uint16(average(imageData.At(imageSize.X-1, yPixel)) * 65535)
+		filtered.SetGray16(imageSize.X-1, yPixel, color.Gray16{newColor})
+	}
+	for xPixel := 0; xPixel < imageSize.X; xPixel++ {
+		newColor := uint16(average(imageData.At(xPixel, 0)) * 65535)
+		filtered.SetGray16(xPixel, 0, color.Gray16{newColor})
+
+		newColor = uint16(average(imageData.At(xPixel, imageSize.Y-1)) * 65535)
+		filtered.SetGray16(xPixel, imageSize.Y-1, color.Gray16{newColor})
+	}
+
+	minColor := uint16(65535)
+	maxColor := uint16(0)
+
+	for yPixel := 1; yPixel < imageSize.Y-1; yPixel++ {
+		for xPixel := 1; xPixel < imageSize.X-1; xPixel++ {
+
+			var total float64
+			total += 1 * average(imageData.At(xPixel-1, yPixel-1))
+			total += 2 * average(imageData.At(xPixel-1, yPixel))
+			total += 1 * average(imageData.At(xPixel-1, yPixel+1))
+
+			total += 2 * average(imageData.At(xPixel, yPixel-1))
+			total += 4 * average(imageData.At(xPixel, yPixel))
+			total += 2 * average(imageData.At(xPixel, yPixel+1))
+
+			total += 1 * average(imageData.At(xPixel+1, yPixel-1))
+			total += 2 * average(imageData.At(xPixel+1, yPixel))
+			total += 1 * average(imageData.At(xPixel+1, yPixel+1))
+
+			total /= 16
+
+			newColor := uint16(total * 65535)
+			filtered.SetGray16(xPixel, yPixel, color.Gray16{newColor})
+
+			if newColor > maxColor {
+				maxColor = newColor
+			} else if newColor < minColor {
+				minColor = newColor
+			}
+		}
+	}
+
+	// scale image so contrast is maximized
+	scale := float64(maxColor-minColor) / 65535.0
+	//fmt.Println("Max", maxColor, "Min", minColor, "Scale", scale)
+
+	for yPixel := 1; yPixel < imageSize.Y-1; yPixel++ {
+		for xPixel := 1; xPixel < imageSize.X-1; xPixel++ {
+			oldColor, _, _, _ := filtered.At(xPixel, yPixel).RGBA()
+
+			newColor := uint16((float64(oldColor) - float64(minColor)) / scale)
+			//fmt.Println("From", oldColor, "to", newColor)
+			filtered.SetGray16(xPixel, yPixel, color.Gray16{newColor})
+		}
+	}
+
+	// dump test image to disk
+	// file, err := os.OpenFile("test.png", os.O_CREATE|os.O_WRONLY, 0666)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer file.Close()
+	// if err = png.Encode(file, filtered); err != nil {
+	// 	panic(err)
+	// }
+
+	return filtered
+}
+
 // Data needed to generate ImageContourPath
 type ImageContourSetup struct {
 	Size        float64 // width of drawn image in mm
