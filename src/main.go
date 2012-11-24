@@ -44,6 +44,13 @@ func main() {
 
 	switch args[0] {
 
+	case "test":
+		plotCoords <- Coordinate{0, 0}
+		plotCoords <- Coordinate{10, 0}
+		plotCoords <- Coordinate{10.1, 0}
+		plotCoords <- Coordinate{10.1, 10}
+		close(plotCoords)
+
 	case "arc":
 		params := GetArgsAsFloats(args[1:], 2)
 		arcSetup := Arc{
