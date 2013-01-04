@@ -353,18 +353,12 @@ func ImageContourPath(setup ImageContourSetup, imageData image.Image, plotCoords
 // Test the value at a given point and return a single interpolated value
 func sampleImageAt(imageData image.Image, coord Coordinate) float64 {
 
-	minCoord := coord.Floor()
-	min := image.Point{int(minCoord.X), int(minCoord.Y)}
-	maxCoord := coord.Ceil()
-	max := image.Point{int(maxCoord.X), int(maxCoord.Y)}
-
 	imageBounds := imageData.Bounds()
-	if max.X >= imageBounds.Max.X {
-		max.X -= imageBounds.Max.X - 1
-	}
-	if max.Y >= imageBounds.Max.Y {
-		max.Y = imageBounds.Max.Y - 1
-	}
+
+	minCoord := coord.Floor()
+	min := clamp(image.Point{int(minCoord.X), int(minCoord.Y)}, imageBounds)
+	maxCoord := coord.Ceil()
+	max := clamp(image.Point{int(maxCoord.X), int(maxCoord.Y)}, imageBounds)
 
 	//fmt.Println("Sample at", coord, "Pixels", min, max)
 
@@ -390,6 +384,24 @@ func sampleImageAt(imageData image.Image, coord Coordinate) float64 {
 	}
 
 	return total
+}
+
+// Clamp a bound to inside the given bounds
+func clamp(point image.Point, bounds image.Rectangle) image.Point {
+	if point.X < bounds.Min.X {
+		point.X = bounds.Min.X
+	}
+	if point.X >= bounds.Max.X {
+		point.X -= bounds.Max.X - 1
+	}
+	if point.Y < bounds.Min.Y {
+		point.Y = bounds.Min.Y
+	}
+	if point.Y >= bounds.Max.Y {
+		point.Y = bounds.Max.Y - 1
+	}
+
+	return point
 }
 
 // Returns an average of R,G,B from 0 to 1
