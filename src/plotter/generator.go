@@ -295,7 +295,7 @@ type Arc struct {
 	ArcDist float64
 }
 
-// Generate a series of arcs
+// Draw image by generate a series of arcs, where darknes of a pixel is a movement along the arc
 func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate) {
 	defer close(plotCoords)
 
@@ -303,7 +303,7 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 	scale := setup.Size / math.Max(float64(imageSize.X), float64(imageSize.Y))
 	width := float64(imageSize.X) * scale
 	height := float64(imageSize.Y) * scale
-	fmt.Println("Width", width, "Scale", scale, "height", height)
+	fmt.Println("Width", width, "Height", height, "Scale", scale)
 
 	polarSystem := PolarSystemFromSettings()
 	polarPos := PolarCoordinate{Settings.StartingLeftDist_MM, Settings.StartingRightDist_MM}
@@ -394,4 +394,82 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 	plotCoords <- Coordinate{width, height}
 	plotCoords <- Coordinate{0, height}
 	plotCoords <- Coordinate{0, 0}
+}
+
+// Parameters for raster
+type Raster struct {
+
+	// Size of longest axis
+	Size float64
+
+	// Width of the pen used when filling in a pixel
+	PenWidth float64
+
+	// Size of a given pixel
+	pixelSize float64
+}
+
+// Draw image by generate a series of arcs, where darknes of a pixel is a movement along the arc
+func GenerateRaster(setup Raster, imageData image.Image, plotCoords chan<- Coordinate) {
+	defer close(plotCoords)
+
+	imageSize := imageData.Bounds().Max
+	scale := setup.Size / math.Max(float64(imageSize.X), float64(imageSize.Y))
+	setup.pixelSize = scale / 2.0
+	width := float64(imageSize.X) * scale
+	height := float64(imageSize.Y) * scale
+	fmt.Println("Width", width, "Height", height, "Scale", scale)
+
+	//polarSystem := PolarSystemFromSettings()
+	//polarPos := PolarCoordinate{Settings.StartingLeftDist_MM, Settings.StartingRightDist_MM}
+	//startingPos := polarPos.ToCoord(polarSystem)
+
+	for y := 0; ; {
+
+		for x := 0; x < imageSize.X; x++ {
+			pos := Coordinate{float64(x) * scale, float64(y) * scale}
+			plotCoords <- pos
+
+			//fmt.Println(x, y, average(imageData.At(x, y)))
+			if average(imageData.At(x, y)) < 0.2 {
+				drawPixel(pos, setup, plotCoords)
+			}
+		}
+
+		y++
+		if y == imageSize.Y {
+			plotCoords <- Coordinate{0, height - scale}
+			break
+		}
+
+		for x := imageSize.X - 1; x >= 0; x-- {
+			pos := Coordinate{float64(x) * scale, float64(y) * scale}
+			plotCoords <- pos
+			//fmt.Println(x, y, average(imageData.At(x, y)))
+			if average(imageData.At(x, y)) < 0.2 {
+				drawPixel(pos, setup, plotCoords)
+			}
+		}
+
+		y++
+		if y == imageSize.Y {
+			break
+		}
+	}
+
+	plotCoords <- Coordinate{0, 0}
+}
+
+// Draw a pixel at the given location
+func drawPixel(center Coordinate, setup Raster, plotCoords chan<- Coordinate) {
+
+	for currentBoxSize := setup.PenWidth; currentBoxSize <= setup.pixelSize; currentBoxSize += setup.PenWidth {
+		plotCoords <- center.Minus(Coordinate{currentBoxSize, currentBoxSize})
+		plotCoords <- center.Minus(Coordinate{currentBoxSize, -currentBoxSize})
+		plotCoords <- center.Minus(Coordinate{-currentBoxSize, -currentBoxSize})
+		plotCoords <- center.Minus(Coordinate{-currentBoxSize, currentBoxSize})
+		plotCoords <- center.Minus(Coordinate{currentBoxSize, currentBoxSize})
+	}
+
+	plotCoords <- center
 }
