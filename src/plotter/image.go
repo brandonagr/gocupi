@@ -299,57 +299,6 @@ func GaussianImage(imageData image.Image) image.Image {
 	return filtered
 }
 
-// Data needed to generate ImageContourPath
-type ImageContourSetup struct {
-	Size        float64 // width of drawn image in mm
-	LineSpacing float64 // distance between horizontal lines in mm
-}
-
-// Generate a path by generating horizontal contour traces
-func ImageContourPath(setup ImageContourSetup, imageData image.Image, plotCoords chan<- Coordinate) {
-	defer close(plotCoords)
-
-	imageSize := imageData.Bounds().Max
-	scale := (setup.Size + 1.0) / math.Max(float64(imageSize.X), float64(imageSize.Y))
-	width := float64(imageSize.X) * scale
-	height := float64(imageSize.Y) * scale
-
-	fmt.Println("Width", width, "Scale", scale, "height", height)
-	lineScaleFactor := setup.LineSpacing * 1.15
-
-	exitOnOpposite := false
-	for traceVerticalPosition := setup.LineSpacing / 2.0; traceVerticalPosition < height; traceVerticalPosition += setup.LineSpacing {
-		for horizontalPosition := 0.0; horizontalPosition <= width; horizontalPosition++ {
-			imageX := horizontalPosition / scale
-			imageY := traceVerticalPosition / scale
-
-			imageValue := sampleImageAt(imageData, Coordinate{float64(imageX), imageY})
-
-			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition - imageValue*lineScaleFactor}
-		}
-		traceVerticalPosition += setup.LineSpacing
-		if !(traceVerticalPosition < height) {
-			exitOnOpposite = true
-			break
-		}
-		for horizontalPosition := width; horizontalPosition >= 0; horizontalPosition-- {
-			imageX := horizontalPosition / scale
-			imageY := traceVerticalPosition / scale
-
-			imageValue := sampleImageAt(imageData, Coordinate{float64(imageX), imageY})
-
-			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition - imageValue*lineScaleFactor}
-		}
-	}
-
-	if exitOnOpposite {
-		plotCoords <- Coordinate{width, height}
-		plotCoords <- Coordinate{0, height}
-	}
-
-	plotCoords <- Coordinate{0, 0}
-}
-
 // Test the value at a given point and return a single interpolated value
 func sampleImageAt(imageData image.Image, coord Coordinate) float64 {
 

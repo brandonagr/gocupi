@@ -51,18 +51,6 @@ func main() {
 		plotCoords <- Coordinate{10.1, 10}
 		close(plotCoords)
 
-	case "arc":
-		params := GetArgsAsFloats(args[1:], 2)
-		arcSetup := Arc{
-			Size:    params[0],
-			ArcDist: params[1],
-		}
-
-		fmt.Println("Generating arc path")
-		data := LoadImage(args[3])
-		data = GaussianImage(data)
-		go GenerateArc(arcSetup, data, plotCoords)
-
 	case "circle":
 		params := GetArgsAsFloats(args[1:], 3)
 		circleSetup := SlidingCircle{
@@ -104,17 +92,17 @@ func main() {
 		fmt.Println("Generating hilbert curve")
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
 
-	case "image":
+	case "imagearc":
 		params := GetArgsAsFloats(args[1:], 2)
-		imageSetup := ImageContourSetup{
-			Size:        params[0],
-			LineSpacing: params[1],
+		arcSetup := Arc{
+			Size:    params[0],
+			ArcDist: params[1],
 		}
 
-		fmt.Println("Generating image contour path")
+		fmt.Println("Generating arc path")
 		data := LoadImage(args[3])
 		data = GaussianImage(data)
-		go ImageContourPath(imageSetup, data, plotCoords)
+		go GenerateArc(arcSetup, data, plotCoords)
 
 	case "lissa":
 		params := GetArgsAsFloats(args[1:], 3)
@@ -253,12 +241,12 @@ Flags:
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 
 Commands:
-arc s a "path" (s size) (a distance between arcs)
 circle R d n (R radius) (d displacement per revolution) (n number of circles)
 gcode s "path" (s scale)
 grid s c (s size) (c number cells)
 hilbert s d (s size) (d degree(ie 1 to 6))
-image s l "path" (s size of long axis) (l vertical line spacing in mm) (path to jpg|png|gif)
+imagearc s a "path" (s size) (a distance between arcs)
+imageraster s p "path" (s size) (p pen thickness)
 lissa s a b (s scale of drawing) (a factor) (b factor)
 move
 parabolic R c l (R radius) (c count of polygon edges) (l number of lines)
