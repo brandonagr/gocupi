@@ -50,6 +50,14 @@ func WriteStepsToChart(stepData <-chan int8) {
 		}
 	}
 
+	// chop down slices if maxNumberSteps wasn't needed
+	if stepIndex < maxNumberSteps {
+		leftVel = leftVel[:stepIndex]
+		rightVel = rightVel[:stepIndex]
+		leftPos = leftPos[:stepIndex]
+		rightPos = rightPos[:stepIndex]
+	}
+
 	// Create a new plot, set its title and
 	// axis labels.
 	p, err := chart.New()

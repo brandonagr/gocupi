@@ -4,12 +4,12 @@
  This example code is in the public domain.
  */
 
-int ledPins[5] = {
+const int ledPins[5] = {
   2,3,4,5,8}; // the pins of all of the leds, first 4 are status lights, 5th is receive indicator
-int leftStepPin = 7;
-int leftDirPin = 6;
-int rightStepPin = 9;
-int rightDirPin = 10;
+const int leftStepPin = 7;
+const int leftDirPin = 6;
+const int rightStepPin = 9;
+const int rightDirPin = 10;
 
 // Global variables
 // --------------------------------------

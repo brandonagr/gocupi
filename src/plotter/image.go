@@ -9,7 +9,6 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	"image/png"
-	"math"
 	"os"
 )
 
@@ -299,72 +298,15 @@ func GaussianImage(imageData image.Image) image.Image {
 	return filtered
 }
 
-// Data needed to generate ImageContourPath
-type ImageContourSetup struct {
-	Size        float64 // width of drawn image in mm
-	LineSpacing float64 // distance between horizontal lines in mm
-}
-
-// Generate a path by generating horizontal contour traces
-func ImageContourPath(setup ImageContourSetup, imageData image.Image, plotCoords chan<- Coordinate) {
-	defer close(plotCoords)
-
-	imageSize := imageData.Bounds().Max
-	scale := (setup.Size + 1.0) / math.Max(float64(imageSize.X), float64(imageSize.Y))
-	width := float64(imageSize.X) * scale
-	height := float64(imageSize.Y) * scale
-
-	fmt.Println("Width", width, "Scale", scale, "height", height)
-	lineScaleFactor := setup.LineSpacing * 1.15
-
-	exitOnOpposite := false
-	for traceVerticalPosition := setup.LineSpacing / 2.0; traceVerticalPosition < height; traceVerticalPosition += setup.LineSpacing {
-		for horizontalPosition := 0.0; horizontalPosition <= width; horizontalPosition++ {
-			imageX := horizontalPosition / scale
-			imageY := traceVerticalPosition / scale
-
-			imageValue := sampleImageAt(imageData, Coordinate{float64(imageX), imageY})
-
-			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition - imageValue*lineScaleFactor}
-		}
-		traceVerticalPosition += setup.LineSpacing
-		if !(traceVerticalPosition < height) {
-			exitOnOpposite = true
-			break
-		}
-		for horizontalPosition := width; horizontalPosition >= 0; horizontalPosition-- {
-			imageX := horizontalPosition / scale
-			imageY := traceVerticalPosition / scale
-
-			imageValue := sampleImageAt(imageData, Coordinate{float64(imageX), imageY})
-
-			plotCoords <- Coordinate{float64(imageX) * scale, traceVerticalPosition - imageValue*lineScaleFactor}
-		}
-	}
-
-	if exitOnOpposite {
-		plotCoords <- Coordinate{width, height}
-		plotCoords <- Coordinate{0, height}
-	}
-
-	plotCoords <- Coordinate{0, 0}
-}
-
 // Test the value at a given point and return a single interpolated value
 func sampleImageAt(imageData image.Image, coord Coordinate) float64 {
 
-	minCoord := coord.Floor()
-	min := image.Point{int(minCoord.X), int(minCoord.Y)}
-	maxCoord := coord.Ceil()
-	max := image.Point{int(maxCoord.X), int(maxCoord.Y)}
-
 	imageBounds := imageData.Bounds()
-	if max.X >= imageBounds.Max.X {
-		max.X -= imageBounds.Max.X - 1
-	}
-	if max.Y >= imageBounds.Max.Y {
-		max.Y = imageBounds.Max.Y - 1
-	}
+
+	minCoord := coord.Floor()
+	min := clamp(image.Point{int(minCoord.X), int(minCoord.Y)}, imageBounds)
+	maxCoord := coord.Ceil()
+	max := clamp(image.Point{int(maxCoord.X), int(maxCoord.Y)}, imageBounds)
 
 	//fmt.Println("Sample at", coord, "Pixels", min, max)
 
@@ -390,6 +332,24 @@ func sampleImageAt(imageData image.Image, coord Coordinate) float64 {
 	}
 
 	return total
+}
+
+// Clamp a bound to inside the given bounds
+func clamp(point image.Point, bounds image.Rectangle) image.Point {
+	if point.X < bounds.Min.X {
+		point.X = bounds.Min.X
+	}
+	if point.X >= bounds.Max.X {
+		point.X -= bounds.Max.X - 1
+	}
+	if point.Y < bounds.Min.Y {
+		point.Y = bounds.Min.Y
+	}
+	if point.Y >= bounds.Max.Y {
+		point.Y = bounds.Max.Y - 1
+	}
+
+	return point
 }
 
 // Returns an average of R,G,B from 0 to 1

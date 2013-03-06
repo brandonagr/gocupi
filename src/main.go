@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	. "plotter"
 	"strconv"
@@ -44,17 +45,12 @@ func main() {
 
 	switch args[0] {
 
-	case "arc":
-		params := GetArgsAsFloats(args[1:], 2)
-		arcSetup := Arc{
-			Size:    params[0],
-			ArcDist: params[1],
-		}
-
-		fmt.Println("Generating arc path")
-		data := LoadImage(args[3])
-		data = GaussianImage(data)
-		go GenerateArc(arcSetup, data, plotCoords)
+	case "test":
+		plotCoords <- Coordinate{0, 0}
+		plotCoords <- Coordinate{10, 0}
+		plotCoords <- Coordinate{10.1, 0}
+		plotCoords <- Coordinate{10.1, 10}
+		close(plotCoords)
 
 	case "circle":
 		params := GetArgsAsFloats(args[1:], 3)
@@ -97,17 +93,28 @@ func main() {
 		fmt.Println("Generating hilbert curve")
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
 
-	case "image":
+	case "imagearc":
 		params := GetArgsAsFloats(args[1:], 2)
-		imageSetup := ImageContourSetup{
-			Size:        params[0],
-			LineSpacing: params[1],
+		arcSetup := Arc{
+			Size:    params[0],
+			ArcDist: params[1],
 		}
 
-		fmt.Println("Generating image contour path")
+		fmt.Println("Generating image arc path")
 		data := LoadImage(args[3])
 		data = GaussianImage(data)
-		go ImageContourPath(imageSetup, data, plotCoords)
+		go GenerateArc(arcSetup, data, plotCoords)
+
+	case "imageraster":
+		params := GetArgsAsFloats(args[1:], 2)
+		rasterSetup := Raster{
+			Size:     params[0],
+			PenWidth: params[1],
+		}
+
+		fmt.Println("Generating image raster path")
+		data := LoadImage(args[3])
+		go GenerateRaster(rasterSetup, data, plotCoords)
 
 	case "lissa":
 		params := GetArgsAsFloats(args[1:], 3)
@@ -186,6 +193,21 @@ func main() {
 		fmt.Println("Generating text path")
 		go GenerateTextPath(args[2], height, plotCoords)
 
+	case "qr":
+		params := GetArgsAsFloats(args[1:], 2)
+		rasterSetup := Raster{
+			Size:     params[0],
+			PenWidth: params[1],
+		}
+
+		fmt.Println("Generating qr raster path for ", args[3])
+		data, err := qrencode.Encode(args[3], qrencode.ECLevelQ)
+		if err != nil {
+			panic(err)
+		}
+		imageData := data.ImageWithMargin(1, 0)
+		go GenerateRaster(rasterSetup, imageData, plotCoords)
+
 	default:
 		PrintUsage()
 		return
@@ -246,12 +268,12 @@ Flags:
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 
 Commands:
-arc s a "path" (s size) (a distance between arcs)
 circle R d n (R radius) (d displacement per revolution) (n number of circles)
 gcode s "path" (s scale)
 grid s c (s size) (c number cells)
 hilbert s d (s size) (d degree(ie 1 to 6))
-image s l "path" (s size of long axis) (l vertical line spacing in mm) (path to jpg|png|gif)
+imagearc s a "path" (s size) (a distance between arcs)
+imageraster s p "path" (s size) (p pen thickness)
 lissa s a b (s scale of drawing) (a factor) (b factor)
 move
 parabolic R c l (R radius) (c count of polygon edges) (l number of lines)
@@ -259,5 +281,6 @@ spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)
 spiro R r p (R first circle radius) (r second circle radius) (p pen distance)
 spool
 svg s "path" (s size of long axis)
-text h "string" (h letter height)`)
+text h "string" (h letter height)
+qr s p "string" (s size) (p pen thickness)`)
 }
