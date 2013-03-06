@@ -1,12 +1,12 @@
 
 <SettingsData>
 	<TimeSlice_US>2048</TimeSlice_US>
-	<SpoolCircumference_MM>60.946897</SpoolCircumference_MM>
+	<SpoolCircumference_MM>60.47565816</SpoolCircumference_MM>
 	<SpoolSingleStep_Degrees>0.225</SpoolSingleStep_Degrees>
-	<Acceleration_Seconds>1</Acceleration_Seconds>
-	<HorizontalDistance_MM>800</HorizontalDistance_MM>
+	<Acceleration_Seconds>1.5</Acceleration_Seconds>
+	<HorizontalDistance_MM>504</HorizontalDistance_MM>
 	<MinVertical_MM>50</MinVertical_MM>
-	<MaxVertical_MM>800</MaxVertical_MM>
-	<StartingLeftDist_MM>300</StartingLeftDist_MM>
-	<StartingRightDist_MM>700</StartingRightDist_MM>
+	<MaxVertical_MM>1000</MaxVertical_MM>
+	<StartingLeftDist_MM>374.9665109615478</StartingLeftDist_MM>
+	<StartingRightDist_MM>380.1724555578828</StartingRightDist_MM>
 </SettingsData>
