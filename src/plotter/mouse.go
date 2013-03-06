@@ -34,7 +34,7 @@ type linuxMouseReader struct {
 func CreateAndStartMouseReader() MouseReader {
 	// todo: implement windows supports?
 	var mouse = &linuxMouseReader{}
-	mouse.Start("/dev/input/event2")
+	mouse.Start(Settings.MousePath)
 	return mouse
 }
 

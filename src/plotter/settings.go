@@ -33,6 +33,9 @@ type SettingsData struct {
 	// Initial distance from head to right motor
 	StartingRightDist_MM float64
 
+	// path to mouse event file, use evtest to find
+	MousePath string
+
 	// MM traveled by a single step
 	StepSize_MM float64 `xml:"-"`
 

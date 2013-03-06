@@ -352,7 +352,7 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 		topAngle := math.Atan2(topIntersection.Y-arcOrigin.Y, topIntersection.X-arcOrigin.X)
 		botAngle := math.Atan2(botIntersection.Y-arcOrigin.Y, botIntersection.X-arcOrigin.X)
 
-		thetaDelta := 4.0 * math.Asin(1.0/(2.0*radius))
+		thetaDelta := 3.0 * math.Asin(1.0/(2.0*radius))
 
 		//fmt.Println("topAngle", topAngle, "botAngle", botAngle, "thetaDelta", thetaDelta)
 

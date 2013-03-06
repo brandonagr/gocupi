@@ -9,4 +9,5 @@
 	<MaxVertical_MM>800</MaxVertical_MM>
 	<StartingLeftDist_MM>300</StartingLeftDist_MM>
 	<StartingRightDist_MM>700</StartingRightDist_MM>
+	<MousePath>/dev/input/event2</MousePath>
 </SettingsData>

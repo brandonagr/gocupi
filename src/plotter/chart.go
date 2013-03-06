@@ -63,19 +63,19 @@ func WriteStepsToChart(stepData <-chan int8) {
 	// Draw a grid behind the data
 	p.Add(chartplotter.NewGrid())
 
-	leftPosLine := chartplotter.NewLine(leftPos)
+	leftPosLine, _ := chartplotter.NewLine(leftPos)
 	leftPosLine.LineStyle.Width = vg.Points(1)
 	leftPosLine.LineStyle.Color = color.RGBA{B: 255, A: 255}
 
-	rightPosLine := chartplotter.NewLine(rightPos)
+	rightPosLine, _ := chartplotter.NewLine(rightPos)
 	rightPosLine.LineStyle.Width = vg.Points(1)
 	rightPosLine.LineStyle.Color = color.RGBA{R: 255, A: 255}
 
-	leftVelLine := chartplotter.NewLine(leftVel)
+	leftVelLine, _ := chartplotter.NewLine(leftVel)
 	leftVelLine.LineStyle.Width = vg.Points(1)
 	leftVelLine.LineStyle.Color = color.RGBA{B: 150, G: 150, A: 255}
 
-	rightVelLine := chartplotter.NewLine(rightVel)
+	rightVelLine, _ := chartplotter.NewLine(rightVel)
 	rightVelLine.LineStyle.Width = vg.Points(1)
 	rightVelLine.LineStyle.Color = color.RGBA{R: 150, G: 150, A: 255}
 
