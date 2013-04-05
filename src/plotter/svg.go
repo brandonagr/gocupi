@@ -11,10 +11,6 @@ import (
 	"strings"
 )
 
-type G struct {
-	Transform string `xml:"transform,attr"`
-	PathData  []Path `xml:"path"`
-}
 type Path struct {
 	Style string `xml:"style,attr"`
 	Data  string `xml:"d,attr"`
@@ -36,15 +32,17 @@ func ParseSvgFile(fileName string) (data []Coordinate) {
 			break
 		}
 
-		//fmt.Println("Got token", t)
+		fmt.Println("Got token", t)
 
 		switch se := t.(type) {
 		case xml.StartElement:
-			if se.Name.Local == "g" {
-				var g G
-				decoder.DecodeElement(&g, &se)
+			if se.Name.Local == "path" {
+				var pathData Path
+				decoder.DecodeElement(&pathData, &se)
 
-				data = g.ParsePaths(data)
+				data = pathData.Parse(data)
+			} else if se.Name.Local != "g" {
+				panic("Unsupported svg elements found, only g and path elements are supported, please path any objects and flatten all curves to line segments")
 			}
 		}
 
@@ -54,43 +52,41 @@ func ParseSvgFile(fileName string) (data []Coordinate) {
 }
 
 // Parse string paths into list of coordinates
-func (g G) ParsePaths(data []Coordinate) []Coordinate {
-	for _, path := range g.PathData {
+func (path Path) Parse(data []Coordinate) []Coordinate {
 
-		if path.Data[0] != 'm' {
-			panic(fmt.Sprint("Unexpected first character in path data, expected m and got", path.Data[0]))
+	if path.Data[0] != 'm' {
+		panic(fmt.Sprint("Unexpected first character in path data, expected m and got", path.Data[0]))
+	}
+
+	//fmt.Println("Parsing", path.Data)
+
+	currentCoord := Coordinate{X: 0, Y: 0}
+	for index, parts := range strings.Split(path.Data[2:], " ") {
+
+		coordParts := strings.Split(parts, ",")
+		if len(coordParts) != 2 {
+			panic(fmt.Sprint("Expected comma seperated pair of coords and saw", parts))
 		}
 
-		//fmt.Println("Parsing", path.Data)
-
-		currentCoord := Coordinate{0, 0}
-		for index, parts := range strings.Split(path.Data[2:], " ") {
-
-			coordParts := strings.Split(parts, ",")
-			if len(coordParts) != 2 {
-				panic(fmt.Sprint("Expected comma seperated pair of coords and saw", parts))
-			}
-
-			var coord Coordinate
-			var err interface{}
-			coord.X, err = strconv.ParseFloat(coordParts[0], 64)
-			if err != nil {
-				panic(err)
-			}
-			coord.X = -coord.X
-			coord.Y, err = strconv.ParseFloat(coordParts[1], 64)
-			if err != nil {
-				panic(err)
-			}
-
-			if index == 0 {
-				currentCoord = coord
-			} else {
-				currentCoord = currentCoord.Add(coord)
-			}
-
-			data = append(data, currentCoord)
+		var coord Coordinate
+		var err interface{}
+		coord.X, err = strconv.ParseFloat(coordParts[0], 64)
+		if err != nil {
+			panic(err)
 		}
+		coord.X = -coord.X
+		coord.Y, err = strconv.ParseFloat(coordParts[1], 64)
+		if err != nil {
+			panic(err)
+		}
+
+		if index == 0 {
+			currentCoord = coord
+		} else {
+			currentCoord = currentCoord.Add(coord)
+		}
+
+		data = append(data, currentCoord)
 	}
 
 	return data
@@ -112,8 +108,8 @@ func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordina
 	}
 
 	initialPosition := data[topMostPointIndex]
-	minPoint := Coordinate{100000, 100000}
-	maxPoint := Coordinate{-100000, -10000}
+	minPoint := Coordinate{X: 100000, Y: 100000}
+	maxPoint := Coordinate{X: -100000, Y: -10000}
 
 	fmt.Println("Starting location is", initialPosition, "index", topMostPointIndex)
 

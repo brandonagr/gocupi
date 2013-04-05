@@ -66,7 +66,7 @@ func ParseGcode(fileData []string) (data GcodeData) {
 
 		if strings.HasPrefix(fileLine, "G00") || strings.HasPrefix(fileLine, "G01") {
 
-			coord := Coordinate{math.MaxFloat64, math.MaxFloat64}
+			coord := Coordinate{X: math.MaxFloat64, Y: math.MaxFloat64}
 
 			for _, part := range strings.Split(fileLine, " ") {
 				var err interface{}

@@ -100,7 +100,7 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 	if origin == dest {
 		data.origin = origin
 		data.destination = data.destination
-		data.direction = Coordinate{0, 1}
+		data.direction = Coordinate{X: 0, Y: 1}
 		data.distance = 0
 		data.exitSpeed = data.entrySpeed
 		data.cruiseSpeed = data.entrySpeed
@@ -125,7 +125,7 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 	nextDirection := nextDest.Minus(dest)
 	if nextDirection.Len() == 0 {
 		// if there is no next direction, make the exit speed 0 by pretending the next move will be backwards from current direction
-		nextDirection = Coordinate{-data.direction.X, -data.direction.Y}
+		nextDirection = Coordinate{X: -data.direction.X, Y: -data.direction.Y}
 	} else {
 		nextDirection = nextDirection.Normalized()
 	}

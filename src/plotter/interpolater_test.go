@@ -9,7 +9,7 @@ func TestCoordinateRingBuffer(t *testing.T) {
 
 	buffer := NewCoordinateRingBuffer(4)
 
-	coords := [4]Coordinate{ Coordinate{1,0}, Coordinate{2,0}, Coordinate{3,0}, Coordinate{4,0} }
+	coords := [4]Coordinate{Coordinate{X: 1, Y: 0}, Coordinate{X: 2, Y: 0}, Coordinate{X: 3, Y: 0}, Coordinate{X: 4, Y: 0}}
 
 	for index := 0; index < buffer.Cap(); index++ {
 		buffer.Enqueue(coords[index])

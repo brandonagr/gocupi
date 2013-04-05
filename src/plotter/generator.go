@@ -76,7 +76,7 @@ func GenerateSpiral(setup Spiral, plotCoords chan<- Coordinate) {
 
 		//fmt.Println("Radius", radius, "Radius delta", radiusDelta, "Theta", theta, "Theta delta", thetaDelta)
 	}
-	plotCoords <- Coordinate{0, 0}
+	plotCoords <- Coordinate{X: 0, Y: 0}
 }
 
 // Parameters needed to generate a sliding circle
@@ -98,7 +98,7 @@ func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
 
 	// MM that will be moved in a single step, used to calc what the new position along spiral will be after one time slice
 	moveDist := 4.0 * Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0
-	displacement := Coordinate{setup.CircleDisplacement, 0}
+	displacement := Coordinate{X: setup.CircleDisplacement, Y: 0}
 
 	theta := 0.0
 	thetaDelta := 2.8 * math.Asin(moveDist/(2.0*setup.Radius))
@@ -117,7 +117,7 @@ func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
 			drawnCircles++
 		}
 	}
-	plotCoords <- Coordinate{0, 0}
+	plotCoords <- Coordinate{X: 0, Y: 0}
 }
 
 // Parameters needed for hilbert curve
@@ -145,9 +145,9 @@ func GenerateHilbertCurve(setup HilbertCurve, plotCoords chan<- Coordinate) {
 		var x, y int
 		hilbert_d2xy(dimSize, hilbertIndex, &x, &y)
 
-		plotCoords <- Coordinate{float64(x), float64(y)}.Scaled(scale)
+		plotCoords <- Coordinate{X: float64(x), Y: float64(y)}.Scaled(scale)
 	}
-	plotCoords <- Coordinate{0, 0}
+	plotCoords <- Coordinate{X: 0, Y: 0}
 }
 
 //convert d to (x,y)
@@ -202,15 +202,15 @@ func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
 	points := make([]Coordinate, edgeCountInt)
 	for edge := 0; edge < edgeCountInt; edge++ {
 		angle := ((2.0 * math.Pi) / setup.PolygonEdgeCount) * float64(edge)
-		points[edge] = Coordinate{setup.Radius * math.Cos(angle), setup.Radius * math.Sin(angle)}
+		points[edge] = Coordinate{X: setup.Radius * math.Cos(angle), Y: setup.Radius * math.Sin(angle)}
 	}
 
 	for edge := 0; edge < edgeCountInt; edge++ {
 
 		sourceBegin := points[edge]
-		sourceEnd := Coordinate{0, 0}
+		sourceEnd := Coordinate{X: 0, Y: 0}
 
-		destBegin := Coordinate{0, 0}
+		destBegin := Coordinate{X: 0, Y: 0}
 		destEnd := points[(edge+1)%edgeCountInt]
 
 		//fmt.Println("Source", sourceBegin, sourceEnd, "Dest", destBegin, destEnd)
@@ -232,7 +232,7 @@ func GenerateParabolic(setup Parabolic, plotCoords chan<- Coordinate) {
 				plotCoords <- start
 			}
 		}
-		plotCoords <- Coordinate{0, 0}
+		plotCoords <- Coordinate{X: 0, Y: 0}
 	}
 }
 
@@ -257,32 +257,32 @@ func GenerateGrid(setup Grid, plotCoords chan<- Coordinate) {
 		yf := float64(y)
 
 		if y%2 == 0 {
-			plotCoords <- Coordinate{setup.Cells * cellWidth, yf * cellWidth}
-			plotCoords <- Coordinate{setup.Cells * cellWidth, (yf + 1) * cellWidth}
+			plotCoords <- Coordinate{X: setup.Cells * cellWidth, Y: yf * cellWidth}
+			plotCoords <- Coordinate{X: setup.Cells * cellWidth, Y: (yf + 1) * cellWidth}
 		} else {
-			plotCoords <- Coordinate{0, yf * cellWidth}
-			plotCoords <- Coordinate{0, (yf + 1) * cellWidth}
+			plotCoords <- Coordinate{X: 0, Y: yf * cellWidth}
+			plotCoords <- Coordinate{X: 0, Y: (yf + 1) * cellWidth}
 		}
 	}
 
-	plotCoords <- Coordinate{0, setup.Cells * cellWidth}
+	plotCoords <- Coordinate{X: 0, Y: setup.Cells * cellWidth}
 
 	for x := 0; x < cellInt; x++ {
 		xf := float64(x)
 
 		if x%2 == 0 {
-			plotCoords <- Coordinate{xf * cellWidth, 0}
-			plotCoords <- Coordinate{(xf + 1) * cellWidth, 0}
+			plotCoords <- Coordinate{X: xf * cellWidth, Y: 0}
+			plotCoords <- Coordinate{X: (xf + 1) * cellWidth, Y: 0}
 		} else {
-			plotCoords <- Coordinate{xf * cellWidth, setup.Cells * cellWidth}
-			plotCoords <- Coordinate{(xf + 1) * cellWidth, setup.Cells * cellWidth}
+			plotCoords <- Coordinate{X: xf * cellWidth, Y: setup.Cells * cellWidth}
+			plotCoords <- Coordinate{X: (xf + 1) * cellWidth, Y: setup.Cells * cellWidth}
 		}
 	}
 
 	if cellInt%2 == 0 {
-		plotCoords <- Coordinate{setup.Cells * cellWidth, 0}
+		plotCoords <- Coordinate{X: setup.Cells * cellWidth, Y: 0}
 	}
-	plotCoords <- Coordinate{0, 0}
+	plotCoords <- Coordinate{X: 0, Y: 0}
 }
 
 // Parameters for arc
@@ -306,22 +306,22 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 	fmt.Println("Width", width, "Height", height, "Scale", scale)
 
 	polarSystem := PolarSystemFromSettings()
-	polarPos := PolarCoordinate{Settings.StartingLeftDist_MM, Settings.StartingRightDist_MM}
+	polarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
 	startingPos := polarPos.ToCoord(polarSystem)
 
-	arcOrigin := Coordinate{0, 0}.Minus(startingPos)
+	arcOrigin := Coordinate{X: 0, Y: 0}.Minus(startingPos)
 
 	beginRadius := arcOrigin.Len()
-	endRadius := Coordinate{width, height}.Minus(arcOrigin).Len()
+	endRadius := Coordinate{X: width, Y: height}.Minus(arcOrigin).Len()
 
 	fmt.Println("Origin", arcOrigin, "beginRadius", beginRadius, "endRadius", endRadius)
 
 	// sides of the drawing box
 	sides := [4]LineSegment{
-		LineSegment{Coordinate{0, 0}, Coordinate{width, 0}},           // top
-		LineSegment{Coordinate{width, 0}, Coordinate{width, height}},  // right
-		LineSegment{Coordinate{width, height}, Coordinate{0, height}}, // bottom
-		LineSegment{Coordinate{0, height}, Coordinate{0, 0}},          // left		
+		LineSegment{Coordinate{X: 0, Y: 0}, Coordinate{X: width, Y: 0}},           // top
+		LineSegment{Coordinate{X: width, Y: 0}, Coordinate{X: width, Y: height}},  // right
+		LineSegment{Coordinate{X: width, Y: height}, Coordinate{X: 0, Y: height}}, // bottom
+		LineSegment{Coordinate{X: 0, Y: height}, Coordinate{X: 0, Y: 0}},          // left		
 	}
 
 	flipDir := false
@@ -335,7 +335,7 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 		for _, side := range sides {
 			p1, p1Valid, _, _ := arc.Intersection(side)
 			if p1Valid {
-				if (topIntersection == Coordinate{0, 0}) {
+				if (topIntersection == Coordinate{X: 0, Y: 0}) {
 					topIntersection = p1
 				} else {
 					botIntersection = p1
@@ -360,40 +360,40 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 		if flipDir {
 			for theta := topAngle; theta <= botAngle; theta += thetaDelta {
 
-				pos := arcOrigin.Add(Coordinate{math.Cos(theta) * radius, math.Sin(theta) * radius})
+				pos := arcOrigin.Add(Coordinate{X: math.Cos(theta) * radius, Y: math.Sin(theta) * radius})
 				imageValue := 1.0 - sampleImageAt(imageData, pos.Scaled(1/scale))
 				offset := setup.ArcDist * 0.5 * imageValue
 
 				plotCoords <- pos
 				if imageValue > 0.05 {
-					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta) * (radius + offset), math.Sin(theta) * (radius + offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta+thetaDelta/2.0) * (radius + offset), math.Sin(theta+thetaDelta/2.0) * (radius + offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta+thetaDelta/2.0) * (radius - offset), math.Sin(theta+thetaDelta/2.0) * (radius - offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta+thetaDelta) * (radius - offset), math.Sin(theta+thetaDelta) * (radius - offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta) * (radius + offset), Y: math.Sin(theta) * (radius + offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta+thetaDelta/2.0) * (radius + offset), Y: math.Sin(theta+thetaDelta/2.0) * (radius + offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta+thetaDelta/2.0) * (radius - offset), Y: math.Sin(theta+thetaDelta/2.0) * (radius - offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta+thetaDelta) * (radius - offset), Y: math.Sin(theta+thetaDelta) * (radius - offset)})
 				}
 			}
-			plotCoords <- arcOrigin.Add(Coordinate{math.Cos(botAngle) * radius, math.Sin(botAngle) * radius})
+			plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(botAngle) * radius, Y: math.Sin(botAngle) * radius})
 		} else {
 			for theta := botAngle; theta >= topAngle; theta -= thetaDelta {
-				pos := arcOrigin.Add(Coordinate{math.Cos(theta) * radius, math.Sin(theta) * radius})
+				pos := arcOrigin.Add(Coordinate{X: math.Cos(theta) * radius, Y: math.Sin(theta) * radius})
 				imageValue := 1.0 - sampleImageAt(imageData, pos.Scaled(1/scale))
 				offset := setup.ArcDist * 0.5 * imageValue
 
 				plotCoords <- pos
 				if imageValue > 0.05 {
-					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta) * (radius + offset), math.Sin(theta) * (radius + offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta-thetaDelta/2.0) * (radius + offset), math.Sin(theta-thetaDelta/2.0) * (radius + offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta-thetaDelta/2.0) * (radius - offset), math.Sin(theta-thetaDelta/2.0) * (radius - offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{math.Cos(theta-thetaDelta) * (radius - offset), math.Sin(theta-thetaDelta) * (radius - offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta) * (radius + offset), Y: math.Sin(theta) * (radius + offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta-thetaDelta/2.0) * (radius + offset), Y: math.Sin(theta-thetaDelta/2.0) * (radius + offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta-thetaDelta/2.0) * (radius - offset), Y: math.Sin(theta-thetaDelta/2.0) * (radius - offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta-thetaDelta) * (radius - offset), Y: math.Sin(theta-thetaDelta) * (radius - offset)})
 				}
 			}
-			plotCoords <- arcOrigin.Add(Coordinate{math.Cos(topAngle) * radius, math.Sin(topAngle) * radius})
+			plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(topAngle) * radius, Y: math.Sin(topAngle) * radius})
 		}
 	}
 
-	plotCoords <- Coordinate{width, height}
-	plotCoords <- Coordinate{0, height}
-	plotCoords <- Coordinate{0, 0}
+	plotCoords <- Coordinate{X: width, Y: height}
+	plotCoords <- Coordinate{X: 0, Y: height}
+	plotCoords <- Coordinate{X: 0, Y: 0}
 }
 
 // Parameters for raster
@@ -427,7 +427,7 @@ func GenerateRaster(setup Raster, imageData image.Image, plotCoords chan<- Coord
 	for y := 0; ; {
 
 		for x := 0; x < imageSize.X; x++ {
-			pos := Coordinate{float64(x) * scale, float64(y) * scale}
+			pos := Coordinate{X: float64(x) * scale, Y: float64(y) * scale}
 			plotCoords <- pos
 
 			//fmt.Println(x, y, average(imageData.At(x, y)))
@@ -438,12 +438,12 @@ func GenerateRaster(setup Raster, imageData image.Image, plotCoords chan<- Coord
 
 		y++
 		if y == imageSize.Y {
-			plotCoords <- Coordinate{0, height - scale}
+			plotCoords <- Coordinate{X: 0, Y: height - scale}
 			break
 		}
 
 		for x := imageSize.X - 1; x >= 0; x-- {
-			pos := Coordinate{float64(x) * scale, float64(y) * scale}
+			pos := Coordinate{X: float64(x) * scale, Y: float64(y) * scale}
 			plotCoords <- pos
 			//fmt.Println(x, y, average(imageData.At(x, y)))
 			if average(imageData.At(x, y)) < 0.2 {
@@ -457,18 +457,18 @@ func GenerateRaster(setup Raster, imageData image.Image, plotCoords chan<- Coord
 		}
 	}
 
-	plotCoords <- Coordinate{0, 0}
+	plotCoords <- Coordinate{X: 0, Y: 0}
 }
 
 // Draw a pixel at the given location
 func drawPixel(center Coordinate, setup Raster, plotCoords chan<- Coordinate) {
 
 	for currentBoxSize := setup.PenWidth; currentBoxSize <= setup.pixelSize; currentBoxSize += setup.PenWidth {
-		plotCoords <- center.Minus(Coordinate{currentBoxSize, currentBoxSize})
-		plotCoords <- center.Minus(Coordinate{currentBoxSize, -currentBoxSize})
-		plotCoords <- center.Minus(Coordinate{-currentBoxSize, -currentBoxSize})
-		plotCoords <- center.Minus(Coordinate{-currentBoxSize, currentBoxSize})
-		plotCoords <- center.Minus(Coordinate{currentBoxSize, currentBoxSize})
+		plotCoords <- center.Minus(Coordinate{X: currentBoxSize, Y: currentBoxSize})
+		plotCoords <- center.Minus(Coordinate{X: currentBoxSize, Y: -currentBoxSize})
+		plotCoords <- center.Minus(Coordinate{X: -currentBoxSize, Y: -currentBoxSize})
+		plotCoords <- center.Minus(Coordinate{X: -currentBoxSize, Y: currentBoxSize})
+		plotCoords <- center.Minus(Coordinate{X: currentBoxSize, Y: currentBoxSize})
 	}
 
 	plotCoords <- center

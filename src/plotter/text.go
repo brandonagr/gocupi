@@ -21,7 +21,7 @@ func GenerateTextPath(text string, height float64, plotCoords chan<- Coordinate)
 		horizontalPosition += result
 	}
 
-	plotCoords <- Coordinate{0, 0}
+	plotCoords <- Coordinate{X: 0, Y: 0}
 }
 
 // Print a single character
@@ -50,7 +50,7 @@ func printCharacter(asciiLetter int, plotCoords chan<- Coordinate, horizontalPos
 			continue
 		}
 
-		pointData = append(pointData, Coordinate{float64(x)*scale + horizontalPosition, (-float64(y) * scale) - 10})
+		pointData = append(pointData, Coordinate{X: float64(x)*scale + horizontalPosition, Y: (-float64(y) * scale) - 10})
 	}
 
 	if len(pointData) > 0 {
@@ -64,7 +64,7 @@ func printCharacter(asciiLetter int, plotCoords chan<- Coordinate, horizontalPos
 			}
 		}
 
-		plotCoords <- Coordinate{pointData[0].X, 0}
+		plotCoords <- Coordinate{X: pointData[0].X, Y: 0}
 	}
 
 	// play coordinates forwards and backwards in order to exit at same entrance
@@ -76,7 +76,7 @@ func printCharacter(asciiLetter int, plotCoords chan<- Coordinate, horizontalPos
 	}
 
 	if len(pointData) > 0 {
-		plotCoords <- Coordinate{pointData[0].X, 0}
+		plotCoords <- Coordinate{X: pointData[0].X, Y: 0}
 	}
 	//plotCoords <- Coordinate{horizontalPosition + float64(width)*scale, 0}
 

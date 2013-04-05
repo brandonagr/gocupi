@@ -43,7 +43,7 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 	//var previousLeft int = 0
 	//var sliceTotal int = 0
 
-	origin := Coordinate{0, 0}
+	origin := Coordinate{X: 0, Y: 0}
 	target, chanOpen := <-plotCoords
 	if !chanOpen {
 		return
@@ -196,7 +196,7 @@ func PerformManualAlignment() {
 		go WriteStepsToSerial(alignStepData)
 
 		interp := new(TrapezoidInterpolater)
-		interp.Setup(Coordinate{}, Coordinate{distance, 0}, Coordinate{})
+		interp.Setup(Coordinate{}, Coordinate{X: distance, Y: 0}, Coordinate{})
 		position := 0.0
 
 		for slice := 1.0; slice <= interp.Slices(); slice++ {
@@ -242,12 +242,12 @@ func PerformMouseTracking() {
 	readData := make([]byte, 1)
 
 	polarSystem := PolarSystemFromSettings()
-	previousPolarPos := PolarCoordinate{Settings.StartingLeftDist_MM, Settings.StartingRightDist_MM}
+	previousPolarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
 	startingPos := previousPolarPos.ToCoord(polarSystem)
 	polarSystem.XOffset = startingPos.X
 	polarSystem.YOffset = startingPos.Y
 
-	currentPos := Coordinate{0, 0}
+	currentPos := Coordinate{X: 0, Y: 0}
 
 	// max distance that can be travelled in one batch
 	maxDistance := 64 * (Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0)
@@ -273,11 +273,11 @@ func PerformMouseTracking() {
 		}
 
 		mouseX, mouseY := mouse.GetPos()
-		mousePos := Coordinate{float64(mouseX) / 20.0, float64(mouseY) / 20.0}
+		mousePos := Coordinate{X: float64(mouseX) / 20.0, Y: float64(mouseY) / 20.0}
 		direction := mousePos.Minus(currentPos)
 		distance := direction.Len()
 		if distance == 0.0 {
-			direction = Coordinate{1, 0}
+			direction = Coordinate{X: 1, Y: 0}
 		} else {
 			direction = direction.Normalized()
 		}
@@ -325,7 +325,7 @@ func promptForSettingsPosition(polarSystem PolarSystem) {
 	if _, err := fmt.Scanln(&finalLocation.X, &finalLocation.Y); err != nil {
 		panic(err)
 	}
-	finalPolarPos := finalLocation.Minus(Coordinate{polarSystem.XOffset, polarSystem.YOffset}).ToPolar(polarSystem)
+	finalPolarPos := finalLocation.Minus(Coordinate{X: polarSystem.XOffset, Y: polarSystem.YOffset}).ToPolar(polarSystem)
 
 	fmt.Println("Updating Left from", Settings.StartingLeftDist_MM, "to", finalPolarPos.LeftDist)
 	fmt.Println("Updating Right from", Settings.StartingRightDist_MM, "to", finalPolarPos.RightDist)
