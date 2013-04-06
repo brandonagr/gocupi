@@ -43,6 +43,11 @@ func (coord Coordinate) Scaled(factor float64) Coordinate {
 	return Coordinate{coord.X * factor, coord.Y * factor, coord.PenUp}
 }
 
+// Scale each axis seperately
+func (coord Coordinate) ScaledBoth(xfactor, yfactor float64) Coordinate {
+	return Coordinate{coord.X * xfactor, coord.Y * yfactor, coord.PenUp}
+}
+
 // Apply math.Ceil to each value
 func (coord Coordinate) Ceil() Coordinate {
 	return Coordinate{math.Ceil(coord.X), math.Ceil(coord.Y), coord.PenUp}

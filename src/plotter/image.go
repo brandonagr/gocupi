@@ -21,7 +21,7 @@ func DrawToImage(imageName string, plotCoords <-chan Coordinate) {
 	maxPoint := Coordinate{X: -100000, Y: -10000}
 
 	for point := range plotCoords {
-		point = point.Scaled(4.0)
+		point = point.Scaled(4.0) // 4 mm = 1 pixel
 		points = append(points, point)
 
 		if point.X < minPoint.X {
@@ -37,6 +37,7 @@ func DrawToImage(imageName string, plotCoords <-chan Coordinate) {
 		}
 	}
 
+	// add some border to the image
 	maxPoint = maxPoint.Add(Coordinate{X: 50, Y: 50})
 	minPoint = minPoint.Add(Coordinate{X: -50, Y: -50})
 
@@ -71,6 +72,12 @@ func drawLine(start Coordinate, end Coordinate, minPoint Coordinate, maxPoint Co
 	start_y := int(start.Y - minPoint.Y)
 	end_x := int(end.X - minPoint.X)
 	end_y := int(end.Y - minPoint.Y)
+	var lineColor color.RGBA
+	if end.PenUp {
+		lineColor = color.RGBA{200, 200, 0, 255}
+	} else {
+		lineColor = color.RGBA{0, 0, 255, 255}
+	}
 
 	//  highlight the end
 	image.Set(end_x+1, end_y+1, color.RGBA{255, 0, 0, 128})
@@ -108,7 +115,7 @@ func drawLine(start Coordinate, end Coordinate, minPoint Coordinate, maxPoint Co
 	var n int
 	for n = 0; n < 10000; n++ {
 
-		image.Set(cx, cy, color.RGBA{0, 128, 0, 255})
+		image.Set(cx, cy, lineColor)
 		if (cx == end_x) && (cy == end_y) {
 			return
 		}

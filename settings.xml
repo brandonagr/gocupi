@@ -1,13 +1,34 @@
-
+<!-- Polargraph geometry parameters needs to reflect the state of the polargraph on app startup or warped/unpredictable drawing will occur -->
+<!-- For overall setup 0,0 is the left spool, +x is to the right, +y is down -->
+<!-- When it actually starts drawing, the pen is 0,0 for all generated coordinates -->
 <SettingsData>
-	<TimeSlice_US>2048</TimeSlice_US>
-	<SpoolCircumference_MM>60.47565816</SpoolCircumference_MM>
-	<SpoolSingleStep_Degrees>0.225</SpoolSingleStep_Degrees>
-	<Acceleration_Seconds>1.5</Acceleration_Seconds>
+	<!-- Distance between the center of the left/right spools -->
 	<HorizontalDistance_MM>504</HorizontalDistance_MM>
+	
+	<!-- Min vertical distance the polargraph pen is allowed to go, wont go higher than this, the top of the drawing surface -->
 	<MinVertical_MM>50</MinVertical_MM>
+	
+	<!-- Max vertical distance the polargraph pen is allowed to go, the bottom of drawing surface -->
 	<MaxVertical_MM>1000</MaxVertical_MM>
+	
+	<!-- Distance from center of left spool to pen -->
 	<StartingLeftDist_MM>374.9665109615478</StartingLeftDist_MM>
+	
+	<!-- Distance from center of right spool to pen -->
 	<StartingRightDist_MM>380.1724555578828</StartingRightDist_MM>
+	
+	<!-- Circumference of spool, one rotation of the spool will move the string this amount -->
+	<SpoolCircumference_MM>60.47565816</SpoolCircumference_MM>
+	
+	<!-- Degrees the spool moves from a single step -->
+	<SpoolSingleStep_Degrees>0.225</SpoolSingleStep_Degrees>
+	
+	<!-- Needs to be the same as the arduino code is set to -->
+	<TimeSlice_US>2048</TimeSlice_US>
+	
+	<!-- Number of seconds to go from stopped to full speed -->
+	<Acceleration_Seconds>0.5</Acceleration_Seconds>
+
+	<!-- Mouse path, used on linux with the mouse command in order to directly control pen with a mouse -->
 	<MousePath>/dev/input/event2</MousePath>
 </SettingsData>

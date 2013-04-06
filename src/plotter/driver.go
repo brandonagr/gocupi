@@ -1,5 +1,7 @@
 package plotter
 
+// Handles sending data over serial to the arduino
+
 import (
 	"fmt"
 	serial "github.com/tarm/goserial"
@@ -40,9 +42,6 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 	//var interp PositionInterpolater = new(LinearInterpolater)
 	var interp PositionInterpolater = new(TrapezoidInterpolater)
 
-	//var previousLeft int = 0
-	//var sliceTotal int = 0
-
 	origin := Coordinate{X: 0, Y: 0}
 	target, chanOpen := <-plotCoords
 	if !chanOpen {
@@ -66,9 +65,14 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 			sliceTarget := interp.Position(slice)
 			polarSliceTarget := sliceTarget.ToPolar(polarSystem)
 
-			// calc integer number of steps * 32 that will be made this time slice
-			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
-			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
+			// calc number of steps that will be made this time slice, have to precision that can be sent in a single value from StepsMaxValue to -StepsMaxValue
+			sliceSteps := polarSliceTarget.
+				Minus(previousPolarPos).
+				Scaled(StepsFixedPointFactor/Settings.StepSize_MM).
+				Ceil().
+				Clamp(StepsMaxValue, -StepsMaxValue)
+			previousPolarPos = previousPolarPos.
+				Add(sliceSteps.Scaled(Settings.StepSize_MM / StepsFixedPointFactor))
 
 			//fmt.Println("Slice", slice, "From", previousPolarPos, "to", polarSliceTarget, "steps", sliceSteps)
 			//if previousLeft-int(sliceSteps.LeftDist) < -30 {
@@ -78,7 +82,6 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 
 			stepData <- int8(-sliceSteps.LeftDist)
 			stepData <- int8(sliceSteps.RightDist)
-			//sliceTotal++
 		}
 		origin = previousPolarPos.ToCoord(polarSystem)
 		//fmt.Println("Reprojection error", origin.Minus(target).Len(), "target", target, "actual", origin)
@@ -141,7 +144,7 @@ func WriteStepsToSerial(stepData <-chan int8) {
 	var byteData int8 = 0
 
 	// send a -128 to force the arduino to restart and rerequest data
-	s.Write([]byte{0x80})
+	s.Write([]byte{ResetCommand})
 
 	for stepDataOpen := true; stepDataOpen; {
 		// wait for next data request
@@ -204,8 +207,8 @@ func PerformManualAlignment() {
 			sliceTarget := interp.Position(slice)
 
 			// calc integer number of steps that will be made this time slice
-			sliceSteps := math.Ceil((sliceTarget.X - position) * (32.0 / Settings.StepSize_MM))
-			position = position + sliceSteps*(Settings.StepSize_MM/32.0)
+			sliceSteps := math.Ceil((sliceTarget.X - position) * (StepsFixedPointFactor / Settings.StepSize_MM))
+			position = position + sliceSteps*(Settings.StepSize_MM/StepsFixedPointFactor)
 
 			if side == "l" {
 				alignStepData <- int8(-sliceSteps)
@@ -253,7 +256,7 @@ func PerformMouseTracking() {
 	maxDistance := 64 * (Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0)
 
 	// send a -128 to force the arduino to restart and rerequest data
-	s.Write([]byte{0x80})
+	s.Write([]byte{ResetCommand})
 	for stepDataOpen := true; stepDataOpen; {
 		// wait for next data request
 		n, err := s.Read(readData)
@@ -294,8 +297,13 @@ func PerformMouseTracking() {
 
 			//fmt.Println("i", i, "pos", currentPos, "target", sliceTarget);
 
-			sliceSteps := polarSliceTarget.Minus(previousPolarPos).Scaled(32.0/Settings.StepSize_MM).Ceil().Clamp(127, -127)
-			previousPolarPos = previousPolarPos.Add(sliceSteps.Scaled(Settings.StepSize_MM / 32.0))
+			sliceSteps := polarSliceTarget.
+				Minus(previousPolarPos).
+				Scaled(StepsFixedPointFactor/Settings.StepSize_MM).
+				Ceil().
+				Clamp(StepsMaxValue, -StepsMaxValue)
+			previousPolarPos = previousPolarPos.
+				Add(sliceSteps.Scaled(Settings.StepSize_MM / StepsFixedPointFactor))
 
 			writeData[i] = byte(int8(-sliceSteps.LeftDist))
 			writeData[i+1] = byte(int8(sliceSteps.RightDist))

@@ -241,24 +241,14 @@ func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordina
 
 	defer close(plotCoords)
 
-	// find top most svg point, so that the path can start there
-	topMostPointIndex := 0
-	topMostPoint := -100000.0
-	for index, point := range data {
-		if point.Y > topMostPoint {
-			topMostPointIndex = index
-			topMostPoint = point.Y
-		}
-	}
-
-	initialPosition := data[topMostPointIndex]
+	// find minPoint of coordinates, which will be upper left, where the pen will start
 	minPoint := Coordinate{X: 100000, Y: 100000}
 	maxPoint := Coordinate{X: -100000, Y: -10000}
 
-	fmt.Println("Starting location is", initialPosition, "index", topMostPointIndex)
-
 	for _, curTarget := range data {
-		point := curTarget.Minus(initialPosition)
+
+		// flip y axis because in svg world bottom left is origin
+		point := curTarget.ScaledBoth(1.0, -1.0)
 
 		if point.X < minPoint.X {
 			minPoint.X = point.X
@@ -274,12 +264,12 @@ func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordina
 	}
 
 	imageSize := maxPoint.Minus(minPoint)
-	scale := -size / math.Max(imageSize.X, imageSize.Y)
+	scale := size / math.Max(imageSize.X, imageSize.Y)
 
 	fmt.Println("Min", minPoint, "Max", maxPoint, "Scale", scale)
 
 	for index := 0; index < len(data); index++ {
-		curTarget := data[(index+topMostPointIndex)%len(data)]
-		plotCoords <- curTarget.Minus(initialPosition).Scaled(scale)
+		curTarget := data[index]
+		plotCoords <- curTarget.Minus(minPoint).Scaled(scale)
 	}
 }

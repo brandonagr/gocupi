@@ -5,6 +5,25 @@ import (
 	"io/ioutil"
 )
 
+// These constants are also set in StepperDriver.ino, must be changed in both places
+const (
+	// The factor the steps are multiplied by, needs to be the same as set in the arduino code
+	StepsFixedPointFactor float64 = 32.0
+
+	// Determined because 1 byte is sent per value, so have range -128 to 127, and -128, -127, 127 are reserved values with special meanings
+	StepsMaxValue float64 = 126.0
+
+	// Special Steps value that when received causes the arduino to flush its buffers and reset its internal state
+	ResetCommand byte = 0x80 // -128
+
+	// Special Steps value that raises the pen
+	PenUpCommand byte = 0x81 // -127
+
+	// Special Steps value that lowers the pen
+	PenDownCommand byte = 0x7F // 127
+)
+
+// User configurable settings
 type SettingsData struct {
 	// Minimum time step used to control motion
 	TimeSlice_US float64
@@ -77,10 +96,9 @@ func (settings *SettingsData) Read() {
 	// setup derived fields
 	settings.StepSize_MM = (settings.SpoolSingleStep_Degrees / 360.0) * settings.SpoolCircumference_MM
 
-	// use 4 because packing data into a byte is done by multiplying it by 32, so 128 is the max value
 	stepsPerRevolution := 360.0 / settings.SpoolSingleStep_Degrees
-	settings.MaxSpeed_MM_S = ((4 / (settings.TimeSlice_US / 1000000)) / stepsPerRevolution) * settings.SpoolCircumference_MM
-	settings.MaxSpeed_MM_S *= 0.98 // give max speed some extra room to not hit 127 limit
+	stepsPerValue := StepsMaxValue / StepsFixedPointFactor
+	settings.MaxSpeed_MM_S = ((stepsPerValue / (settings.TimeSlice_US / 1000000.0)) / stepsPerRevolution) * settings.SpoolCircumference_MM
 	settings.Acceleration_MM_S2 = settings.MaxSpeed_MM_S / settings.Acceleration_Seconds
 }
 
