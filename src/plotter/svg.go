@@ -1,6 +1,7 @@
 package plotter
 
-// Reads a text file and generates a program representation of the Gcode
+// Reads an SVG file with path data and converts that to a series of Coordinates
+// PathParser is based on the canvg javascript code from http://code.google.com/p/canvg/
 
 import (
 	"encoding/xml"
@@ -11,11 +12,6 @@ import (
 	"strconv"
 	"strings"
 )
-
-// Initialize regular expressions
-func init() {
-
-}
 
 // Used to decode xml data into a readable struct
 type Path struct {
@@ -35,6 +31,7 @@ const (
 	LineToRelative
 )
 
+// PathCommand ToString
 func (command PathCommand) String() string {
 	switch command {
 	case NotAValidCommand:
@@ -56,17 +53,16 @@ func (command PathCommand) String() string {
 // True if the given PathCommand is relative
 func (command PathCommand) IsRelative() bool {
 	switch command {
-	case MoveToRelative:
-	case LineToRelative:
+	case MoveToRelative, LineToRelative:
 		return true
+	default:
+		return false
 	}
-	return false
+	panic("Not reachable")
 }
 
 // Convert string to command, returns NotAValidCommand if not valid
 func ParseCommand(commandString string) PathCommand {
-
-	fmt.Println("Parsing", commandString)
 
 	switch commandString {
 	case "M":
@@ -99,6 +95,9 @@ type PathParser struct {
 
 	// Track current position for relative moves
 	currentPosition Coordinate
+
+	// The coordinates read for the path
+	coordinates []Coordinate
 }
 
 // Create new parser
@@ -114,39 +113,34 @@ func NewParser(originalPathData string) (parser *PathParser) {
 	pathData = strings.Replace(pathData, ",", " ", -1)
 	parser.tokens = strings.Fields(pathData)
 
+	parser.coordinates = make([]Coordinate, 0)
+
 	return parser
 }
 
 // Parse the data
-func (this *PathParser) Parse(data []Coordinate) []Coordinate {
-
-	fmt.Println("Parse!")
+func (this *PathParser) Parse() []Coordinate {
 
 	for this.ReadCommand() {
 
-		fmt.Println("currentCommand", this.currentCommand)
-		fmt.Println("MoveToAbsolute is ", MoveToAbsolute)
+		switch this.currentCommand {
+		case MoveToAbsolute, MoveToRelative:
+			this.ReadCoord(true)
+			for this.PeekHasMoreArguments() { // can have multiple implicit line coords
+				this.ReadCoord(false)
+			}
 
-		//switch this.currentCommand {
+		case LineToAbsolute, LineToRelative:
+			for this.PeekHasMoreArguments() {
+				this.ReadCoord(false)
+			}
 
-		//case MoveToAbsolute, MoveToRelative:
-
-		fmt.Println("Handling")
-
-		this.ReadCoords(true)
-		data = append(data, this.currentPosition)
-
-		for !this.PeekHasMoreArguments() {
-			this.ReadCoords(false)
-			data = append(data, this.currentPosition)
+		default:
+			panic(fmt.Sprint("Unsupported command:", this.currentCommand))
 		}
-
-		//default:
-		//	panic(fmt.Sprint("Unsupported command, saw ", commandString))
-		//}
 	}
 
-	return data
+	return this.coordinates
 }
 
 // Move to next token
@@ -169,30 +163,32 @@ func (this *PathParser) ReadCommand() bool {
 // Return if the next token is a command or not
 func (this *PathParser) PeekHasMoreArguments() bool {
 
-	fmt.Println("tokenIndex", this.tokenIndex, "len", len(this.tokens))
-
 	if this.tokenIndex >= len(this.tokens) {
 		return false
 	}
-	return ParseCommand(this.tokens[this.tokenIndex]) != NotAValidCommand
+	return ParseCommand(this.tokens[this.tokenIndex]) == NotAValidCommand
 }
 
 // Read two strings as a pair of doubles
-func (this *PathParser) ReadCoords(penUp bool) {
+func (this *PathParser) ReadCoord(penUp bool) {
+
+	if this.tokenIndex >= len(this.tokens)-1 {
+		panic(fmt.Sprint("Not enough tokens to ReadCoord, at ", this.tokenIndex, " of ", len(this.tokens)))
+	}
 
 	number := this.tokens[this.tokenIndex]
+	this.tokenIndex++
 	x, err := strconv.ParseFloat(number, 64)
 	if err != nil {
 		panic(fmt.Sprint("Expected a parseable number, but saw", number, "which got parse error", err))
 	}
 
-	number = this.tokens[this.tokenIndex+1]
+	number = this.tokens[this.tokenIndex]
+	this.tokenIndex++
 	y, err := strconv.ParseFloat(number, 64)
 	if err != nil {
 		panic(fmt.Sprint("Expected a parseable number, but saw", number, "which got parse error", err))
 	}
-
-	this.tokenIndex += 2
 
 	if this.currentCommand.IsRelative() {
 		x += this.currentPosition.X
@@ -200,8 +196,7 @@ func (this *PathParser) ReadCoords(penUp bool) {
 	}
 
 	this.currentPosition = Coordinate{X: x, Y: y, PenUp: penUp}
-
-	fmt.Println("Read currentPosition", this.currentPosition)
+	this.coordinates = append(this.coordinates, this.currentPosition)
 }
 
 // read a file and parse its Gcode
@@ -223,15 +218,13 @@ func ParseSvgFile(fileName string) (data []Coordinate) {
 		switch se := t.(type) {
 		case xml.StartElement:
 
-			fmt.Println("Saw element", se.Name.Local)
-
 			if se.Name.Local == "path" {
 				var pathData Path
 				decoder.DecodeElement(&pathData, &se)
 
 				parser := NewParser(pathData.Data)
 
-				data = parser.Parse(data)
+				data = append(data, parser.Parse()...)
 			}
 		}
 	}

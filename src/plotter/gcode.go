@@ -93,7 +93,7 @@ func ParseGcode(fileData []string) (data GcodeData) {
 	return
 }
 
-// Given GCodeData, returns all of the 
+// Given GCodeData, returns all of the
 func GenerateGcodePath(data GcodeData, scale float64, plotCoords chan<- Coordinate) {
 
 	defer close(plotCoords)

@@ -15,7 +15,12 @@ type Coordinate struct {
 
 // Coordinate ToString
 func (coord Coordinate) String() string {
-	return fmt.Sprintf("[ %.2f, %.2f ]", coord.X, coord.Y)
+
+	if coord.PenUp {
+		return fmt.Sprintf("[ %.2f, %.2f, UP ]", coord.X, coord.Y)
+	} else {
+		return fmt.Sprintf("[ %.2f, %.2f ]", coord.X, coord.Y)
+	}
 }
 
 // Calculates length of vector
@@ -67,7 +72,7 @@ func (coord Coordinate) DotProduct(other Coordinate) float64 {
 // Test if the two coordinates are equal within a constant epsilon
 func (coord Coordinate) Equals(other Coordinate) bool {
 	diff := coord.Minus(other)
-	return diff.Len() < 0.0001
+	return diff.Len() < 0.00001 && coord.PenUp == other.PenUp
 }
 
 // PolarSystem information, 0,0 is always the upper left motor

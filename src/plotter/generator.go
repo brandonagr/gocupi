@@ -321,7 +321,7 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 		LineSegment{Coordinate{X: 0, Y: 0}, Coordinate{X: width, Y: 0}},           // top
 		LineSegment{Coordinate{X: width, Y: 0}, Coordinate{X: width, Y: height}},  // right
 		LineSegment{Coordinate{X: width, Y: height}, Coordinate{X: 0, Y: height}}, // bottom
-		LineSegment{Coordinate{X: 0, Y: height}, Coordinate{X: 0, Y: 0}},          // left		
+		LineSegment{Coordinate{X: 0, Y: height}, Coordinate{X: 0, Y: 0}},          // left
 	}
 
 	flipDir := false
