@@ -7,13 +7,201 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
+// Initialize regular expressions
+func init() {
+
+}
+
+// Used to decode xml data into a readable struct
 type Path struct {
 	Style string `xml:"style,attr"`
 	Data  string `xml:"d,attr"`
+}
+
+// All supported Path Commands
+type PathCommand int
+
+const (
+	NotAValidCommand PathCommand = iota
+	MoveToAbsolute
+	MoveToRelative
+	ClosePath
+	LineToAbsolute
+	LineToRelative
+)
+
+func (command PathCommand) String() string {
+	switch command {
+	case NotAValidCommand:
+		return "NotAValidCommand"
+	case MoveToAbsolute:
+		return "MoveToAbsolute"
+	case MoveToRelative:
+		return "MoveToRelative"
+	case ClosePath:
+		return "ClosePath"
+	case LineToAbsolute:
+		return "LineToAbsolute"
+	case LineToRelative:
+		return "LineToRelative"
+	}
+	return "UNKNOWN"
+}
+
+// True if the given PathCommand is relative
+func (command PathCommand) IsRelative() bool {
+	switch command {
+	case MoveToRelative:
+	case LineToRelative:
+		return true
+	}
+	return false
+}
+
+// Convert string to command, returns NotAValidCommand if not valid
+func ParseCommand(commandString string) PathCommand {
+
+	fmt.Println("Parsing", commandString)
+
+	switch commandString {
+	case "M":
+		return MoveToAbsolute
+	case "m":
+		return MoveToRelative
+	case "Z":
+	case "z":
+		return ClosePath
+	case "L":
+		return LineToAbsolute
+	case "l":
+		return LineToRelative
+	default:
+		return NotAValidCommand
+	}
+	panic("Not reachable")
+}
+
+// Used to parse a path string
+type PathParser struct {
+	// All of the tokens, strings could be numbers or commands
+	tokens []string
+
+	// The token the parser is currently at
+	tokenIndex int
+
+	// The last PathCommand that was seen
+	currentCommand PathCommand
+
+	// Track current position for relative moves
+	currentPosition Coordinate
+}
+
+// Create new parser
+func NewParser(originalPathData string) (parser *PathParser) {
+
+	parser = &PathParser{}
+
+	seperateLetters, _ := regexp.Compile(`([^\s])?([MmZzLlHhVvCcSsQqTtAa])([^\s])?`)
+	seperateNumbers, _ := regexp.Compile(`([0-9])([+\-])`)
+
+	pathData := seperateLetters.ReplaceAllString(originalPathData, "$1 $2 $3")
+	pathData = seperateNumbers.ReplaceAllString(pathData, "$1 $2")
+	pathData = strings.Replace(pathData, ",", " ", -1)
+	parser.tokens = strings.Fields(pathData)
+
+	return parser
+}
+
+// Parse the data
+func (this *PathParser) Parse(data []Coordinate) []Coordinate {
+
+	fmt.Println("Parse!")
+
+	for this.ReadCommand() {
+
+		fmt.Println("currentCommand", this.currentCommand)
+		fmt.Println("MoveToAbsolute is ", MoveToAbsolute)
+
+		//switch this.currentCommand {
+
+		//case MoveToAbsolute, MoveToRelative:
+
+		fmt.Println("Handling")
+
+		this.ReadCoords(true)
+		data = append(data, this.currentPosition)
+
+		for !this.PeekHasMoreArguments() {
+			this.ReadCoords(false)
+			data = append(data, this.currentPosition)
+		}
+
+		//default:
+		//	panic(fmt.Sprint("Unsupported command, saw ", commandString))
+		//}
+	}
+
+	return data
+}
+
+// Move to next token
+func (this *PathParser) ReadCommand() bool {
+
+	if this.tokenIndex >= len(this.tokens) {
+		return false
+	}
+
+	commandString := this.tokens[this.tokenIndex]
+	this.tokenIndex++
+	this.currentCommand = ParseCommand(commandString)
+	if this.currentCommand == NotAValidCommand {
+		panic(fmt.Sprint("Unexpected command, saw ", commandString))
+	}
+
+	return true
+}
+
+// Return if the next token is a command or not
+func (this *PathParser) PeekHasMoreArguments() bool {
+
+	fmt.Println("tokenIndex", this.tokenIndex, "len", len(this.tokens))
+
+	if this.tokenIndex >= len(this.tokens) {
+		return false
+	}
+	return ParseCommand(this.tokens[this.tokenIndex]) != NotAValidCommand
+}
+
+// Read two strings as a pair of doubles
+func (this *PathParser) ReadCoords(penUp bool) {
+
+	number := this.tokens[this.tokenIndex]
+	x, err := strconv.ParseFloat(number, 64)
+	if err != nil {
+		panic(fmt.Sprint("Expected a parseable number, but saw", number, "which got parse error", err))
+	}
+
+	number = this.tokens[this.tokenIndex+1]
+	y, err := strconv.ParseFloat(number, 64)
+	if err != nil {
+		panic(fmt.Sprint("Expected a parseable number, but saw", number, "which got parse error", err))
+	}
+
+	this.tokenIndex += 2
+
+	if this.currentCommand.IsRelative() {
+		x += this.currentPosition.X
+		y += this.currentPosition.Y
+	}
+
+	this.currentPosition = Coordinate{X: x, Y: y, PenUp: penUp}
+
+	fmt.Println("Read currentPosition", this.currentPosition)
 }
 
 // read a file and parse its Gcode
@@ -32,61 +220,24 @@ func ParseSvgFile(fileName string) (data []Coordinate) {
 			break
 		}
 
-		fmt.Println("Got token", t)
-
 		switch se := t.(type) {
 		case xml.StartElement:
+
+			fmt.Println("Saw element", se.Name.Local)
+
 			if se.Name.Local == "path" {
 				var pathData Path
 				decoder.DecodeElement(&pathData, &se)
 
-				data = pathData.Parse(data)
-			} else if se.Name.Local != "g" {
-				panic("Unsupported svg elements found, only g and path elements are supported, please path any objects and flatten all curves to line segments")
+				parser := NewParser(pathData.Data)
+
+				data = parser.Parse(data)
 			}
 		}
-
 	}
 
-	return data
-}
-
-// Parse string paths into list of coordinates
-func (path Path) Parse(data []Coordinate) []Coordinate {
-
-	if path.Data[0] != 'm' {
-		panic(fmt.Sprint("Unexpected first character in path data, expected m and got", path.Data[0]))
-	}
-
-	//fmt.Println("Parsing", path.Data)
-
-	currentCoord := Coordinate{X: 0, Y: 0}
-	for index, parts := range strings.Split(path.Data[2:], " ") {
-
-		coordParts := strings.Split(parts, ",")
-		if len(coordParts) != 2 {
-			panic(fmt.Sprint("Expected comma seperated pair of coords and saw", parts))
-		}
-
-		var coord Coordinate
-		var err interface{}
-		coord.X, err = strconv.ParseFloat(coordParts[0], 64)
-		if err != nil {
-			panic(err)
-		}
-		coord.X = -coord.X
-		coord.Y, err = strconv.ParseFloat(coordParts[1], 64)
-		if err != nil {
-			panic(err)
-		}
-
-		if index == 0 {
-			currentCoord = coord
-		} else {
-			currentCoord = currentCoord.Add(coord)
-		}
-
-		data = append(data, currentCoord)
+	if len(data) == 0 {
+		panic("SVG contained no Path elements! Only Paths are supported")
 	}
 
 	return data

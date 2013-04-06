@@ -46,10 +46,10 @@ func main() {
 	switch args[0] {
 
 	case "test":
-		plotCoords <- Coordinate{0, 0}
-		plotCoords <- Coordinate{10, 0}
-		plotCoords <- Coordinate{10.1, 0}
-		plotCoords <- Coordinate{10.1, 10}
+		plotCoords <- Coordinate{X: 0, Y: 0}
+		plotCoords <- Coordinate{X: 10, Y: 0}
+		plotCoords <- Coordinate{X: 10.1, Y: 0}
+		plotCoords <- Coordinate{X: 10.1, Y: 10}
 		close(plotCoords)
 
 	case "circle":
@@ -120,8 +120,8 @@ func main() {
 		params := GetArgsAsFloats(args[1:], 3)
 		posFunc := func(t float64) Coordinate {
 			return Coordinate{
-				params[0] * math.Cos(params[1]*t+math.Pi/2.0),
-				params[0] * math.Sin(params[2]*t),
+				X: params[0] * math.Cos(params[1]*t+math.Pi/2.0),
+				Y: params[0] * math.Sin(params[2]*t),
 			}
 		}
 
@@ -162,8 +162,8 @@ func main() {
 
 		posFunc := func(t float64) Coordinate {
 			return Coordinate{
-				(bigR-littleR)*math.Cos(t) + pen*math.Cos(((bigR-littleR)/littleR)*t),
-				(bigR-littleR)*math.Sin(t) - pen*math.Sin(((bigR-littleR)/littleR)*t),
+				X: (bigR-littleR)*math.Cos(t) + pen*math.Cos(((bigR-littleR)/littleR)*t),
+				Y: (bigR-littleR)*math.Sin(t) - pen*math.Sin(((bigR-littleR)/littleR)*t),
 			}
 		}
 
