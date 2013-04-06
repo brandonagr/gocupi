@@ -268,6 +268,14 @@ func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordina
 
 	fmt.Println("Min", minPoint, "Max", maxPoint, "Scale", scale)
 
+	if imageSize.X*scale > (Settings.DrawingSurfaceMaxX_MM-Settings.DrawingSurfaceMinX_MM) || imageSize.Y*scale > (Settings.DrawingSurfaceMaxY_MM-Settings.DrawingSurfaceMinY_MM) {
+		panic(fmt.Sprint(
+			"SVG coordinates extend past drawable surface, as defined in settings.xml. Scaled svg size was: ",
+			imageSize,
+			" And settings bounds are, X: ", Settings.DrawingSurfaceMaxX_MM, " - ", Settings.DrawingSurfaceMinX_MM,
+			" Y: ", Settings.DrawingSurfaceMaxY_MM, " - ", Settings.DrawingSurfaceMinY_MM))
+	}
+
 	for index := 0; index < len(data); index++ {
 		curTarget := data[index]
 		plotCoords <- curTarget.Minus(minPoint).Scaled(scale)

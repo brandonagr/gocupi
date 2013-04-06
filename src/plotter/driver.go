@@ -33,7 +33,10 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 	startingLocation := previousPolarPos.ToCoord(polarSystem)
 
 	fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
-	fmt.Println("MinY", Settings.MinVertical_MM, "MaxY", Settings.MaxVertical_MM)
+
+	if startingLocation.IsNaN() {
+		panic(fmt.Sprint("Starting location is not a valid number, your settings.xml has impossible values"))
+	}
 
 	// setup 0,0 as the initial location of the plot head
 	polarSystem.XOffset = startingLocation.X

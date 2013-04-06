@@ -38,13 +38,19 @@ type SettingsData struct {
 	Acceleration_Seconds float64
 
 	// Distance between the two motor spools
-	HorizontalDistance_MM float64
+	SpoolHorizontalDistance_MM float64
 
 	// Minimum distance below motors that can be drawn
-	MinVertical_MM float64
+	DrawingSurfaceMinY_MM float64
 
 	// Maximum distance below motors that can be drawn
-	MaxVertical_MM float64
+	DrawingSurfaceMaxY_MM float64
+
+	// Distance from the left edge that the pen can go
+	DrawingSurfaceMinX_MM float64
+
+	// Calculated from SpoolHorizontalDistance_MM and DrawingSufaceMinX_MM
+	DrawingSurfaceMaxX_MM float64 `xml:"-"`
 
 	// Initial distance from head to left motor
 	StartingLeftDist_MM float64
@@ -94,6 +100,7 @@ func (settings *SettingsData) Read() {
 	}
 
 	// setup derived fields
+	settings.DrawingSurfaceMaxX_MM = settings.SpoolHorizontalDistance_MM - 2*settings.DrawingSurfaceMinX_MM
 	settings.StepSize_MM = (settings.SpoolSingleStep_Degrees / 360.0) * settings.SpoolCircumference_MM
 
 	stepsPerRevolution := 360.0 / settings.SpoolSingleStep_Degrees

@@ -74,6 +74,11 @@ func (coord Coordinate) DotProduct(other Coordinate) float64 {
 	return coord.X*other.X + coord.Y*other.Y
 }
 
+// Returns true if either value is NaN
+func (coord Coordinate) IsNaN() bool {
+	return math.IsNaN(coord.X) || math.IsNaN(coord.Y)
+}
+
 // Test if the two coordinates are equal within a constant epsilon
 func (coord Coordinate) Equals(other Coordinate) bool {
 	diff := coord.Minus(other)
@@ -84,8 +89,8 @@ func (coord Coordinate) Equals(other Coordinate) bool {
 type PolarSystem struct {
 	XOffset, YOffset float64 // The location of X,Y origin relative to the motors
 
-	MinXMotorDist float64 // minimum amount of space from motors
-	YMin, YMax    float64 // minimum vertical Y location
+	XMin, XMax float64
+	YMin, YMax float64
 
 	RightMotorDist float64
 }
@@ -95,10 +100,11 @@ func PolarSystemFromSettings() PolarSystem {
 	return PolarSystem{
 		XOffset:        0,
 		YOffset:        0,
-		MinXMotorDist:  0,
-		YMin:           Settings.MinVertical_MM,
-		YMax:           Settings.MaxVertical_MM,
-		RightMotorDist: Settings.HorizontalDistance_MM,
+		XMin:           Settings.DrawingSurfaceMinX_MM,
+		XMax:           Settings.DrawingSurfaceMaxX_MM,
+		YMin:           Settings.DrawingSurfaceMinY_MM,
+		YMax:           Settings.DrawingSurfaceMaxY_MM,
+		RightMotorDist: Settings.SpoolHorizontalDistance_MM,
 	}
 }
 
@@ -145,12 +151,22 @@ func (coord Coordinate) ToPolar(system PolarSystem) (polarCoord PolarCoordinate)
 	coord.Y += system.YOffset
 
 	// clip coordinates to system's area
-	coord.X = math.Max(coord.X, system.MinXMotorDist)
-	coord.X = math.Min(coord.X, system.RightMotorDist-system.MinXMotorDist)
-	coord.Y = math.Max(coord.Y, system.YMin)
-	coord.Y = math.Min(coord.Y, system.YMax)
-
-	//fmt.Println("Coord ToPolar", coord, system.RightMotorDist, system.MinXMotorDist)
+	if coord.X < system.XMin {
+		fmt.Println("WARNING: X value was outside left bounds, clipping", coord.X, "to", system.XMin)
+		coord.X = system.XMin
+	}
+	if coord.X > system.XMax {
+		fmt.Println("WARNING: X value was outside right bounds, clipping", coord.X, "to", system.XMax)
+		coord.X = system.XMax
+	}
+	if coord.Y < system.YMin {
+		fmt.Println("WARNING: Y value was outside top bounds, clipping", coord.Y, "to", system.YMin)
+		coord.Y = system.YMin
+	}
+	if coord.Y > system.YMax {
+		fmt.Println("WARNING: Y value was outside bottom bounds, clipping", coord.Y, "to", system.YMax)
+		coord.Y = system.YMax
+	}
 
 	polarCoord.LeftDist = math.Sqrt(coord.X*coord.X + coord.Y*coord.Y)
 	xDiff := system.RightMotorDist - coord.X
