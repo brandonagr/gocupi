@@ -23,10 +23,10 @@ const (
 	ResetCommand byte = 0x80 // -128
 
 	// Special Steps value that raises the pen
-	PenUpCommand int8 = 0x81 // -127
+	PenUpCommand int8 = -127
 
 	// Special Steps value that lowers the pen
-	PenDownCommand int8 = 0x7F // 127
+	PenDownCommand int8 = 127
 )
 
 // User configurable settings
