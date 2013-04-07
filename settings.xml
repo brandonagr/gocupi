@@ -25,9 +25,6 @@
 	<!-- Degrees the spool moves from a single step -->
 	<SpoolSingleStep_Degrees>0.225</SpoolSingleStep_Degrees>
 	
-	<!-- Needs to be the same as the arduino code is set to -->
-	<TimeSlice_US>2048</TimeSlice_US>
-	
 	<!-- Number of seconds to go from stopped to full speed -->
 	<Acceleration_Seconds>1.5</Acceleration_Seconds>
 

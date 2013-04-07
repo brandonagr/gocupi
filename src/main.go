@@ -32,7 +32,7 @@ func main() {
 	Settings.MaxSpeed_MM_S /= *speedSlowFactor
 	Settings.Acceleration_Seconds *= *speedSlowFactor
 	Settings.Acceleration_MM_S2 /= *speedSlowFactor
-	fmt.Printf("MaxSpeed: %.3f Accel: %.3f", Settings.MaxSpeed_MM_S, Settings.Acceleration_MM_S2)
+	fmt.Printf("MaxSpeed: %.3f mm/s Accel: %.3f mm/s^2", Settings.MaxSpeed_MM_S, Settings.Acceleration_MM_S2)
 	fmt.Println()
 
 	args := flag.Args()

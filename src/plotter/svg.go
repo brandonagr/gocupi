@@ -266,7 +266,7 @@ func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordina
 	imageSize := maxPoint.Minus(minPoint)
 	scale := size / math.Max(imageSize.X, imageSize.Y)
 
-	fmt.Println("Min", minPoint, "Max", maxPoint, "Scale", scale)
+	fmt.Println("SVG Min:", minPoint, "Max:", maxPoint, "Scale:", scale)
 
 	if imageSize.X*scale > (Settings.DrawingSurfaceMaxX_MM-Settings.DrawingSurfaceMinX_MM) || imageSize.Y*scale > (Settings.DrawingSurfaceMaxY_MM-Settings.DrawingSurfaceMinY_MM) {
 		panic(fmt.Sprint(

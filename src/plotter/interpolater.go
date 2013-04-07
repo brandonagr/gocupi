@@ -33,7 +33,7 @@ func (data *LinearInterpolater) Setup(origin, dest, nextDest Coordinate) {
 	data.distance = data.movement.Len()
 
 	data.time = data.distance / Settings.MaxSpeed_MM_S
-	data.slices = math.Ceil(data.time / (Settings.TimeSlice_US / 1000000))
+	data.slices = math.Ceil(data.time / (TimeSlice_US / 1000000))
 }
 
 // number of slices needed
@@ -123,8 +123,8 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 	data.direction = data.direction.Normalized()
 
 	nextDirection := nextDest.Minus(dest)
-	if nextDirection.Len() == 0 {
-		// if there is no next direction, make the exit speed 0 by pretending the next move will be backwards from current direction
+	if nextDirection.Len() == 0 || origin.PenUp != dest.PenUp {
+		// if there is no next direction or we have to stop for pen movement, make the exit speed 0 by pretending the next move will be backwards from current direction
 		nextDirection = Coordinate{X: -data.direction.X, Y: -data.direction.Y}
 	} else {
 		nextDirection = nextDirection.Normalized()
@@ -198,7 +198,7 @@ func (data *TrapezoidInterpolater) Setup(origin, dest, nextDest Coordinate) {
 	}
 
 	data.time = data.accelTime + data.cruiseTime + data.decelTime
-	data.slices = data.time / (Settings.TimeSlice_US / 1000000)
+	data.slices = data.time / (TimeSlice_US / 1000000)
 }
 
 // Calculate current position at the given time

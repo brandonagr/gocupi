@@ -50,6 +50,8 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 	if !chanOpen {
 		return
 	}
+
+	var currentPenUp bool = true // arduino code defaults to pen up on ResetCommand
 	var anotherTarget bool = true
 
 	for anotherTarget {
@@ -57,6 +59,18 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 		if !chanOpen {
 			anotherTarget = false
 			nextTarget = target
+		}
+
+		if target.PenUp != currentPenUp {
+			// send twice in order to preserve alignment of always sending 2 values at a time over serial
+			if target.PenUp {
+				stepData <- PenUpCommand
+				stepData <- PenUpCommand
+			} else {
+				stepData <- PenDownCommand
+				stepData <- PenDownCommand
+			}
+			currentPenUp = target.PenUp
 		}
 
 		interp.Setup(origin, target, nextTarget)
@@ -101,7 +115,7 @@ func CountSteps(stepData <-chan int8) {
 
 		sliceCount++
 	}
-	fmt.Println("Steps ", sliceCount/2, "Time", time.Duration(float64(sliceCount)*0.5*Settings.TimeSlice_US)*time.Microsecond)
+	fmt.Println("Steps ", sliceCount/2, "Time", time.Duration(float64(sliceCount)*0.5*TimeSlice_US)*time.Microsecond)
 }
 
 // Sends the given stepData to a file
@@ -256,7 +270,7 @@ func PerformMouseTracking() {
 	currentPos := Coordinate{X: 0, Y: 0}
 
 	// max distance that can be travelled in one batch
-	maxDistance := 64 * (Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0)
+	maxDistance := 64 * (Settings.MaxSpeed_MM_S * TimeSlice_US / 1000000.0)
 
 	// send a -128 to force the arduino to restart and rerequest data
 	s.Write([]byte{ResetCommand})

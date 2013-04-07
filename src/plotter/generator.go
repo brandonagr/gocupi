@@ -13,7 +13,7 @@ func GenerateParametric(posFunc func(float64) Coordinate, plotCoords chan<- Coor
 	defer close(plotCoords)
 
 	initialPosition := posFunc(0)
-	moveDist := 100.0 * Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 10000000.0
+	moveDist := 100.0 * Settings.MaxSpeed_MM_S * TimeSlice_US / 10000000.0
 	thetaDelta := (2.0 * math.Pi) / 2000 //(moveDist / setup.BigR) * 100.0
 	numberSteps := 0
 
@@ -57,7 +57,7 @@ func GenerateSpiral(setup Spiral, plotCoords chan<- Coordinate) {
 	defer close(plotCoords)
 
 	// MM that will be moved in a single step, used to calc what the new position along spiral will be after one time slice
-	moveDist := 4.0 * Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0
+	moveDist := 4.0 * Settings.MaxSpeed_MM_S * TimeSlice_US / 1000000.0
 	theta := 0.0
 
 	for radius := setup.RadiusBegin; radius >= setup.RadiusEnd; {
@@ -97,7 +97,7 @@ func GenerateSlidingCircle(setup SlidingCircle, plotCoords chan<- Coordinate) {
 	defer close(plotCoords)
 
 	// MM that will be moved in a single step, used to calc what the new position along spiral will be after one time slice
-	moveDist := 4.0 * Settings.MaxSpeed_MM_S * Settings.TimeSlice_US / 1000000.0
+	moveDist := 4.0 * Settings.MaxSpeed_MM_S * TimeSlice_US / 1000000.0
 	displacement := Coordinate{X: setup.CircleDisplacement, Y: 0}
 
 	theta := 0.0

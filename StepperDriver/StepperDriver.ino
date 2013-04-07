@@ -1,22 +1,36 @@
 /*
-  Run a stepper driver, by reading step data over serial
- 
- This example code is in the public domain.
- */
+  Gocupi Arduino Code
+  Reads movement commands over serial and controls two stepper motors 
+*/
 
-const int ledPins[5] = {
-  2,3,4,5,8}; // the pins of all of the leds, first 4 are status lights, 5th is receive indicator
-const int leftStepPin = 7;
-const int leftDirPin = 6;
-const int rightStepPin = 9;
-const int rightDirPin = 10;
+#include <Servo.h>
 
-// Global variables
+// Constants and global variables
 // --------------------------------------
+const int LED_PINS_COUNT = 4;
+const int LED_PINS[LED_PINS_COUNT] = {
+  2,3,4,8}; // the pins of all of the leds, first 3 are status lights, 5th is receive indicator
+const int LEFT_STEP_PIN = 7;
+const int LEFT_DIR_PIN = 6;
+const int RIGHT_STEP_PIN = 9;
+const int RIGHT_DIR_PIN = 10;
+
+const int PENUP_SERVO_PIN = 5;
+const int PENUP_TRANSITION_US = 524288; // time to go from pen up to down, or down to up
+const int PENUP_TRANSITION_US_LOG = 19; // 2^19 = 524288
+const int PENUP_ANGLE = 180;
+const int PENDOWN_ANGLE = 0;
+Servo penUpServo;
+char penTransitionDirection; // -1, 0, 1
+
 const unsigned int TIME_SLICE_US = 2048; // number of microseconds per time step
 const unsigned int TIME_SLICE_US_LOG = 11; // log base 2 of TIME_SLICE_US
-const unsigned int POS_FACTOR = 32; // factor each position is multiplied by
-const unsigned int POS_FACTOR_LOG = 5; // log base 2 of POS_FACTOR
+const unsigned int POS_FACTOR = 32; // fixed point factor each position is multiplied by
+const unsigned int POS_FACTOR_LOG = 5; // log base 2 of POS_FACTOR, used after multiplying two fixed point numbers together
+
+const char RESET_COMMAND = 0x80; // -128, command to reset
+const char PENUP_COMMAND = 0x81; // -127, command to lift pen
+const char PENDOWN_COMMAND = 0x7F; // 127, command to lower pen
 
 const unsigned int MOVE_DATA_CAPACITY = 1024;
 char moveData[MOVE_DATA_CAPACITY]; // buffer of move data, circular buffer
@@ -39,14 +53,17 @@ void setup() {
   Serial.setTimeout(0);
 
   // setup pins
-  for(int ledIndex = 0; ledIndex < 5; ledIndex++) {
-    pinMode(ledPins[ledIndex], OUTPUT);
-    digitalWrite(ledPins[ledIndex], HIGH);
+  for(int ledIndex = 0; ledIndex < LED_PINS_COUNT; ledIndex++) {
+    pinMode(LED_PINS[ledIndex], OUTPUT);
+    digitalWrite(LED_PINS[ledIndex], HIGH);
   }	
-  pinMode(leftStepPin, OUTPUT);
-  pinMode(leftDirPin, OUTPUT);
-  pinMode(rightStepPin, OUTPUT);
-  pinMode(rightDirPin, OUTPUT);	
+  pinMode(LEFT_STEP_PIN, OUTPUT);
+  pinMode(LEFT_DIR_PIN, OUTPUT);
+  pinMode(RIGHT_STEP_PIN, OUTPUT);
+  pinMode(RIGHT_DIR_PIN, OUTPUT);	
+
+  penUpServo.attach(PENUP_SERVO_PIN);
+  penUpServo.write(PENUP_ANGLE);
 
   ResetMovementVariables();
 
@@ -61,26 +78,38 @@ void ResetMovementVariables()
 {
   leftDelta = rightDelta = leftStartPos = rightStartPos = leftCurPos = rightCurPos = 0;
   sliceStartTime = curTime;
+
+  penTransitionDirection = 0;
+  penUpServo.write(PENUP_ANGLE);
 }
 
 // Main execution loop
 // --------------------------------------
 void loop() {
-
   curTime = micros();
   if (curTime < sliceStartTime) { // protect against 70 minute overflow
     sliceStartTime = 0;
   }
 
-  // move to next slice if necessary
   long curSliceTime = curTime - sliceStartTime;
-  while(curSliceTime > TIME_SLICE_US) {
-    SetSliceVariables();
-    curSliceTime -= TIME_SLICE_US;
-    sliceStartTime += TIME_SLICE_US;
+
+  if (penTransitionDirection) {
+	UpdatePenPosition(curSliceTime);
+  } else {	
+	// move to next slice if necessary
+	while(curSliceTime > TIME_SLICE_US) {
+      SetSliceVariables();
+      curSliceTime -= TIME_SLICE_US;
+      sliceStartTime += TIME_SLICE_US;
+	
+	  if (penTransitionDirection) {
+		return;
+	  }
+    }
+	
+	UpdateStepperPins(curSliceTime);
   }
 
-  UpdateStepperPins(curSliceTime);
   ReadSerialMoveData();
   RequestMoreSerialMoveData();
 }
@@ -88,7 +117,6 @@ void loop() {
 // Update stepper pins
 // --------------------------------------
 void UpdateStepperPins(long curSliceTime) {
-
   long leftTarget = ((long(leftDelta) * curSliceTime) >> TIME_SLICE_US_LOG) + leftStartPos;
   long rightTarget = ((long(rightDelta) * curSliceTime) >> TIME_SLICE_US_LOG) + rightStartPos;
 
@@ -108,7 +136,7 @@ void UpdateStepperPins(long curSliceTime) {
 
   do {
     if (leftSteps) {
-      Step(leftStepPin, leftDirPin, leftPositiveDir);
+      Step(LEFT_STEP_PIN, LEFT_DIR_PIN, LeftPositiveDir);
       if (leftPositiveDir) {
         leftCurPos += POS_FACTOR;
       } else {
@@ -120,7 +148,7 @@ void UpdateStepperPins(long curSliceTime) {
     }
 
     if (rightSteps) {
-      Step(rightStepPin, rightDirPin, rightPositiveDir);
+      Step(RIGHT_STEP_PIN, RIGHT_DIR_PIN, RightPositiveDir);
       if (rightPositiveDir) {
         rightCurPos += POS_FACTOR;
       } else {
@@ -137,27 +165,45 @@ void UpdateStepperPins(long curSliceTime) {
   } while(true);
 }
 
+// Update pen position
+// --------------------------------------
+void UpdatePenTransition(long curSliceTime) {
+	
+  if (penTransitionDirection == 1) {
+	
+  int targetAngle = (180 * curSliceTime) >> PENUP_TRANSITION_US_LOG;
+  if (targetAngle > PENUP_ANGLE) {
+	targetAngle = PENUP_ANGLE;
+	
+	// are done moving the pen servo
+	penTransitionDirection = 0;
+  }
+
+  if (penTransitionDirection == -1) {
+	targetAngle = 180 - targetAngle;
+  }
+
+  penUpServo.write(targetAngle);
+}
+
 // Update status leds
 // --------------------------------------
 void UpdateStatusLeds(int value) {
-
   // output the time to the leds in binary
-  digitalWrite(ledPins[0], value & 0x1);
-  digitalWrite(ledPins[1], value & 0x2);
-  digitalWrite(ledPins[2], value & 0x4);
-  digitalWrite(ledPins[3], value & 0x8);
+  digitalWrite(LED_PINS[0], value & 0x1);
+  digitalWrite(LED_PINS[1], value & 0x2);
+  digitalWrite(LED_PINS[2], value & 0x4);
 }
 
 // Update receive leds
 // --------------------------------------
 void UpdateReceiveLed(boolean value) {
-  digitalWrite(ledPins[4], value);
+  digitalWrite(LED_PINS[3], value);
 }
 
 // Step
 // --------------------------------------
 void Step(int stepPin, int dirPin, boolean dir) {
-
   digitalWrite(dirPin, dir);
 
   digitalWrite(stepPin, LOW);
@@ -167,7 +213,6 @@ void Step(int stepPin, int dirPin, boolean dir) {
 // Set all variables based on the data currently in the buffer
 // --------------------------------------
 void SetSliceVariables() {
-
   // set slice start pos to previous slice start plus previous delta
   leftStartPos = leftStartPos + long(leftDelta);
   rightStartPos = rightStartPos + long(rightDelta);
@@ -177,8 +222,16 @@ void SetSliceVariables() {
   } else {
     leftDelta = MoveDataGet();
     rightDelta = MoveDataGet();
+	
+	if (leftDelta == PENUP_COMMAND) {
+		leftDelta = rightDelta = 0;
+		penTransitionDirection = 1;
+	} else if (leftDelta == PENDOWN_COMMAND) {
+		leftDelta = rightDelta = 0;
+		penTransitionDirection = -1;
+	}
   }
-}
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
 // Stop everything and blink the status led value times
 // --------------------------------------
@@ -199,13 +252,13 @@ void Blink(char value) {
 
 // Read serial data if its available
 // --------------------------------------
-void ReadSerialMoveData() {
+void ReadSerialMoveData() {     
 
   if(Serial.available()) {
     char value = Serial.read();
     
     // Check if this value is the sentinel reset value
-    if (value == char(0x80)) {
+    if (value == ResetCommand) {
       ResetMovementVariables();
       moveDataRequestPending = 0;
       moveDataLength = 0;
@@ -225,7 +278,6 @@ void ReadSerialMoveData() {
 // Put a value onto the end of the move data buffer
 // --------------------------------------
 void MoveDataPut(char value) {
-  
 
   int writePosition = moveDataStart + moveDataLength;
   if (writePosition >= MOVE_DATA_CAPACITY) {
@@ -245,10 +297,9 @@ void MoveDataPut(char value) {
   }
 }
 
-// Return the amount of data sitting in the moveData buffer
+// Return a piece of data sitting in the moveData buffer, removing it from the buffer
 // --------------------------------------
 char MoveDataGet() {
-
   if (moveDataLength == 0) {
     return 0;
   }

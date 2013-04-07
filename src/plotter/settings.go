@@ -7,6 +7,12 @@ import (
 
 // These constants are also set in StepperDriver.ino, must be changed in both places
 const (
+	// Time step used to control motion, ie the amount of time that the stepper motors will be going a constant speed
+	// decreasing this increases CPU usage and serial communication
+	// increasing it decreases rendering quality
+	// when running on a raspberry pi 2048 us (2 milliseconds) seems like a good number
+	TimeSlice_US float64 = 2048
+
 	// The factor the steps are multiplied by, needs to be the same as set in the arduino code
 	StepsFixedPointFactor float64 = 32.0
 
@@ -17,17 +23,14 @@ const (
 	ResetCommand byte = 0x80 // -128
 
 	// Special Steps value that raises the pen
-	PenUpCommand byte = 0x81 // -127
+	PenUpCommand int8 = 0x81 // -127
 
 	// Special Steps value that lowers the pen
-	PenDownCommand byte = 0x7F // 127
+	PenDownCommand int8 = 0x7F // 127
 )
 
 // User configurable settings
 type SettingsData struct {
-	// Minimum time step used to control motion
-	TimeSlice_US float64
-
 	// Circumference of the motor spool
 	SpoolCircumference_MM float64
 
@@ -89,9 +92,6 @@ func (settings *SettingsData) Read() {
 	}
 
 	// setup default values
-	if settings.TimeSlice_US == 0 {
-		settings.TimeSlice_US = 2048
-	}
 	if settings.SpoolCircumference_MM == 0 {
 		settings.SpoolCircumference_MM = 60
 	}
@@ -105,7 +105,7 @@ func (settings *SettingsData) Read() {
 
 	stepsPerRevolution := 360.0 / settings.SpoolSingleStep_Degrees
 	stepsPerValue := StepsMaxValue / StepsFixedPointFactor
-	settings.MaxSpeed_MM_S = ((stepsPerValue / (settings.TimeSlice_US / 1000000.0)) / stepsPerRevolution) * settings.SpoolCircumference_MM
+	settings.MaxSpeed_MM_S = ((stepsPerValue / (TimeSlice_US / 1000000.0)) / stepsPerRevolution) * settings.SpoolCircumference_MM
 	settings.Acceleration_MM_S2 = settings.MaxSpeed_MM_S / settings.Acceleration_Seconds
 }
 
