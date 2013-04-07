@@ -102,6 +102,8 @@ void loop() {
   long curSliceTime = curTime - sliceStartTime;
 
 #ifdef ENABLE_PENUP
+  Servo::refresh();
+
   if (penTransitionDirection) {
     UpdatePenTransition(curSliceTime);
   } else {	
@@ -239,9 +241,11 @@ void SetSliceVariables() {
     if (leftDelta == PENUP_COMMAND) {
       leftDelta = rightDelta = 0;
       penTransitionDirection = 1;
+      Blink(5);
     } else if (leftDelta == PENDOWN_COMMAND) {
       leftDelta = rightDelta = 0;
       penTransitionDirection = -1;
+      Blink(10);
     }
 #else
     if (leftDelta == PENUP_COMMAND || leftDelta == PENDOWN_COMMAND) {

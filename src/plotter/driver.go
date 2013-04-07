@@ -66,9 +66,11 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 			if target.PenUp {
 				stepData <- PenUpCommand
 				stepData <- PenUpCommand
+				fmt.Println("PenUp")
 			} else {
 				stepData <- PenDownCommand
 				stepData <- PenDownCommand
+				fmt.Println("PenDown")
 			}
 			currentPenUp = target.PenUp
 		}
