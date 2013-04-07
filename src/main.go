@@ -50,6 +50,12 @@ func main() {
 		plotCoords <- Coordinate{X: 10, Y: 0}
 		plotCoords <- Coordinate{X: 10.1, Y: 0}
 		plotCoords <- Coordinate{X: 10.1, Y: 10}
+		plotCoords <- Coordinate{X: 10.1, Y: 10, PenUp: true}
+		plotCoords <- Coordinate{X: 20.1, Y: 10, PenUp: true}
+		plotCoords <- Coordinate{X: 20.1, Y: 15}
+		plotCoords <- Coordinate{X: 20.1, Y: 15, PenUp: true}
+		plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
+		plotCoords <- Coordinate{X: 0, Y: 0}
 		close(plotCoords)
 
 	case "circle":
