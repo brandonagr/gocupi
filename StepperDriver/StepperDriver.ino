@@ -21,10 +21,11 @@ const int RIGHT_DIR_PIN = 10;
 Servo penUpServo;
 char penTransitionDirection; // -1, 0, 1
 const int PENUP_SERVO_PIN = 5;
-const int PENUP_TRANSITION_US = 524288; // time to go from pen up to down, or down to up
+const long PENUP_TRANSITION_US = 524288; // time to go from pen up to down, or down to up
 const int PENUP_TRANSITION_US_LOG = 19; // 2^19 = 524288
-const int PENUP_ANGLE = 180;
-const int PENDOWN_ANGLE = 0;
+const long PENUP_COOLDOWN_US = 1250000;
+const long PENUP_ANGLE = 40;
+const long PENDOWN_ANGLE = 140;
 #endif
 
 const unsigned int TIME_SLICE_US = 2048; // number of microseconds per time step
@@ -69,6 +70,10 @@ void setup() {
 #ifdef ENABLE_PENUP
   penUpServo.attach(PENUP_SERVO_PIN);
   penUpServo.write(PENUP_ANGLE);
+  delay(1000);
+  penUpServo.write(PENDOWN_ANGLE);
+  delay(1000);
+  penUpServo.write(PENUP_ANGLE);
 #endif  
 
   ResetMovementVariables();
@@ -102,10 +107,11 @@ void loop() {
   long curSliceTime = curTime - sliceStartTime;
 
 #ifdef ENABLE_PENUP
-  Servo::refresh();
-
   if (penTransitionDirection) {
     UpdatePenTransition(curSliceTime);
+    if (!penTransitionDirection) {
+      sliceStartTime = curTime;
+    }
   } else {	
 #endif
     // move to next slice if necessary
@@ -116,6 +122,7 @@ void loop() {
 
 #ifdef ENABLE_PENUP	
       if (penTransitionDirection) {
+        sliceStartTime = curTime;
         return;
       }
 #endif      
@@ -186,17 +193,23 @@ void UpdateStepperPins(long curSliceTime) {
 #ifdef ENABLE_PENUP
 void UpdatePenTransition(long curSliceTime) {
 	
-  int targetAngle = (180 * curSliceTime) >> PENUP_TRANSITION_US_LOG;
-  if (targetAngle > PENUP_ANGLE) {
-	targetAngle = PENUP_ANGLE;		
-	penTransitionDirection = 0; // are done moving the pen servo
+  //int targetAngle = ((float)(PENDOWN_ANGLE - PENUP_ANGLE) * ((float)curSliceTime / (float)PENUP_TRANSITION_US)) + PENUP_ANGLE;
+  //if (targetAngle > PENDOWN_ANGLE) {
+    //targetAngle = PENDOWN_ANGLE;
+    
+    if (curSliceTime > PENUP_COOLDOWN_US) {
+      penTransitionDirection = 0; // are done moving the pen servo
+    }
+  //}
+
+  if (penTransitionDirection == 1) {
+	//targetAngle = 180 - targetAngle;
+    penUpServo.write(PENUP_ANGLE);
+  } else if (penTransitionDirection == -1) {
+    penUpServo.write(PENDOWN_ANGLE);
   }
 
-  if (penTransitionDirection == -1) {
-	targetAngle = 180 - targetAngle;
-  }
-
-  penUpServo.write(targetAngle);
+  //penUpServo.write(targetAngle);
 }
 #endif
 
@@ -241,11 +254,9 @@ void SetSliceVariables() {
     if (leftDelta == PENUP_COMMAND) {
       leftDelta = rightDelta = 0;
       penTransitionDirection = 1;
-      Blink(5);
     } else if (leftDelta == PENDOWN_COMMAND) {
       leftDelta = rightDelta = 0;
       penTransitionDirection = -1;
-      Blink(10);
     }
 #else
     if (leftDelta == PENUP_COMMAND || leftDelta == PENDOWN_COMMAND) {

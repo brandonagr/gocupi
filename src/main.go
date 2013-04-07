@@ -55,7 +55,6 @@ func main() {
 		plotCoords <- Coordinate{X: 20.1, Y: 15}
 		plotCoords <- Coordinate{X: 20.1, Y: 15, PenUp: true}
 		plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
-		plotCoords <- Coordinate{X: 0, Y: 0}
 		close(plotCoords)
 
 	case "circle":
