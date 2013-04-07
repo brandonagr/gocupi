@@ -3,7 +3,8 @@
   Reads movement commands over serial and controls two stepper motors 
 */
 
-#include <Servo.h>
+// comment out to disable PENUP support
+#define ENABLE_PENUP
 
 // Constants and global variables
 // --------------------------------------
@@ -15,13 +16,16 @@ const int LEFT_DIR_PIN = 6;
 const int RIGHT_STEP_PIN = 9;
 const int RIGHT_DIR_PIN = 10;
 
+#ifdef ENABLE_PENUP
+#include <Servo.h>
+Servo penUpServo;
+char penTransitionDirection; // -1, 0, 1
 const int PENUP_SERVO_PIN = 5;
 const int PENUP_TRANSITION_US = 524288; // time to go from pen up to down, or down to up
 const int PENUP_TRANSITION_US_LOG = 19; // 2^19 = 524288
 const int PENUP_ANGLE = 180;
 const int PENDOWN_ANGLE = 0;
-Servo penUpServo;
-char penTransitionDirection; // -1, 0, 1
+#endif
 
 const unsigned int TIME_SLICE_US = 2048; // number of microseconds per time step
 const unsigned int TIME_SLICE_US_LOG = 11; // log base 2 of TIME_SLICE_US
@@ -62,8 +66,10 @@ void setup() {
   pinMode(RIGHT_STEP_PIN, OUTPUT);
   pinMode(RIGHT_DIR_PIN, OUTPUT);	
 
+#ifdef ENABLE_PENUP
   penUpServo.attach(PENUP_SERVO_PIN);
   penUpServo.write(PENUP_ANGLE);
+#endif  
 
   ResetMovementVariables();
 
@@ -79,8 +85,10 @@ void ResetMovementVariables()
   leftDelta = rightDelta = leftStartPos = rightStartPos = leftCurPos = rightCurPos = 0;
   sliceStartTime = curTime;
 
+#ifdef ENABLE_PENUP
   penTransitionDirection = 0;
   penUpServo.write(PENUP_ANGLE);
+#endif  
 }
 
 // Main execution loop
@@ -93,22 +101,28 @@ void loop() {
 
   long curSliceTime = curTime - sliceStartTime;
 
+#ifdef ENABLE_PENUP
   if (penTransitionDirection) {
-	UpdatePenPosition(curSliceTime);
+    UpdatePenTransition(curSliceTime);
   } else {	
-	// move to next slice if necessary
-	while(curSliceTime > TIME_SLICE_US) {
+#endif
+    // move to next slice if necessary
+    while(curSliceTime > TIME_SLICE_US) {
       SetSliceVariables();
       curSliceTime -= TIME_SLICE_US;
       sliceStartTime += TIME_SLICE_US;
-	
-	  if (penTransitionDirection) {
-		return;
-	  }
+
+#ifdef ENABLE_PENUP	
+      if (penTransitionDirection) {
+        return;
+      }
+#endif      
     }
 	
-	UpdateStepperPins(curSliceTime);
+    UpdateStepperPins(curSliceTime);
+#ifdef ENABLE_PENUP    
   }
+#endif  
 
   ReadSerialMoveData();
   RequestMoreSerialMoveData();
@@ -136,7 +150,7 @@ void UpdateStepperPins(long curSliceTime) {
 
   do {
     if (leftSteps) {
-      Step(LEFT_STEP_PIN, LEFT_DIR_PIN, LeftPositiveDir);
+      Step(LEFT_STEP_PIN, LEFT_DIR_PIN, leftPositiveDir);
       if (leftPositiveDir) {
         leftCurPos += POS_FACTOR;
       } else {
@@ -148,7 +162,7 @@ void UpdateStepperPins(long curSliceTime) {
     }
 
     if (rightSteps) {
-      Step(RIGHT_STEP_PIN, RIGHT_DIR_PIN, RightPositiveDir);
+      Step(RIGHT_STEP_PIN, RIGHT_DIR_PIN, rightPositiveDir);
       if (rightPositiveDir) {
         rightCurPos += POS_FACTOR;
       } else {
@@ -167,16 +181,13 @@ void UpdateStepperPins(long curSliceTime) {
 
 // Update pen position
 // --------------------------------------
+#ifdef ENABLE_PENUP
 void UpdatePenTransition(long curSliceTime) {
-	
-  if (penTransitionDirection == 1) {
 	
   int targetAngle = (180 * curSliceTime) >> PENUP_TRANSITION_US_LOG;
   if (targetAngle > PENUP_ANGLE) {
-	targetAngle = PENUP_ANGLE;
-	
-	// are done moving the pen servo
-	penTransitionDirection = 0;
+	targetAngle = PENUP_ANGLE;		
+	penTransitionDirection = 0; // are done moving the pen servo
   }
 
   if (penTransitionDirection == -1) {
@@ -185,6 +196,7 @@ void UpdatePenTransition(long curSliceTime) {
 
   penUpServo.write(targetAngle);
 }
+#endif
 
 // Update status leds
 // --------------------------------------
@@ -222,14 +234,20 @@ void SetSliceVariables() {
   } else {
     leftDelta = MoveDataGet();
     rightDelta = MoveDataGet();
-	
-	if (leftDelta == PENUP_COMMAND) {
-		leftDelta = rightDelta = 0;
-		penTransitionDirection = 1;
-	} else if (leftDelta == PENDOWN_COMMAND) {
-		leftDelta = rightDelta = 0;
-		penTransitionDirection = -1;
-	}
+    
+#ifdef ENABLE_PENUP	
+    if (leftDelta == PENUP_COMMAND) {
+      leftDelta = rightDelta = 0;
+      penTransitionDirection = 1;
+    } else if (leftDelta == PENDOWN_COMMAND) {
+      leftDelta = rightDelta = 0;
+      penTransitionDirection = -1;
+    }
+#else
+    if (leftDelta == PENUP_COMMAND || leftDelta == PENDOWN_COMMAND) {
+       leftDelta = rightDelta = 0;
+    }
+#endif    
   }
 }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
@@ -258,7 +276,7 @@ void ReadSerialMoveData() {
     char value = Serial.read();
     
     // Check if this value is the sentinel reset value
-    if (value == ResetCommand) {
+    if (value == RESET_COMMAND) {
       ResetMovementVariables();
       moveDataRequestPending = 0;
       moveDataLength = 0;
@@ -278,7 +296,6 @@ void ReadSerialMoveData() {
 // Put a value onto the end of the move data buffer
 // --------------------------------------
 void MoveDataPut(char value) {
-
   int writePosition = moveDataStart + moveDataLength;
   if (writePosition >= MOVE_DATA_CAPACITY) {
     writePosition = writePosition - MOVE_DATA_CAPACITY;
