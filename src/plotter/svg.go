@@ -245,10 +245,7 @@ func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordina
 	minPoint := Coordinate{X: 100000, Y: 100000}
 	maxPoint := Coordinate{X: -100000, Y: -10000}
 
-	for _, curTarget := range data {
-
-		// flip y axis because in svg world bottom left is origin
-		point := curTarget.ScaledBoth(1.0, -1.0)
+	for _, point := range data {
 
 		if point.X < minPoint.X {
 			minPoint.X = point.X

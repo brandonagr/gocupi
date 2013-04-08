@@ -21,7 +21,7 @@ func DrawToImage(imageName string, plotCoords <-chan Coordinate) {
 	maxPoint := Coordinate{X: -100000, Y: -10000}
 
 	for point := range plotCoords {
-		point = point.Scaled(4.0) // 4 mm = 1 pixel
+		point = point.Scaled(4.0) // 4 pixels = 1mm
 		points = append(points, point)
 
 		if point.X < minPoint.X {
@@ -41,7 +41,7 @@ func DrawToImage(imageName string, plotCoords <-chan Coordinate) {
 	maxPoint = maxPoint.Add(Coordinate{X: 50, Y: 50})
 	minPoint = minPoint.Add(Coordinate{X: -50, Y: -50})
 
-	fmt.Println("Image Max:", maxPoint, "Min:", minPoint)
+	fmt.Println("Image Min:", minPoint, "Min:", maxPoint)
 
 	image := image.NewRGBA(image.Rect(0, 0, int(maxPoint.X-minPoint.X), int(maxPoint.Y-minPoint.Y)))
 
