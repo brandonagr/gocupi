@@ -31,6 +31,18 @@ func TestSVGPath(t *testing.T) {
 	}
 	result = p.Parse()
 	assertAreEqual(expectedResult, result, t)
+
+	p = NewParser("m 213,152 3,0 2,0 3,0 2,2     z")
+	expectedResult = []Coordinate{
+		Coordinate{X: 213, Y: 152, PenUp: true},
+		Coordinate{X: 216, Y: 152, PenUp: false},
+		Coordinate{X: 218, Y: 152, PenUp: false},
+		Coordinate{X: 221, Y: 152, PenUp: false},
+		Coordinate{X: 223, Y: 154, PenUp: false},
+		Coordinate{X: 213, Y: 152, PenUp: false},
+	}
+	result = p.Parse()
+	assertAreEqual(expectedResult, result, t)
 }
 
 // assert that the two slices are equal

@@ -135,6 +135,11 @@ func (this *PathParser) Parse() []Coordinate {
 				this.ReadCoord(false)
 			}
 
+		case ClosePath:
+			firstPosition := this.coordinates[0]
+			this.currentPosition = Coordinate{X: firstPosition.X, Y: firstPosition.Y, PenUp: false}
+			this.coordinates = append(this.coordinates, this.currentPosition)
+
 		default:
 			panic(fmt.Sprint("Unsupported command:", this.currentCommand))
 		}

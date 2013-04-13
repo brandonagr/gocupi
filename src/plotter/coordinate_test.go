@@ -20,7 +20,8 @@ func TestToPolar(t *testing.T) {
 	system := PolarSystem{
 		XOffset:        3,
 		YOffset:        4,
-		MinXMotorDist:  0,
+		XMin:           0,
+		XMax:           6,
 		YMin:           0,
 		YMax:           8,
 		RightMotorDist: 6,
@@ -55,7 +56,8 @@ func TestToCoord(t *testing.T) {
 	system := PolarSystem{
 		XOffset:        3,
 		YOffset:        4,
-		MinXMotorDist:  0,
+		XMin:           0,
+		XMax:           6,
 		YMin:           0,
 		YMax:           8,
 		RightMotorDist: 6,

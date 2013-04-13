@@ -26,7 +26,7 @@
 	<SpoolSingleStep_Degrees>0.225</SpoolSingleStep_Degrees>
 	
 	<!-- Number of seconds to go from stopped to full speed -->
-	<Acceleration_Seconds>1.5</Acceleration_Seconds>
+	<Acceleration_Seconds>0.5</Acceleration_Seconds>
 
 	<!-- Mouse path, used on linux with the mouse command in order to directly control pen with a mouse -->
 	<MousePath>/dev/input/event2</MousePath>
