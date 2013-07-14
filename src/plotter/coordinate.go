@@ -245,3 +245,28 @@ func (circle Circle) Intersection(line LineSegment) (firstPoint Coordinate, firs
 
 	return
 }
+
+type Coordinates []Coordinate
+
+// Calculate the min and max coordinate in the given slice
+func (coords Coordinates) Extents() (Coordinate, Coordinate) {
+	minPoint := Coordinate{X: 100000, Y: 100000}
+	maxPoint := Coordinate{X: -100000, Y: -10000}
+
+	for _, point := range coords {
+
+		if point.X < minPoint.X {
+			minPoint.X = point.X
+		} else if point.X > maxPoint.X {
+			maxPoint.X = point.X
+		}
+
+		if point.Y < minPoint.Y {
+			minPoint.Y = point.Y
+		} else if point.Y > maxPoint.Y {
+			maxPoint.Y = point.Y
+		}
+	}
+
+	return minPoint, maxPoint
+}

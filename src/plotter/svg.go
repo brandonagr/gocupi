@@ -241,29 +241,12 @@ func ParseSvgFile(fileName string) (data []Coordinate) {
 	return data
 }
 
-// Send svg path points to channel, uses whatever the first Coordinate is as the current location of the head
-func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordinate) {
+// Send svg path points to channel
+func GenerateSvgBoxPath(data Coordinates, size float64, plotCoords chan<- Coordinate) {
 
 	defer close(plotCoords)
 
-	// find minPoint of coordinates, which will be upper left, where the pen will start
-	minPoint := Coordinate{X: 100000, Y: 100000}
-	maxPoint := Coordinate{X: -100000, Y: -10000}
-
-	for _, point := range data {
-
-		if point.X < minPoint.X {
-			minPoint.X = point.X
-		} else if point.X > maxPoint.X {
-			maxPoint.X = point.X
-		}
-
-		if point.Y < minPoint.Y {
-			minPoint.Y = point.Y
-		} else if point.Y > maxPoint.Y {
-			maxPoint.Y = point.Y
-		}
-	}
+	minPoint, maxPoint := data.Extents()
 
 	imageSize := maxPoint.Minus(minPoint)
 	scale := size / math.Max(imageSize.X, imageSize.Y)
@@ -278,8 +261,55 @@ func GenerateSvgPath(data []Coordinate, size float64, plotCoords chan<- Coordina
 			" Y: ", Settings.DrawingSurfaceMaxY_MM, " - ", Settings.DrawingSurfaceMinY_MM))
 	}
 
+	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
+	plotCoords <- Coordinate{X: 0, Y: maxPoint.Y - minPoint.Y, PenUp: true}.Scaled(scale)
+	plotCoords <- Coordinate{X: maxPoint.X - minPoint.X, Y: maxPoint.Y - minPoint.Y, PenUp: true}.Scaled(scale)
+	plotCoords <- Coordinate{X: maxPoint.X - minPoint.X, Y: 0, PenUp: true}.Scaled(scale)
+	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}.Scaled(scale)
+
 	for index := 0; index < len(data); index++ {
 		curTarget := data[index]
 		plotCoords <- curTarget.Minus(minPoint).Scaled(scale)
 	}
+
+	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
+}
+
+// Send svg path points to channel
+func GenerateSvgTopPath(data Coordinates, size float64, plotCoords chan<- Coordinate) {
+
+	defer close(plotCoords)
+
+	minPoint, maxPoint := data.Extents()
+
+	imageSize := maxPoint.Minus(minPoint)
+	scale := size / math.Max(imageSize.X, imageSize.Y)
+
+	fmt.Println("SVG Min:", minPoint, "Max:", maxPoint, "Scale:", scale)
+
+	if imageSize.X*scale > (Settings.DrawingSurfaceMaxX_MM-Settings.DrawingSurfaceMinX_MM) || imageSize.Y*scale > (Settings.DrawingSurfaceMaxY_MM-Settings.DrawingSurfaceMinY_MM) {
+		panic(fmt.Sprint(
+			"SVG coordinates extend past drawable surface, as defined in settings.xml. Scaled svg size was: ",
+			imageSize,
+			" And settings bounds are, X: ", Settings.DrawingSurfaceMaxX_MM, " - ", Settings.DrawingSurfaceMinX_MM,
+			" Y: ", Settings.DrawingSurfaceMaxY_MM, " - ", Settings.DrawingSurfaceMinY_MM))
+	}
+
+	// find top most svg point, so that the path can start there	244		// find minPoint of coordinates, which will be upper left, where the pen will start
+	initialPositionIndex := 0
+	initialPosition := Coordinate{X: 100000.0, Y: -100000.0}
+	for index, point := range data {
+		if point.Y > initialPosition.Y || (point.Y == initialPosition.Y && point.X < initialPosition.X) {
+			initialPositionIndex = index
+			initialPosition = point
+		}
+	}
+	initialPosition.PenUp = false
+
+	for index := 0; index < len(data); index++ {
+		curTarget := data[(index+initialPositionIndex)%len(data)]
+		plotCoords <- curTarget.Minus(initialPosition).Scaled(scale)
+	}
+
+	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
 }

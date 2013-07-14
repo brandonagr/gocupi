@@ -7,6 +7,7 @@ import (
 	"math"
 	. "plotter"
 	"strconv"
+	"strings"
 )
 
 // set flag usage variable so that entire help will be output
@@ -149,10 +150,10 @@ func main() {
 		go GenerateParabolic(parabolicSetup, plotCoords)
 
 	case "spiral":
-		params := GetArgsAsFloats(args[1:], 3)
+		params := GetArgsAsFloats(args[1:], 2)
 		spiralSetup := Spiral{
 			RadiusBegin:       params[0],
-			RadiusEnd:         params[1],
+			RadiusEnd:         0.01,
 			RadiusDeltaPerRev: params[2],
 		}
 
@@ -185,9 +186,24 @@ func main() {
 			size = 1
 		}
 
+		svgType := "top"
+		if len(args) > 3 {
+			svgType = strings.ToLower(args[3])
+		}
+
 		fmt.Println("Generating svg path")
 		data := ParseSvgFile(args[2])
-		go GenerateSvgPath(data, size, plotCoords)
+		switch svgType {
+		case "top":
+			go GenerateSvgTopPath(data, size, plotCoords)
+
+		case "box":
+			go GenerateSvgBoxPath(data, size, plotCoords)
+
+		default:
+			fmt.Println("Expected top or box as the svg type, and saw", svgType)
+			return
+		}
 
 	case "text":
 		height, _ := strconv.ParseFloat(args[1], 64)
@@ -273,19 +289,66 @@ Flags:
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 
 Commands:
-circle R d n (R radius) (d displacement per revolution) (n number of circles)
-gcode s "path" (s scale)
-grid s c (s size) (c number cells)
-hilbert s d (s size) (d degree(ie 1 to 6))
-imagearc s a "path" (s size) (a distance between arcs)
-imageraster s p "path" (s size) (p pen thickness)
-lissa s a b (s scale of drawing) (a factor) (b factor)
+circle R d n
+	R - radius of circle
+	d - displacement per revolution
+	n - number of circles
+
+gcode s "path"
+	s - scale
+	
+grid s c
+	s - size of square grid
+	c - number of cells in grid
+ 
+hilbert s d
+	s - size of square
+	d - degree of hilbert curve, 2 to 6
+
+imagearc s a "path"
+	s - size of long axis
+	a - distance between each arc
+
+imageraster s p "path"
+	s - size of long axis
+	p - pen thickness / distance between rows
+
+lissa s a b
+	s - size of drawing
+	a - first factor
+	b - second factor
+ 
 move
-parabolic R c l (R radius) (c count of polygon edges) (l number of lines)
-spiral R r d (R begin radius) (r end radius) (d radius delta per revolution)
-spiro R r p (R first circle radius) (r second circle radius) (p pen distance)
+
+parabolic R c l
+	R - radius of shape
+	c - count of polygon edges
+	l - number of lines per edges
+	
+spiral R r d
+	R - initial outter radius
+	d - radius delta per revolution
+
+spiro R r p
+	R - first circle radius
+	r - second circle radius
+	p - pen distance
+
 spool
-svg s "path" (s size of long axis)
-text h "string" (h letter height)
-qr s p "string" (s size) (p pen thickness)`)
+
+svg s "path" t
+	s - size of long axis
+	path - path to svg file
+	t - type of drawing, either top or box
+		top (default) - best for TSP single loop drawings, pen starts on loop at top
+		box - pen starts in upper left corner, drawing boundary extents first
+
+text h "string"
+	h - letter height
+	string - text to print
+ 
+qr s p "string"
+	s - size of square
+	p - pen thickness, determines how much it fills in solid squares
+	string - the text that will be encoded`)
 }
