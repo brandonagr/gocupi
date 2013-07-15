@@ -298,14 +298,16 @@ func GenerateSvgTopPath(data Coordinates, size float64, plotCoords chan<- Coordi
 
 	// find top most svg point, so that the path can start there	244		// find minPoint of coordinates, which will be upper left, where the pen will start
 	initialPositionIndex := 0
-	initialPosition := Coordinate{X: 100000.0, Y: -100000.0}
+	initialPosition := Coordinate{X: 100000.0, Y: 100000.0}
 	for index, point := range data {
-		if point.Y > initialPosition.Y || (point.Y == initialPosition.Y && point.X < initialPosition.X) {
+		if point.Y < initialPosition.Y || (point.Y == initialPosition.Y && point.X < initialPosition.X) {
 			initialPositionIndex = index
 			initialPosition = point
 		}
 	}
 	initialPosition.PenUp = false
+
+	fmt.Println("SVG initial top position:", initialPosition)
 
 	for index := 0; index < len(data); index++ {
 		curTarget := data[(index+initialPositionIndex)%len(data)]
