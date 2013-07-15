@@ -250,8 +250,8 @@ type Coordinates []Coordinate
 
 // Calculate the min and max coordinate in the given slice
 func (coords Coordinates) Extents() (Coordinate, Coordinate) {
-	minPoint := Coordinate{X: 100000, Y: 100000}
-	maxPoint := Coordinate{X: -100000, Y: -10000}
+	minPoint := Coordinate{X: 100000, Y: 100000, PenUp: false}
+	maxPoint := Coordinate{X: -100000, Y: -10000, PenUp: false}
 
 	for _, point := range coords {
 

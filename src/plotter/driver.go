@@ -93,17 +93,10 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 			previousPolarPos = previousPolarPos.
 				Add(sliceSteps.Scaled(Settings.StepSize_MM / StepsFixedPointFactor))
 
-			//fmt.Println("Slice", slice, "From", previousPolarPos, "to", polarSliceTarget, "steps", sliceSteps)
-			//if previousLeft-int(sliceSteps.LeftDist) < -30 {
-			//panic("TOO FAR")
-			//}
-			//previousLeft = int(sliceSteps.LeftDist)
-
 			stepData <- int8(-sliceSteps.LeftDist)
 			stepData <- int8(sliceSteps.RightDist)
 		}
 		origin = previousPolarPos.ToCoord(polarSystem)
-		//fmt.Println("Reprojection error", origin.Minus(target).Len(), "target", target, "actual", origin)
 		target = nextTarget
 	}
 	fmt.Println("Done generating steps")

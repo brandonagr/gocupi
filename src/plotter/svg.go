@@ -262,6 +262,7 @@ func GenerateSvgBoxPath(data Coordinates, size float64, plotCoords chan<- Coordi
 	}
 
 	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
+	plotCoords <- Coordinate{X: 0, Y: 10, PenUp: true}
 	plotCoords <- Coordinate{X: 0, Y: maxPoint.Y - minPoint.Y, PenUp: true}.Scaled(scale)
 	plotCoords <- Coordinate{X: maxPoint.X - minPoint.X, Y: maxPoint.Y - minPoint.Y, PenUp: true}.Scaled(scale)
 	plotCoords <- Coordinate{X: maxPoint.X - minPoint.X, Y: 0, PenUp: true}.Scaled(scale)
