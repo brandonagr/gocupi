@@ -154,7 +154,7 @@ func main() {
 		spiralSetup := Spiral{
 			RadiusBegin:       params[0],
 			RadiusEnd:         0.01,
-			RadiusDeltaPerRev: params[2],
+			RadiusDeltaPerRev: params[1],
 		}
 
 		fmt.Println("Generating spiral")
@@ -325,7 +325,7 @@ parabolic R c l
 	c - count of polygon edges
 	l - number of lines per edges
 	
-spiral R r d
+spiral R d
 	R - initial outter radius
 	d - radius delta per revolution
 
