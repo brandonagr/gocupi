@@ -7,7 +7,7 @@ import (
 )
 
 // Minus should provide the correct result
-func TestMinus(t *testing.T) {
+func Test_Minus(t *testing.T) {
 	lhs := Coordinate{X: 2, Y: 2}
 	rhs := Coordinate{X: 1, Y: 1}
 	if !lhs.Minus(rhs).Equals(rhs) {
@@ -16,7 +16,7 @@ func TestMinus(t *testing.T) {
 }
 
 // ToPolar should return expected result when converting from cartesian to polar
-func TestToPolar(t *testing.T) {
+func Test_ToPolar(t *testing.T) {
 	system := &PolarSystem{
 		XOffset:        3,
 		YOffset:        4,
@@ -52,7 +52,7 @@ func TestToPolar(t *testing.T) {
 }
 
 // ToCoord should return expected result when converting from polar to cartessian
-func TestToCoord(t *testing.T) {
+func Test_ToCoord(t *testing.T) {
 	system := &PolarSystem{
 		XOffset:        3,
 		YOffset:        4,
@@ -87,7 +87,7 @@ func TestToCoord(t *testing.T) {
 }
 
 // Circle.Intersection(Line) should return expected results
-func TestCircleLineIntersection(t *testing.T) {
+func Test_CircleLineIntersection(t *testing.T) {
 
 	circle := Circle{Coordinate{X: 0, Y: 0}, 5}
 	line := LineSegment{Coordinate{X: 0, Y: 0}, Coordinate{X: 2, Y: 0}}

@@ -5,7 +5,7 @@ import (
 )
 
 // Test that buffer works as expected
-func TestCoordinateRingBuffer(t *testing.T) {
+func Test_CoordinateRingBuffer(t *testing.T) {
 
 	buffer := NewCoordinateRingBuffer(4)
 
