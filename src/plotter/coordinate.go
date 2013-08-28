@@ -96,9 +96,9 @@ type PolarSystem struct {
 	RightMotorDist float64
 }
 
-// Create a PolarSystem from the settings object
-func PolarSystemFromSettings() PolarSystem {
-	return PolarSystem{
+// Create a PolarSystem from the global settings object
+func PolarSystemFromSettings() *PolarSystem {
+	return &PolarSystem{
 		XOffset:        0,
 		YOffset:        0,
 		XMin:           Settings.DrawingSurfaceMinX_MM,
@@ -106,6 +106,19 @@ func PolarSystemFromSettings() PolarSystem {
 		YMin:           Settings.DrawingSurfaceMinY_MM,
 		YMax:           Settings.DrawingSurfaceMaxY_MM,
 		RightMotorDist: Settings.SpoolHorizontalDistance_MM,
+	}
+}
+
+// Create a PolarSystem from the settings object
+func PolarSystemFrom(settings *SettingsData) *PolarSystem {
+	return &PolarSystem{
+		XOffset:        0,
+		YOffset:        0,
+		XMin:           settings.DrawingSurfaceMinX_MM,
+		XMax:           settings.DrawingSurfaceMaxX_MM,
+		YMin:           settings.DrawingSurfaceMinY_MM,
+		YMax:           settings.DrawingSurfaceMaxY_MM,
+		RightMotorDist: settings.SpoolHorizontalDistance_MM,
 	}
 }
 
@@ -146,7 +159,7 @@ func (coord PolarCoordinate) Clamp(max, min float64) PolarCoordinate {
 }
 
 // Convert the given coordinate from X,Y to polar in the given PolarSystem
-func (coord Coordinate) ToPolar(system PolarSystem) (polarCoord PolarCoordinate) {
+func (coord Coordinate) ToPolar(system *PolarSystem) (polarCoord PolarCoordinate) {
 
 	coord.X += system.XOffset
 	coord.Y += system.YOffset
@@ -177,7 +190,7 @@ func (coord Coordinate) ToPolar(system PolarSystem) (polarCoord PolarCoordinate)
 }
 
 // Convert the given polarCoordinate from polar to X,Y in the given PolarSystem
-func (polarCoord PolarCoordinate) ToCoord(system PolarSystem) (coord Coordinate) {
+func (polarCoord PolarCoordinate) ToCoord(system *PolarSystem) (coord Coordinate) {
 
 	coord.X = ((polarCoord.LeftDist * polarCoord.LeftDist) - (polarCoord.RightDist * polarCoord.RightDist) + (system.RightMotorDist * system.RightMotorDist)) / (2.0 * system.RightMotorDist)
 	coord.Y = math.Sqrt((polarCoord.LeftDist * polarCoord.LeftDist) - (coord.X * coord.X))
@@ -237,9 +250,48 @@ func (circle Circle) Intersection(line LineSegment) (firstPoint Coordinate, firs
 				firstPointValid = true
 				firstPoint = line.Begin.Add(lineDir.Scaled(secondTime))
 			} else {
-				secondPointValid = true
-				secondPoint = line.Begin.Add(lineDir.Scaled(secondTime))
+				if secondTime < firstTime {
+					secondPoint = firstPoint
+					secondPointValid = true
+
+					firstPoint = line.Begin.Add(lineDir.Scaled(secondTime))
+				} else {
+					secondPointValid = true
+					secondPoint = line.Begin.Add(lineDir.Scaled(secondTime))
+				}
 			}
+		}
+	}
+
+	return
+}
+
+// Calculates the intersection between a circle and line segment, based on http://stackoverflow.com/questions/1073336/circle-line-collision-detection
+// If there is only one interesection it will always be in firstPoint
+func (circle Circle) IntersectionTime(line LineSegment) (time float64, valid bool) {
+	lineDir := line.End.Minus(line.Begin)
+	circleToLineDir := line.Begin.Minus(circle.Center)
+
+	a := lineDir.DotProduct(lineDir)
+	b := 2 * circleToLineDir.DotProduct(lineDir)
+	c := circleToLineDir.DotProduct(circleToLineDir) - (circle.Radius * circle.Radius)
+
+	discriminant := b*b - 4*a*c
+	if discriminant < 0 {
+		return // no intersection
+	} else {
+		discriminant = math.Sqrt(discriminant)
+
+		firstTime := (-b + discriminant) / (2 * a)
+		secondTime := (-b - discriminant) / (2 * a)
+
+		if 0 <= firstTime && firstTime <= 1 {
+			time = firstTime
+			valid = true
+		}
+		if 0 <= secondTime && secondTime <= 1 && (!valid || secondTime < firstTime) {
+			time = secondTime
+			valid = true
 		}
 	}
 

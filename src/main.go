@@ -19,6 +19,7 @@ func init() {
 func main() {
 	Settings.Read()
 
+	timelineFlag := flag.Bool("timeline", false, "Generate timeline of step events")
 	toImageFlag := flag.Bool("toimage", false, "Output result to an image file instead of to the stepper")
 	toFileFlag := flag.Bool("tofile", false, "Output steps to a text file")
 	toChartFlag := flag.Bool("tochart", false, "Output a chart of the movement and velocity")
@@ -231,6 +232,12 @@ func main() {
 
 	default:
 		PrintUsage()
+		return
+	}
+
+	if *timelineFlag {
+		fmt.Println("Outputting to timeline")
+		GenerateTimeline(plotCoords)
 		return
 	}
 
