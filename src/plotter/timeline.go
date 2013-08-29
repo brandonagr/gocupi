@@ -47,28 +47,19 @@ func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- TimelineEv
 	//polarSystem.XOffset = startingLocation.X
 	//polarSystem.YOffset = startingLocation.Y
 
-	start, chanOpen := <-plotCoords
-	if !chanOpen {
-		return
-	}
-	anotherSegment := true
+	speedProfile := NewLinearSpeedProfile(plotCoords, settings)
+	minTolerance := 0.000001 // Min difference between points to move to it
+	currentTime := 0.0
 
-	for anotherSegment {
-		end, chanOpen := <-plotCoords
-		if !chanOpen {
-			anotherSegment = false
-			end = start
-		}
-
-		// Min difference between points to move to it
-		minTolerance := 0.000001
+	for speedProfile.MoveNext() {
 
 		for {
-			penPolarPos := start.ToPolar(polarSystem)
+			lineSegment := speedProfile.Current()
+			penPolarPos := lineSegment.Begin.ToPolar(polarSystem)
 
-			intersectTime := math.MaxFloat64
+			intersectPercentage := math.MaxFloat64
 			intersectIndex := -1
-			lineSegment := LineSegment{start, end}
+
 			var circle Circle
 
 			fmt.Println("LineSegment:", lineSegment)
@@ -79,8 +70,8 @@ func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- TimelineEv
 			}
 			circle.Center = Coordinate{}
 			circle.Radius = prevLeftDist
-			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectTime {
-				intersectTime = time
+			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectPercentage {
+				intersectPercentage = time
 				intersectIndex = 0
 			}
 
@@ -90,8 +81,8 @@ func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- TimelineEv
 			}
 			circle.Center = Coordinate{}
 			circle.Radius = nextLeftDist
-			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectTime {
-				intersectTime = time
+			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectPercentage {
+				intersectPercentage = time
 				intersectIndex = 1
 			}
 
@@ -101,8 +92,8 @@ func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- TimelineEv
 			}
 			circle.Center = Coordinate{X: settings.SpoolHorizontalDistance_MM}
 			circle.Radius = prevRightDist
-			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectTime {
-				intersectTime = time
+			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectPercentage {
+				intersectPercentage = time
 				intersectIndex = 2
 			}
 
@@ -112,8 +103,8 @@ func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- TimelineEv
 			}
 			circle.Center = Coordinate{X: settings.SpoolHorizontalDistance_MM}
 			circle.Radius = nextRightDist
-			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectTime {
-				intersectTime = time
+			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectPercentage {
+				intersectPercentage = time
 				intersectIndex = 3
 			}
 
@@ -121,42 +112,36 @@ func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- TimelineEv
 
 			if intersectIndex == -1 {
 				fmt.Println("failed to find any intersections, exiting")
+
+				// need to add remaining time to reach the end of current segment
+				currentTime += speedProfile.Time(1.0)
 				break
 			}
 
-			intersectPos := start.Add(end.Minus(start).Scaled(intersectTime))
+			currentTime += speedProfile.Time(intersectPercentage)
+			speedProfile.UpdateStart(intersectPercentage)
 
-			fmt.Println("From", start, "to", end, "intersect", intersectTime, "at", intersectPos)
-
-			start = intersectPos
+			event := TimelineEvent{
+				Time: currentTime,
+			}
 
 			switch intersectIndex {
 			case 0:
-				//currentPolarPosSteps.LeftDist -= 1
-				fmt.Println("Left -= 1")
+				event.LeftStep = -1
 				break
 			case 1:
-				//currentPolarPosSteps.LeftDist += 1
-				fmt.Println("Left += 1")
+				event.LeftStep = 1
 				break
 			case 2:
-				//currentPolarPosSteps.RightDist -= 1
-				fmt.Println("Right -= 1")
+				event.RightStep = -1
 				break
 			case 3:
-				//currentPolarPosSteps.RightDist += 1
-				fmt.Println("Right += 1")
+				event.RightStep = 1
 				break
 			}
 
-			timeEvents <- TimelineEvent{
-				Time:      intersectTime,
-				LeftStep:  0,
-				RightStep: 0,
-			}
+			timeEvents <- event
 		}
-
-		start = end
 	}
 
 	fmt.Println("Done generating timeline")

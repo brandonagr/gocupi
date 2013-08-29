@@ -322,3 +322,78 @@ func (coords Coordinates) Extents() (Coordinate, Coordinate) {
 
 	return minPoint, maxPoint
 }
+
+// A ring buffer used to store coordinates
+type CoordinateRingBuffer struct {
+	data     []Coordinate // data in the buffer
+	capacity int          // length of data buiffer
+	start    int          // current beginning of buffer
+	length   int          // number of items in buffer
+}
+
+// Create a new buffer with the given capacity
+func NewCoordinateRingBuffer(capacity int) *CoordinateRingBuffer {
+	return &CoordinateRingBuffer{
+		data:     make([]Coordinate, capacity),
+		capacity: capacity,
+		start:    0,
+		length:   0,
+	}
+}
+
+// Return the value at the given index relative to the head
+func (ring *CoordinateRingBuffer) At(index int) Coordinate {
+	if index > ring.Len() {
+		panic("Expected index to be less than current length")
+	}
+
+	index += ring.start
+	if index > ring.capacity {
+		index -= ring.capacity
+	}
+
+	return ring.data[index]
+}
+
+// Add a coordinate to the end of the buffer
+func (ring *CoordinateRingBuffer) Enqueue(coord Coordinate) {
+	writeIndex := ring.start + ring.length
+	if writeIndex >= ring.capacity {
+		writeIndex -= ring.capacity
+	}
+
+	ring.data[writeIndex] = coord
+
+	if ring.length == ring.capacity {
+		panic("Attempted to overfill buffer")
+	}
+
+	ring.length++
+}
+
+// Remove a coordinate from the beginning of the buffer
+func (ring *CoordinateRingBuffer) Dequeue() Coordinate {
+	if ring.length == 0 {
+		panic("Attempted to dequeue an empty buffer")
+	}
+
+	result := ring.data[ring.start]
+
+	ring.start++
+	if ring.start == ring.capacity {
+		ring.start = 0
+	}
+	ring.length--
+
+	return result
+}
+
+// Amount of data in the buffer
+func (ring *CoordinateRingBuffer) Len() int {
+	return ring.length
+}
+
+// Capacity of the buffer
+func (ring *CoordinateRingBuffer) Cap() int {
+	return ring.capacity
+}
