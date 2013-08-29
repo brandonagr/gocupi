@@ -18,6 +18,12 @@ type TimelineEvent struct {
 	RightStep int8
 }
 
+// TimelineEvent ToString
+func (event TimelineEvent) String() string {
+
+	return fmt.Sprintf("[ %.3f, %d, %d ]", event.Time, event.LeftStep, event.RightStep)
+}
+
 // Convert MM to Steps
 func ConvertToSteps(plotCoords <-chan Coordinate, stepCoords chan<- Coordinate) {
 	defer close(stepCoords)
@@ -62,7 +68,7 @@ func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- TimelineEv
 
 			var circle Circle
 
-			fmt.Println("LineSegment:", lineSegment)
+			//fmt.Println("LineSegment:", lineSegment)
 
 			prevLeftDist := math.Floor(penPolarPos.LeftDist)
 			if math.Abs(penPolarPos.LeftDist-prevLeftDist) < minTolerance {
@@ -108,10 +114,10 @@ func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- TimelineEv
 				intersectIndex = 3
 			}
 
-			fmt.Println("Pos", penPolarPos, prevLeftDist, nextLeftDist, prevRightDist, nextRightDist)
+			//fmt.Println("Pos", penPolarPos, prevLeftDist, nextLeftDist, prevRightDist, nextRightDist)
 
 			if intersectIndex == -1 {
-				fmt.Println("failed to find any intersections, exiting")
+				//fmt.Println("failed to find any intersections, exiting")
 
 				// need to add remaining time to reach the end of current segment
 				currentTime += speedProfile.Time(1.0)

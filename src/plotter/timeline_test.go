@@ -13,10 +13,11 @@ func Test_TimelineVertical(t *testing.T) {
 		DrawingSurfaceMaxY_MM:      9,
 		DrawingSurfaceMinX_MM:      0,
 		DrawingSurfaceMaxX_MM:      10,
-		StepSize_MM:                0.5,
+		StepSize_MM:                1,
 		StartingLeftDist_MM:        1,
 		StartingRightDist_MM:       10.04987562112089027021926491276,
 		SpoolHorizontalDistance_MM: 10,
+		MaxSpeed_MM_S:              1,
 	}
 
 	plotCoords := make(chan Coordinate, 10)

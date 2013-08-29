@@ -21,7 +21,6 @@ func (coord Coordinate) String() string {
 	} else {
 		return fmt.Sprintf("[ %.2f, %.2f ]", coord.X, coord.Y)
 	}
-	panic("Not reachable")
 }
 
 // Calculates length of vector
