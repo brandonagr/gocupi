@@ -266,7 +266,7 @@ func (circle Circle) Intersection(line LineSegment) (firstPoint Coordinate, firs
 }
 
 // Calculates the intersection between a circle and line segment, based on http://stackoverflow.com/questions/1073336/circle-line-collision-detection
-// If there is only one interesection it will always be in firstPoint
+// Always returns to first intersection along the line segment
 func (circle Circle) IntersectionTime(line LineSegment) (time float64, valid bool) {
 	lineDir := line.End.Minus(line.Begin)
 	circleToLineDir := line.Begin.Minus(circle.Center)
@@ -281,15 +281,13 @@ func (circle Circle) IntersectionTime(line LineSegment) (time float64, valid boo
 	} else {
 		discriminant = math.Sqrt(discriminant)
 
-		firstTime := (-b + discriminant) / (2 * a)
-		secondTime := (-b - discriminant) / (2 * a)
+		time = (-b - discriminant) / (2 * a)
 
-		if 0 <= firstTime && firstTime <= 1 {
-			time = firstTime
-			valid = true
+		if time < 0 {
+			time = (-b + discriminant) / (2 * a)
 		}
-		if 0 <= secondTime && secondTime <= 1 && (!valid || secondTime < firstTime) {
-			time = secondTime
+
+		if 0 <= time && time <= 1 {
 			valid = true
 		}
 	}
