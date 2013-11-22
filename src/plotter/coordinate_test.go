@@ -141,16 +141,6 @@ func Test_CircleLineIntersection(t *testing.T) {
 	}
 }
 
-// Benchmark speed of circle line intersection algorithm
-func Benchmark_CircleLineIntersection(b *testing.B) {
-
-	line := LineSegment{Coordinate{X: 5, Y: -10}, Coordinate{X: 5, Y: 10}}
-	circle := Circle{Coordinate{X: 0, Y: 0}, 5}
-	for i := 0; i < b.N; i++ {
-		circle.IntersectionTime(line)
-	}
-}
-
 // Test that buffer works as expected
 func Test_CoordinateRingBuffer(t *testing.T) {
 
