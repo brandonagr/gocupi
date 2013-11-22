@@ -7,17 +7,6 @@ import (
 	"math"
 )
 
-type TimelineEvent struct {
-	// Time that the event occured, offset from the beginning of time
-	Time float64
-
-	// Left motor movement
-	LeftStep int8
-
-	// Right motor movement
-	RightStep int8
-}
-
 // Convert MM to Steps
 func ConvertToSteps(plotCoords <-chan Coordinate, stepCoords chan<- Coordinate) {
 	defer close(stepCoords)
@@ -29,135 +18,91 @@ func ConvertToSteps(plotCoords <-chan Coordinate, stepCoords chan<- Coordinate) 
 }
 
 // Takes in coordinates and outputs a timeilne of step events
-func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- TimelineEvent, settings *SettingsData) {
+func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- float64, settings *SettingsData) {
 
 	defer close(timeEvents)
 
 	polarSystem := PolarSystemFrom(settings)
-	penPolarSteps := PolarCoordinate{LeftDist: settings.StartingLeftDist_MM, RightDist: settings.StartingRightDist_MM}
-	startingLocation := penPolarSteps.ToCoord(polarSystem)
+	previousPolarPos := PolarCoordinate{LeftDist: settings.StartingLeftDist_MM, RightDist: settings.StartingRightDist_MM}
+	startingLocation := previousPolarPos.ToCoord(polarSystem)
+	mmToSteps := 1 / settings.StepSize_MM
 
-	fmt.Println("Start Location", startingLocation, "Initial Polar", penPolarSteps)
+	fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
 
 	if startingLocation.IsNaN() {
 		panic(fmt.Sprint("Starting location is not a valid number, your settings.xml has impossible values"))
 	}
 
 	// setup 0,0 as the initial location of the plot head
-	//polarSystem.XOffset = startingLocation.X
-	//polarSystem.YOffset = startingLocation.Y
+	polarSystem.XOffset = startingLocation.X
+	polarSystem.YOffset = startingLocation.Y
 
-	start, chanOpen := <-plotCoords
+	target, chanOpen := <-plotCoords
 	if !chanOpen {
 		return
 	}
-	anotherSegment := true
+	target = target.Add(startingLocation).Scaled(mmToSteps)
+	anotherTarget := true
 
-	for anotherSegment {
-		end, chanOpen := <-plotCoords
+	for anotherTarget {
+		nextTarget, chanOpen := <-plotCoords
+		nextTarget = nextTarget.Add(startingLocation).Scaled(mmToSteps)
 		if !chanOpen {
-			anotherSegment = false
-			end = start
+			anotherTarget = false
+			nextTarget = target
 		}
 
-		// Min difference between points to move to it
-		minTolerance := 0.000001
+		currentPolarPosSteps := previousPolarPos.Scaled(mmToSteps).Ceil()
 
 		for {
-			penPolarPos := start.ToPolar(polarSystem)
+			lineSegment := LineSegment{target, nextTarget}
+			intersectionTime := math.MaxFloat64
+			intersectionIndex := -1
 
-			intersectTime := math.MaxFloat64
-			intersectIndex := -1
-			lineSegment := LineSegment{start, end}
-			var circle Circle
+			for index, circle := range []Circle{
+				Circle{Radius: currentPolarPosSteps.LeftDist - 1},
+				Circle{Radius: currentPolarPosSteps.LeftDist + 1},
+				Circle{Radius: currentPolarPosSteps.RightDist - 1, Center: Coordinate{X: polarSystem.RightMotorDist * mmToSteps, Y: 0}},
+				Circle{Radius: currentPolarPosSteps.RightDist + 1, Center: Coordinate{X: polarSystem.RightMotorDist * mmToSteps, Y: 0}}} {
 
-			fmt.Println("LineSegment:", lineSegment)
+				fmt.Println("Intersecting ", lineSegment, circle)
 
-			prevLeftDist := math.Floor(penPolarPos.LeftDist)
-			if math.Abs(penPolarPos.LeftDist-prevLeftDist) < minTolerance {
-				prevLeftDist -= 1
-			}
-			circle.Center = Coordinate{}
-			circle.Radius = prevLeftDist
-			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectTime {
-				intersectTime = time
-				intersectIndex = 0
+				if time, valid := circle.IntersectionTime(lineSegment); valid && time > 0 && time < intersectionTime {
+					intersectionTime = time
+					intersectionIndex = index
+				}
 			}
 
-			nextLeftDist := math.Ceil(penPolarPos.LeftDist)
-			if math.Abs(penPolarPos.LeftDist-nextLeftDist) < minTolerance {
-				nextLeftDist += 1
-			}
-			circle.Center = Coordinate{}
-			circle.Radius = nextLeftDist
-			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectTime {
-				intersectTime = time
-				intersectIndex = 1
-			}
-
-			prevRightDist := math.Floor(penPolarPos.RightDist)
-			if math.Abs(penPolarPos.RightDist-prevRightDist) < minTolerance {
-				prevRightDist -= 1
-			}
-			circle.Center = Coordinate{X: settings.SpoolHorizontalDistance_MM}
-			circle.Radius = prevRightDist
-			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectTime {
-				intersectTime = time
-				intersectIndex = 2
-			}
-
-			nextRightDist := math.Ceil(penPolarPos.RightDist)
-			if math.Abs(penPolarPos.RightDist-nextRightDist) < minTolerance {
-				nextRightDist += 1
-			}
-			circle.Center = Coordinate{X: settings.SpoolHorizontalDistance_MM}
-			circle.Radius = nextRightDist
-			if time, valid := circle.IntersectionTime(lineSegment); valid && time > minTolerance && time < intersectTime {
-				intersectTime = time
-				intersectIndex = 3
-			}
-
-			fmt.Println("Pos", penPolarPos, prevLeftDist, nextLeftDist, prevRightDist, nextRightDist)
-
-			if intersectIndex == -1 {
-				fmt.Println("failed to find any intersections, exiting")
+			if intersectionIndex == -1 {
 				break
 			}
 
-			intersectPos := start.Add(end.Minus(start).Scaled(intersectTime))
+			timeEvents <- intersectionTime
 
-			fmt.Println("From", start, "to", end, "intersect", intersectTime, "at", intersectPos)
+			fmt.Println("Intersection at", intersectionTime, target, "for", intersectionIndex)
+			target = target.Add(nextTarget.Minus(target).Scaled(intersectionTime))
+			fmt.Println("Moved to", target)
 
-			start = intersectPos
-
-			switch intersectIndex {
+			fmt.Println("Polar from", currentPolarPosSteps)
+			switch intersectionIndex {
 			case 0:
-				//currentPolarPosSteps.LeftDist -= 1
-				fmt.Println("Left -= 1")
+				currentPolarPosSteps.LeftDist -= 1
 				break
 			case 1:
-				//currentPolarPosSteps.LeftDist += 1
-				fmt.Println("Left += 1")
+				currentPolarPosSteps.LeftDist += 1
 				break
 			case 2:
-				//currentPolarPosSteps.RightDist -= 1
-				fmt.Println("Right -= 1")
+				currentPolarPosSteps.RightDist -= 1
 				break
 			case 3:
-				//currentPolarPosSteps.RightDist += 1
-				fmt.Println("Right += 1")
+				currentPolarPosSteps.RightDist += 1
 				break
 			}
+			fmt.Println("to", currentPolarPosSteps)
 
-			timeEvents <- TimelineEvent{
-				Time:      intersectTime,
-				LeftStep:  0,
-				RightStep: 0,
-			}
 		}
 
-		start = end
+		target = nextTarget
 	}
-
 	fmt.Println("Done generating timeline")
 }
