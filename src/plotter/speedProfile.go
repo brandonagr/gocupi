@@ -1,6 +1,8 @@
 package plotter
 
-import ()
+import (
+	"fmt"
+)
 
 // Calculates the time elapsed as progressing over a series of line segments
 type SpeedProfile interface {
@@ -22,46 +24,32 @@ type SpeedProfile interface {
 
 // Create new linear speed profile object
 func NewLinearSpeedProfile(coords <-chan Coordinate, settings *SettingsData) SpeedProfile {
-
-	firstPos, chanOpen := <-coords
-	if !chanOpen {
-		return nil
-	}
-
-	return &LinearSpeedProfile{
-		end:    firstPos, // will get moved into begin on call to MoveNext
-		coords: coords,
-		speed:  settings.MaxSpeed_MM_S,
-	}
+	fmt.Println("Test")
+	return &LinearSpeedProfile{}
 }
 
 // Uses a constant speed for all movement
 type LinearSpeedProfile struct {
-	begin  Coordinate
-	end    Coordinate
 	coords <-chan Coordinate
 	speed  float64
 }
 
 func (this *LinearSpeedProfile) MoveNext() bool {
-	this.begin = this.end
-	var chanOpen bool
-	this.end, chanOpen = <-this.coords
-	return chanOpen
+	return false
 }
 
 func (this *LinearSpeedProfile) Current() LineSegment {
-	return LineSegment{this.begin, this.end}
+	return LineSegment{}
 }
 
 func (this *LinearSpeedProfile) Dir() Coordinate {
-	return this.end.Minus(this.begin)
+	return Coordinate{}
 }
 
 func (this *LinearSpeedProfile) UpdateStart(percentage float64) {
-	this.begin = this.begin.Add(this.Dir().Scaled(percentage))
+
 }
 
-func (this *LinearSpeedProfile) Time(percentage float64) float64 {
-	return (this.Dir().Len() * percentage) / this.speed
+func (this *LinearSpeedProfile) Time(percentge float64) float64 {
+	return percentge
 }
