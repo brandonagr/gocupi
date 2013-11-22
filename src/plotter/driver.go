@@ -327,7 +327,7 @@ func PerformMouseTracking() {
 }
 
 // Update settings with the current position of the pen
-func updateSettingsPosition(currentPos Coordinate, polarSystem *PolarSystem) {
+func updateSettingsPosition(currentPos Coordinate, polarSystem PolarSystem) {
 	finalPolarPos := currentPos.ToPolar(polarSystem)
 
 	fmt.Println("Updating Left from", Settings.StartingLeftDist_MM, "to", finalPolarPos.LeftDist)
@@ -339,7 +339,7 @@ func updateSettingsPosition(currentPos Coordinate, polarSystem *PolarSystem) {
 }
 
 // Ask user for X Y location and then update settings
-func promptForSettingsPosition(polarSystem *PolarSystem) {
+func promptForSettingsPosition(polarSystem PolarSystem) {
 	fmt.Print("Enter X Y location of pen:")
 	var finalLocation Coordinate
 	if _, err := fmt.Scanln(&finalLocation.X, &finalLocation.Y); err != nil {

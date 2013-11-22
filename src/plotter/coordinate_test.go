@@ -17,7 +17,7 @@ func TestMinus(t *testing.T) {
 
 // ToPolar should return expected result when converting from cartesian to polar
 func TestToPolar(t *testing.T) {
-	system := &PolarSystem{
+	system := PolarSystem{
 		XOffset:        3,
 		YOffset:        4,
 		XMin:           0,
@@ -53,7 +53,7 @@ func TestToPolar(t *testing.T) {
 
 // ToCoord should return expected result when converting from polar to cartessian
 func TestToCoord(t *testing.T) {
-	system := &PolarSystem{
+	system := PolarSystem{
 		XOffset:        3,
 		YOffset:        4,
 		XMin:           0,
@@ -100,43 +100,43 @@ func TestCircleLineIntersection(t *testing.T) {
 	line = LineSegment{Coordinate{X: 0, Y: 0}, Coordinate{X: 6, Y: 0}}
 	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
 	if (!p1Valid || p1 != Coordinate{X: 5, Y: 0} || p2Valid || p2 != Coordinate{X: 0, Y: 0}) {
-		t.Error("Expected one intersection 1", p1Valid, p1, p2Valid, p2)
+		t.Error("Expected one intersection", p1, p2)
 	}
 
 	line = LineSegment{Coordinate{X: -5, Y: 0}, Coordinate{X: 6, Y: 0}}
 	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
-	if (!p1Valid || p1 != Coordinate{X: -5, Y: 0} || !p2Valid || p2 != Coordinate{X: 5, Y: 0}) {
-		t.Error("Expected two intersections 2", p1Valid, p1, p2Valid, p2)
+	if (!p1Valid || p1 != Coordinate{X: 5, Y: 0} || !p2Valid || p2 != Coordinate{X: -5, Y: 0}) {
+		t.Error("Expected two intersections", p1, p2)
 	}
 
 	line = LineSegment{Coordinate{X: 5, Y: 0}, Coordinate{X: 6, Y: 0}}
 	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
 	if (!p1Valid || p1 != Coordinate{X: 5, Y: 0} || p2Valid || p2 != Coordinate{X: 0, Y: 0}) {
-		t.Error("Expected one intersection 3", p1Valid, p1, p2Valid, p2)
+		t.Error("Expected one intersection", p1, p2)
 	}
 
 	line = LineSegment{Coordinate{X: -6, Y: 5}, Coordinate{X: 6, Y: 5}}
 	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
 	if (!p1Valid || p1 != Coordinate{X: 0, Y: 5} || p2Valid || p2 != Coordinate{X: 0, Y: 0}) {
-		t.Error("Expected one intersection 4", p1Valid, p1, p2Valid, p2)
+		t.Error("Expected one intersection", p1, p2)
 	}
 
 	circle = Circle{Coordinate{X: 5, Y: 0}, 5}
 	line = LineSegment{Coordinate{X: 0, Y: 0}, Coordinate{X: 0, Y: 1}}
 	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
 	if (!p1Valid || p1 != Coordinate{X: 0, Y: 0} || p2Valid || p2 != Coordinate{X: 0, Y: 0}) {
-		t.Error("Expected one intersection 5", p1Valid, p1, p2Valid, p2)
+		t.Error("Expected one intersection", p1, p2)
 	}
 
 	line = LineSegment{Coordinate{X: 5, Y: 0}, Coordinate{X: 5, Y: 10}}
 	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
 	if (!p1Valid || p1 != Coordinate{X: 5, Y: 5} || p2Valid || p2 != Coordinate{X: 0, Y: 0}) {
-		t.Error("Expected one intersection 6", p1Valid, p1, p2Valid, p2)
+		t.Error("Expected one intersection", p1, p2)
 	}
 
 	line = LineSegment{Coordinate{X: 5, Y: -10}, Coordinate{X: 5, Y: 10}}
 	p1, p1Valid, p2, p2Valid = circle.Intersection(line)
-	if (!p1Valid || p1 != Coordinate{X: 5, Y: -5} || !p2Valid || p2 != Coordinate{X: 5, Y: 5}) {
-		t.Error("Expected two intersections 7", p1Valid, p1, p2Valid, p2)
+	if (!p1Valid || p1 != Coordinate{X: 5, Y: 5} || !p2Valid || p2 != Coordinate{X: 5, Y: -5}) {
+		t.Error("Expected one intersection", p1, p2)
 	}
 }

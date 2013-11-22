@@ -7,25 +7,13 @@ import (
 	"math"
 )
 
-// Convert MM to Steps
-func ConvertToSteps(plotCoords <-chan Coordinate, stepCoords chan<- Coordinate) {
-	defer close(stepCoords)
-	mmToSteps := 1 / Settings.StepSize_MM
-
-	for coord := range plotCoords {
-		stepCoords <- coord.Scaled(mmToSteps)
-	}
-}
-
 // Takes in coordinates and outputs a timeilne of step events
-func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- float64, settings *SettingsData) {
+func GenerateTimeline(plotCoords <-chan Coordinate) {
 
-	defer close(timeEvents)
-
-	polarSystem := PolarSystemFrom(settings)
-	previousPolarPos := PolarCoordinate{LeftDist: settings.StartingLeftDist_MM, RightDist: settings.StartingRightDist_MM}
+	polarSystem := PolarSystemFromSettings()
+	previousPolarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
 	startingLocation := previousPolarPos.ToCoord(polarSystem)
-	mmToSteps := 1 / settings.StepSize_MM
+	mmToSteps := 1 / Settings.StepSize_MM
 
 	fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
 
@@ -77,7 +65,7 @@ func GenerateTimeline(plotCoords <-chan Coordinate, timeEvents chan<- float64, s
 				break
 			}
 
-			timeEvents <- intersectionTime
+			// need to also update the currentPolarPosSteps according to the current position
 
 			fmt.Println("Intersection at", intersectionTime, target, "for", intersectionIndex)
 			target = target.Add(nextTarget.Minus(target).Scaled(intersectionTime))
