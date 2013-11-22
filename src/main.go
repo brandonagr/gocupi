@@ -237,14 +237,7 @@ func main() {
 
 	if *timelineFlag {
 		fmt.Println("Outputting to timeline")
-		outputTimeline := make(chan TimelineEvent, 1024)
-		go func() {
-			for event := range outputTimeline {
-				fmt.Println(event)
-			}
-		}()
-
-		GenerateTimeline(plotCoords, outputTimeline, &Settings)
+		GenerateTimeline(plotCoords)
 		return
 	}
 
