@@ -246,6 +246,30 @@ func (circle Circle) Intersection(line LineSegment) (firstPoint Coordinate, firs
 	return
 }
 
+func (line LineSegment) Len() float64 {
+	return line.End.Minus(line.Begin).Len()
+}
+
+// Calculates the intersection between two line segments, based on http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+func (lineOne LineSegment) Intersection(lineTwo LineSegment) (intersection Coordinate, intersectionValid bool) {
+	dirOne := lineOne.End.Minus(lineOne.Begin)
+	dirTwo := lineTwo.End.Minus(lineTwo.Begin)
+
+	divideBy := (-dirTwo.X*dirOne.Y + dirOne.X*dirTwo.Y)
+	s := (-dirOne.Y*(lineOne.Begin.X-lineTwo.Begin.X) + dirOne.X*(lineOne.Begin.Y-lineTwo.Begin.Y)) / divideBy
+	t := (dirTwo.X*(lineOne.Begin.Y-lineTwo.Begin.Y) - dirTwo.Y*(lineOne.Begin.X-lineTwo.Begin.X)) / divideBy
+
+	if s >= 0 && s <= 1 && t >= 0 && t <= 1 {
+		// Collision detected
+		intersection = lineOne.Begin.Add(dirOne.Scaled(t))
+		intersectionValid = true
+	} else {
+		intersectionValid = false
+	}
+
+	return
+}
+
 type Coordinates []Coordinate
 
 // Calculate the min and max coordinate in the given slice

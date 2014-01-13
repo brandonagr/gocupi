@@ -134,6 +134,16 @@ func main() {
 		fmt.Println("Generating Lissajous curve")
 		go GenerateParametric(posFunc, plotCoords)
 
+	case "line":
+		params := GetArgsAsFloats(args[1:], 2)
+		lineSetup := BouncingLine{
+			Angle:         params[0],
+			TotalDistance: params[1],
+		}
+
+		fmt.Println("Generating line")
+		go GenerateBouncingLine(lineSetup, plotCoords)
+
 	case "move":
 		PerformMouseTracking()
 		return
@@ -317,6 +327,10 @@ lissa s a b
 	s - size of drawing
 	a - first factor
 	b - second factor
+
+line a d
+	a - initial angle to start drawing
+	d - distance in meters for line
  
 move
 

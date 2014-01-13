@@ -140,3 +140,19 @@ func TestCircleLineIntersection(t *testing.T) {
 		t.Error("Expected one intersection", p1, p2)
 	}
 }
+
+// Circle.Intersection(Line) should return expected results
+func TestLineLineIntersection(t *testing.T) {
+
+	line1 := LineSegment{Coordinate{X: -1, Y: 0}, Coordinate{X: 2, Y: 0}}
+	line2 := LineSegment{Coordinate{X: 0, Y: -1}, Coordinate{X: 0, Y: 2}}
+
+	point, ok := line1.Intersection(line2)
+	if !ok {
+		t.Error("Should have detected intersection for ", line1, line2)
+	}
+	expectedPoint := Coordinate{X: 0, Y: 0}
+	if point != expectedPoint {
+		t.Error("Incorrect intersection of ", point, expectedPoint)
+	}
+}

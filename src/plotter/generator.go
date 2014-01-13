@@ -473,3 +473,77 @@ func drawPixel(center Coordinate, setup Raster, plotCoords chan<- Coordinate) {
 
 	plotCoords <- center
 }
+
+// Parameters needed to generate a bouncing line
+type BouncingLine struct {
+
+	// Initial angle of line
+	Angle float64
+
+	// Total distance that the line will travel
+	TotalDistance float64
+}
+
+// Generate a line that bounces off the edges of the grid
+func GenerateBouncingLine(setup BouncingLine, plotCoords chan<- Coordinate) {
+	defer close(plotCoords)
+
+	polarSystem := PolarSystemFromSettings()
+	polarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
+	startingPos := polarPos.ToCoord(polarSystem)
+
+	// sides of the drawing surface
+	sides := [4]LineSegment{
+		LineSegment{Coordinate{X: Settings.DrawingSurfaceMinX_MM + 1, Y: Settings.DrawingSurfaceMinY_MM + 1}, Coordinate{X: Settings.DrawingSurfaceMaxX_MM - 1, Y: Settings.DrawingSurfaceMinY_MM + 1}}, // top
+		LineSegment{Coordinate{X: Settings.DrawingSurfaceMaxX_MM - 1, Y: Settings.DrawingSurfaceMinY_MM + 1}, Coordinate{X: Settings.DrawingSurfaceMaxX_MM - 1, Y: Settings.DrawingSurfaceMaxY_MM - 1}}, // right
+		LineSegment{Coordinate{X: Settings.DrawingSurfaceMaxX_MM - 1, Y: Settings.DrawingSurfaceMaxY_MM - 1}, Coordinate{X: Settings.DrawingSurfaceMinX_MM + 1, Y: Settings.DrawingSurfaceMaxY_MM - 1}}, // bottom
+		LineSegment{Coordinate{X: Settings.DrawingSurfaceMinX_MM + 1, Y: Settings.DrawingSurfaceMaxY_MM - 1}, Coordinate{X: Settings.DrawingSurfaceMinX_MM + 1, Y: Settings.DrawingSurfaceMinY_MM + 1}}, // left
+	}
+	// have to offset actual sides, since coordinate system expected by plotCoords is 0,0 wherever the pen head starts out at
+	for sideIndex := 0; sideIndex < 4; sideIndex++ {
+		sides[sideIndex] = LineSegment{sides[sideIndex].Begin.Minus(startingPos), sides[sideIndex].End.Minus(startingPos)}
+	}
+
+	angle := setup.Angle
+	maxDist := setup.TotalDistance * 1000.0
+	curPos := Coordinate{}
+
+	for foundIntersection := true; foundIntersection; {
+		//next
+		nextPoint := curPos.Add(Coordinate{X: math.Cos(angle) * maxDist, Y: math.Sin(angle) * maxDist})
+		path := LineSegment{curPos, nextPoint}
+
+		//fmt.Println("Going from ", curPos, " to ", nextPoint)
+
+		foundIntersection = false
+		// find intersection against an edge
+		for sideIndex := 0; sideIndex < 4; sideIndex++ {
+			side := sides[sideIndex]
+			if intersection, ok := side.Intersection(path); ok && !intersection.Equals(curPos) {
+
+				//fmt.Println("Intersection with ", sideIndex)
+				path = LineSegment{curPos, intersection}
+				curPos = intersection
+
+				sideDir := side.End.Minus(side.Begin).Normalized()
+				sideNormal := Coordinate{X: -sideDir.Y, Y: sideDir.X}
+
+				pathDir := path.End.Minus(path.Begin).Normalized()
+
+				newDir := pathDir.Minus(sideNormal.Scaled(2.0 * pathDir.DotProduct(sideNormal)))
+
+				//fmt.Println("Angle before", angle, sideNormal, pathDir, newDir)
+				angle = math.Atan2(newDir.Y, newDir.X)
+				//fmt.Println("Angle after", angle)
+
+				foundIntersection = true
+				break
+			}
+		}
+		if foundIntersection {
+			maxDist -= path.Len()
+		}
+
+		plotCoords <- curPos.Minus(startingPos)
+	}
+}
