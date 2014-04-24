@@ -1,0 +1,60 @@
+#!/bin/bash
+do328 () {
+  echo "Initialising ATmega328p ..."
+  avrdude -qq -c gpio -p atmega328p -U lock:w:0x3F:m \
+        -U efuse:w:0x07:m -U lfuse:w:0xE7:m -U hfuse:w:0xD9:m
+  if [ $? = 0 ]; then
+    echo "Looks all OK - Happy ATmega programming!"
+  fi
+}
+
+doblink () {
+  echo "Flashing Blink to ATmega..."
+  avrdude -qq -c gpio -p atmega328p -U flash:w:blink.cpp.hex
+  if [ $? = 0 ]; then
+    echo "You should has blinks"
+fi
+}
+
+dostepper () {
+  echo "Flashing StepperDriver to ATmega..."
+  avrdude -qq -c gpio -p atmega328p -U flash:w:StepperDriver.cpp.hex
+  if [ $? = 0 ]; then
+    echo "You're ready to gocupi"
+  fi
+}
+  echo    ""
+  echo    "This script will initialize a new Atmega328p "
+  echo    "for use with the raspberry pi and gocupi board."
+  echo    "Make sure your 328p and gocupi are both properly "
+  echo    "seated before making selections"
+
+while true; do
+  echo    ""
+  echo    "1 AVRSetup "
+  echo    "2 Flash Blink"
+  echo    "3 Flash StepperDriver"
+  echo    "4 Exit"
+  echo    ""
+
+  read selection
+
+  case "$selection" in
+    1*)
+      do328
+      ;;
+    2*)
+      doblink
+      ;;
+    3*)
+      dostepper
+      ;;
+    4*)
+      exit
+      ;;
+    *)
+      echo "Invalid choice"
+      ;;
+  esac
+
+done
