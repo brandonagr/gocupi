@@ -2,7 +2,10 @@ package polargraph
 
 import (
 	"encoding/xml"
+	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
 // These constants are also set in StepperDriver.ino, must be changed in both places
@@ -77,15 +80,24 @@ type SettingsData struct {
 // Global settings variable
 var Settings SettingsData
 
-// location of the settings file
-var settingsFile string = "../settings.xml"
+// name of the settings / config file
+var settingsFile string = "gocupi_config.xml"
 
 // Read settings from file, setting the global variable
 func (settings *SettingsData) Read() {
 
 	fileData, err := ioutil.ReadFile(settingsFile)
 	if err != nil {
-		panic(err)
+		// attempt to copy the default settings file from the gopath directory to the current working directory
+		repoSettingsFile := filepath.Join(os.Getenv("GOPATH"), "src/github.com/brandonagr/gocupi", settingsFile)
+		if copyErr := copyFile(repoSettingsFile, settingsFile); copyErr != nil {
+			panic(copyErr)
+		}
+
+		fileData, err = ioutil.ReadFile(settingsFile)
+		if err != nil {
+			panic(err)
+		}
 	}
 	if err := xml.Unmarshal(fileData, settings); err != nil {
 		panic(err)
@@ -99,7 +111,11 @@ func (settings *SettingsData) Read() {
 		settings.Acceleration_Seconds = 1
 	}
 
-	// setup derived fields
+	settings.CalculateDerivedFields()
+}
+
+// setup derived fields
+func (settings *SettingsData) CalculateDerivedFields() {
 	settings.DrawingSurfaceMaxX_MM = settings.SpoolHorizontalDistance_MM - 2*settings.DrawingSurfaceMinX_MM
 	settings.StepSize_MM = (settings.SpoolSingleStep_Degrees / 360.0) * settings.SpoolCircumference_MM
 
@@ -107,6 +123,26 @@ func (settings *SettingsData) Read() {
 	stepsPerValue := StepsMaxValue / StepsFixedPointFactor
 	settings.MaxSpeed_MM_S = ((stepsPerValue / (TimeSlice_US / 1000000.0)) / stepsPerRevolution) * settings.SpoolCircumference_MM
 	settings.Acceleration_MM_S2 = settings.MaxSpeed_MM_S / settings.Acceleration_Seconds
+}
+
+// from https://gist.github.com/elazarl/5507969
+func copyFile(src, dst string) error {
+	s, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	// no need to check errors on read only file, we already got everything
+	// we need from the filesystem, so nothing can go wrong now.
+	defer s.Close()
+	d, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(d, s); err != nil {
+		d.Close()
+		return err
+	}
+	return d.Close()
 }
 
 // Write settings to file

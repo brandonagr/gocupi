@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	. "github.com/brandonagr/gocupi/polargraph"
+	. "github.com/BrandonAGr/gocupi/polargraph"
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	"sort"
@@ -171,6 +171,36 @@ func main() {
 		fmt.Println("Generating parabolic graph")
 		go GenerateParabolic(parabolicSetup, plotCoords)
 
+	case "setup":
+		params := GetArgsAsFloats("setup", args[1:], 3)
+
+		Settings.SpoolHorizontalDistance_MM = params[0]
+		Settings.StartingLeftDist_MM = params[1]
+		Settings.StartingRightDist_MM = params[2]
+
+		if Settings.SpoolHorizontalDistance_MM > (Settings.StartingLeftDist_MM + Settings.StartingRightDist_MM) {
+			fmt.Println("ERROR: Attempted to specify a setup where the two string distances are less than the distance between idlers")
+			return
+		}
+
+		Settings.CalculateDerivedFields()
+
+		polarSystem := PolarSystemFromSettings()
+		polarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
+		pos := polarPos.ToCoord(polarSystem)
+
+		if pos.X < Settings.DrawingSurfaceMinX_MM || pos.X > Settings.DrawingSurfaceMaxX_MM || pos.Y < Settings.DrawingSurfaceMinY_MM || pos.Y > Settings.DrawingSurfaceMaxY_MM {
+			fmt.Println("ERROR: The specified settings result in a pen position that exceeds the DrawingSurfaceMin/Max as defined in gocupi_config.xml")
+			fmt.Printf("Initial X,Y position of pen would have been %.3f, %.3f", pos.X, pos.Y)
+			fmt.Println()
+		} else {
+			fmt.Printf("Initial X,Y position of pen is %.3f, %.3f", pos.X, pos.Y)
+			fmt.Println()
+			Settings.Write()
+		}
+
+		return
+
 	case "spiral":
 		params := GetArgsAsFloats("spiral", args[1:], 2)
 		spiralSetup := Spiral{
@@ -295,7 +325,7 @@ func GetArgsAsFloats(command string, args []string, expectedCount int) []float64
 
 	if len(args) < expectedCount {
 		PrintCommandHelp(command)
-		panic(fmt.Sprint("Expected at least", expectedCount, "numeric parameters and only saw", len(args)))
+		panic(fmt.Sprint("Expected at least ", expectedCount, " numeric parameters and only saw ", len(args)))
 	}
 
 	numbers := make([]float64, expectedCount)
