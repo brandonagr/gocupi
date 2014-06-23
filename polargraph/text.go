@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Renders a given text string to the board
 

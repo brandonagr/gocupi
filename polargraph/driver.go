@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Handles sending data over serial to the arduino
 

@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Handles converting X,Y coordinate into polar coordinates
 

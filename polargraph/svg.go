@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Reads an SVG file with path data and converts that to a series of Coordinates
 // PathParser is based on the canvg javascript code from http://code.google.com/p/canvg/

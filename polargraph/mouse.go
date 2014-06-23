@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Allows current mouse position to be read
 

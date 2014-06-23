@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 import (
 	"encoding/xml"

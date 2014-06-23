@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Draws a series of coordinates to an image
 

@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Tests for PolarCoordinate and Coordinate
 

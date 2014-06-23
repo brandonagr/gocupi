@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 import (
 	chart "code.google.com/p/plotinum/plot"

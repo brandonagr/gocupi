@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Tests for image contour path and helper functions
 

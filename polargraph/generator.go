@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Generates StepData either from a GetPosition func or from GCode data
 

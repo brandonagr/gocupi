@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Manages the trapezoidal interpolation
 

@@ -1,4 +1,4 @@
-package plotter
+package polargraph
 
 // Reads a text file and generates a program representation of the Gcode
 
