@@ -6,13 +6,14 @@ import (
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	. "plotter"
+	"sort"
 	"strconv"
 	"strings"
 )
 
 // set flag usage variable so that entire help will be output
 func init() {
-	flag.Usage = PrintUsage
+	flag.Usage = PrintGenericHelp
 }
 
 // main
@@ -33,18 +34,24 @@ func main() {
 	Settings.MaxSpeed_MM_S /= *speedSlowFactor
 	Settings.Acceleration_Seconds *= *speedSlowFactor
 	Settings.Acceleration_MM_S2 /= *speedSlowFactor
-	fmt.Printf("MaxSpeed: %.3f mm/s Accel: %.3f mm/s^2", Settings.MaxSpeed_MM_S, Settings.Acceleration_MM_S2)
-	fmt.Println()
 
 	args := flag.Args()
 	if len(args) < 1 {
-		PrintUsage()
+		PrintGenericHelp()
 		return
 	}
 
 	plotCoords := make(chan Coordinate, 1024)
 
 	switch args[0] {
+
+	case "help":
+		if len(args) != 2 {
+			PrintGenericHelp()
+		} else {
+			PrintCommandHelp(args[1])
+		}
+		return
 
 	case "test":
 		plotCoords <- Coordinate{X: 0, Y: 0}
@@ -59,7 +66,7 @@ func main() {
 		close(plotCoords)
 
 	case "circle":
-		params := GetArgsAsFloats(args[1:], 3)
+		params := GetArgsAsFloats("circle", args[1:], 3)
 		circleSetup := SlidingCircle{
 			Radius:             params[0],
 			CircleDisplacement: params[1],
@@ -70,6 +77,11 @@ func main() {
 		go GenerateSlidingCircle(circleSetup, plotCoords)
 
 	case "gcode":
+		if len(args) < 3 {
+			PrintCommandHelp("svg")
+			panic(fmt.Sprint("Expected 2 parameters and saw ", len(args)-1))
+		}
+
 		scale, _ := strconv.ParseFloat(args[1], 64)
 		if scale == 0 {
 			scale = 1
@@ -80,7 +92,7 @@ func main() {
 		go GenerateGcodePath(data, scale, plotCoords)
 
 	case "grid":
-		params := GetArgsAsFloats(args[1:], 2)
+		params := GetArgsAsFloats("grid", args[1:], 2)
 		gridSetup := Grid{
 			Width: params[0],
 			Cells: params[1],
@@ -90,7 +102,7 @@ func main() {
 		go GenerateGrid(gridSetup, plotCoords)
 
 	case "hilbert":
-		params := GetArgsAsFloats(args[1:], 2)
+		params := GetArgsAsFloats("hilbert", args[1:], 2)
 		hilbertSetup := HilbertCurve{
 			Size:   params[0],
 			Degree: int(params[1]),
@@ -100,7 +112,7 @@ func main() {
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
 
 	case "imagearc":
-		params := GetArgsAsFloats(args[1:], 2)
+		params := GetArgsAsFloats("imagearc", args[1:], 2)
 		arcSetup := Arc{
 			Size:    params[0],
 			ArcDist: params[1],
@@ -112,7 +124,7 @@ func main() {
 		go GenerateArc(arcSetup, data, plotCoords)
 
 	case "imageraster":
-		params := GetArgsAsFloats(args[1:], 2)
+		params := GetArgsAsFloats("imageraster", args[1:], 2)
 		rasterSetup := Raster{
 			Size:     params[0],
 			PenWidth: params[1],
@@ -123,7 +135,7 @@ func main() {
 		go GenerateRaster(rasterSetup, data, plotCoords)
 
 	case "lissa":
-		params := GetArgsAsFloats(args[1:], 3)
+		params := GetArgsAsFloats("lissa", args[1:], 3)
 		posFunc := func(t float64) Coordinate {
 			return Coordinate{
 				X: params[0] * math.Cos(params[1]*t+math.Pi/2.0),
@@ -135,7 +147,7 @@ func main() {
 		go GenerateParametric(posFunc, plotCoords)
 
 	case "line":
-		params := GetArgsAsFloats(args[1:], 2)
+		params := GetArgsAsFloats("line", args[1:], 2)
 		lineSetup := BouncingLine{
 			Angle:         params[0],
 			TotalDistance: params[1],
@@ -149,7 +161,7 @@ func main() {
 		return
 
 	case "parabolic":
-		params := GetArgsAsFloats(args[1:], 3)
+		params := GetArgsAsFloats("parabolic", args[1:], 3)
 		parabolicSetup := Parabolic{
 			Radius:           params[0],
 			PolygonEdgeCount: params[1],
@@ -160,7 +172,7 @@ func main() {
 		go GenerateParabolic(parabolicSetup, plotCoords)
 
 	case "spiral":
-		params := GetArgsAsFloats(args[1:], 2)
+		params := GetArgsAsFloats("spiral", args[1:], 2)
 		spiralSetup := Spiral{
 			RadiusBegin:       params[0],
 			RadiusEnd:         0.01,
@@ -171,7 +183,7 @@ func main() {
 		go GenerateSpiral(spiralSetup, plotCoords)
 
 	case "spiro":
-		params := GetArgsAsFloats(args[1:], 3)
+		params := GetArgsAsFloats("spiro", args[1:], 3)
 		bigR := params[0]
 		littleR := params[1]
 		pen := params[2]
@@ -191,6 +203,11 @@ func main() {
 		return
 
 	case "svg":
+		if len(args) < 3 {
+			PrintCommandHelp("svg")
+			panic(fmt.Sprint("Expected at least 2 parameters and saw ", len(args)-1))
+		}
+
 		size, _ := strconv.ParseFloat(args[1], 64)
 		if size == 0 {
 			size = 1
@@ -216,6 +233,10 @@ func main() {
 		}
 
 	case "text":
+		if len(args) != 3 {
+			PrintCommandHelp("text")
+			panic(fmt.Sprint("Expected 2 parameters and saw ", len(args)-1))
+		}
 		height, _ := strconv.ParseFloat(args[1], 64)
 		if height == 0 {
 			height = 40
@@ -225,7 +246,7 @@ func main() {
 		go GenerateTextPath(args[2], height, plotCoords)
 
 	case "qr":
-		params := GetArgsAsFloats(args[1:], 2)
+		params := GetArgsAsFloats("qr", args[1:], 2)
 		rasterSetup := Raster{
 			Size:     params[0],
 			PenWidth: params[1],
@@ -240,7 +261,7 @@ func main() {
 		go GenerateRaster(rasterSetup, imageData, plotCoords)
 
 	default:
-		PrintUsage()
+		PrintGenericHelp()
 		return
 	}
 
@@ -249,6 +270,11 @@ func main() {
 		DrawToImage("output.png", plotCoords)
 		return
 	}
+
+	// output the max speed and acceleration
+	fmt.Println()
+	fmt.Printf("MaxSpeed: %.3f mm/s Accel: %.3f mm/s^2", Settings.MaxSpeed_MM_S, Settings.Acceleration_MM_S2)
+	fmt.Println()
 
 	stepData := make(chan int8, 1024)
 	go GenerateSteps(plotCoords, stepData)
@@ -265,10 +291,10 @@ func main() {
 }
 
 // Parse a series of numbers as floats
-func GetArgsAsFloats(args []string, expectedCount int) []float64 {
+func GetArgsAsFloats(command string, args []string, expectedCount int) []float64 {
 
 	if len(args) < expectedCount {
-		PrintUsage()
+		PrintCommandHelp(command)
 		panic(fmt.Sprint("Expected at least", expectedCount, "numeric parameters and only saw", len(args)))
 	}
 
@@ -288,81 +314,159 @@ func GetArgsAsFloats(args []string, expectedCount int) []float64 {
 	return numbers
 }
 
-// output valid command line arguments
-func PrintUsage() {
-	fmt.Println(`Usage: (flags) COMMAND PARAMS...
+// output the help for a specific command
+func PrintCommandHelp(command string) {
+
+	helpText, ok := CommandHelp[command]
+	if !ok {
+		fmt.Println("Unrecognized command: " + command)
+		PrintGenericHelp()
+	}
+	fmt.Println(helpText)
+}
+
+// output help summary
+func PrintGenericHelp() {
+	fmt.Println(`help COMMAND to view help for a specific command
+	
+General Usage: (flags) COMMAND PARAMETERS...
+
+All distance numbers are in millimeters
+All angles are in radians
+
 Flags:
 -toimage, outputs data to an image of what the render should look like
 -tochart, outputs a graph of velocity and position
 -tofile, outputs step data to a file
 -count, outputs number of steps and render time
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
+-flipx, flip the generated image left to right
+-flipx, flip the generated image top to bottom
 
-Commands:
+Commands:`)
+
+	// output list of possible commands
+	var keys []string
+	for k := range CommandHelp {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	first := true
+	for _, k := range keys {
+		if !first {
+			fmt.Print(", ")
+		} else {
+			first = false
+		}
+		fmt.Print(k)
+	}
+}
+
+var CommandHelp = map[string]string{
+	`circle`: `Draw a number of corkscrew kind of sliding circle pattern.
+	
 circle R d n
 	R - radius of circle
 	d - displacement per revolution
-	n - number of circles
+	n - number of circles`,
 
+	`gcode`: `Render a given gcode file, only a subset of valid gcode is recognized.
+	
 gcode s "path"
 	s - scale
+	path - path to the gcode file`,
+
+	`grid`: `Draw a grid, starting in the upper left.
 	
 grid s c
 	s - size of square grid
-	c - number of cells in grid
- 
+	c - number of cells in grid`,
+
+	`hilbert`: `Draw a hilbert space filling curve.
+	
 hilbert s d
 	s - size of square
-	d - degree of hilbert curve, 2 to 6
+	d - degree of hilbert curve, 2 to 6`,
 
+	`imagearc`: `Draw an image using an arc pattern and drawing a thicker line to represent darker parts of the image.
+	
 imagearc s a "path"
 	s - size of long axis
-	a - distance between each arc
+	a - distance between each arc`,
 
+	`imageraster`: `Draw an image using horizontal line pattern and drawing thicker lines to represent darker parts of the image.
+	
 imageraster s p "path"
 	s - size of long axis
-	p - pen thickness / distance between rows
+	p - pen thickness / distance between rows`,
 
+	`lissa`: `Draw a lissajous curve, drawing stops when the pen arrives back at the starting position.
+	
 lissa s a b
 	s - size of drawing
 	a - first factor
-	b - second factor
+	b - second factor`,
 
+	`line`: `Draw a straight line at the given angle and distance from the current position.
+	
 line a d
 	a - initial angle to start drawing
-	d - distance in meters for line
- 
-move
+	d - distance in meters for line`,
 
+	`move`: `Enter a mouse based interactive movement mode, allows you to position the pen to start a new drawing or to manually move the pen to a known calibration position.`,
+
+	`parabolic`: `Draw a series of parabolic curves (curves made out of a series of straight lines).
+	
 parabolic R c l
 	R - radius of shape
 	c - count of polygon edges
-	l - number of lines per edges
+	l - number of lines per edges`,
+
+	`setup`: `Enter the initial setup measurements of the system.
+	
+setup D L R
+	D - distance between the idlers
+	L - length of left string from left idler to pen tip
+	R - length of right string from right idler to pen tip`,
+
+	`spiral`: `Draw a spiral.
 	
 spiral R d
 	R - initial outter radius
-	d - radius delta per revolution
+	d - radius delta per revolution`,
 
+	`spiro`: `Draw a spirograph type image, drawing stops when the pen arrives back at the starting position.
+	
 spiro R r p
 	R - first circle radius
 	r - second circle radius
-	p - pen distance
+	p - pen distance`,
 
-spool
+	`spool`: `Directly control spool movement, useful for initial setup. If you ommit the L/R d parameters then you enter an interactive mode where you can repeatedly type the options to enter several spool commands in a row.
+	
+spool L/R d
+	L/R - designing either the left or right spool
+	d - distance to extend line, negative numbers retract`,
 
+	`svg`: `Draw an svg file. Must be made up of only straight lines, curves are not currently supported in the svg parser.
+	
 svg s "path" t
 	s - size of long axis
 	path - path to svg file
 	t - type of drawing, either top or box
 		top (default) - best for TSP single loop drawings, pen starts on loop at top
-		box - pen starts in upper left corner, drawing boundary extents first
+		box - pen starts in upper left corner, drawing boundary extents first`,
 
+	`text`: `Draw a given text string, font is based on the hershey simplex font.
+	
 text h "string"
 	h - letter height
-	string - text to print
- 
+	string - text to print`,
+
+	`qr`: `Draw a QR code.
+	
 qr s p "string"
 	s - size of square
 	p - pen thickness, determines how much it fills in solid squares
-	string - the text that will be encoded`)
+	string - the text that will be encoded`,
 }
