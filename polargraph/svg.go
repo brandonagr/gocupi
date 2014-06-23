@@ -6,6 +6,7 @@ package polargraph
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"regexp"
@@ -17,6 +18,11 @@ import (
 type Path struct {
 	Style string `xml:"style,attr"`
 	Data  string `xml:"d,attr"`
+}
+
+type Group struct {
+	Transform string `xml:"transform,attr"`
+	Paths     []Path `xml:"path"`
 }
 
 // All supported Path Commands
@@ -95,12 +101,16 @@ type PathParser struct {
 	// Track current position for relative moves
 	currentPosition Coordinate
 
+	// Used to apply a scale factor to all coordinates
+	scaleX float64
+	scaleY float64
+
 	// The coordinates read for the path
 	coordinates []Coordinate
 }
 
 // Create new parser
-func NewParser(originalPathData string) (parser *PathParser) {
+func NewParser(originalPathData string, scaleX, scaleY float64) (parser *PathParser) {
 
 	parser = &PathParser{}
 
@@ -113,6 +123,8 @@ func NewParser(originalPathData string) (parser *PathParser) {
 	parser.tokens = strings.Fields(pathData)
 
 	parser.coordinates = make([]Coordinate, 0)
+	parser.scaleX = scaleX
+	parser.scaleY = scaleY
 
 	return parser
 }
@@ -137,7 +149,7 @@ func (this *PathParser) Parse() []Coordinate {
 		case ClosePath:
 			firstPosition := this.coordinates[0]
 			this.currentPosition = Coordinate{X: firstPosition.X, Y: firstPosition.Y, PenUp: false}
-			this.coordinates = append(this.coordinates, this.currentPosition)
+			this.coordinates = append(this.coordinates, this.currentPosition.ScaledBoth(this.scaleX, this.scaleY))
 
 		default:
 			panic(fmt.Sprint("Unsupported command:", this.currentCommand))
@@ -200,19 +212,24 @@ func (this *PathParser) ReadCoord(penUp bool) {
 	}
 
 	this.currentPosition = Coordinate{X: x, Y: y, PenUp: penUp}
-	this.coordinates = append(this.coordinates, this.currentPosition)
+	this.coordinates = append(this.coordinates, this.currentPosition.ScaledBoth(this.scaleX, this.scaleY))
 }
 
-// read a file and parse the svg
+// read a file
 func ParseSvgFile(fileName string) (data []Coordinate) {
-
 	file, err := os.Open(fileName)
 	if err != nil {
 		panic(err)
 	}
 
+	return ParseSvg(file)
+}
+
+// read svg xml data
+func ParseSvg(svgData io.Reader) (data []Coordinate) {
+
 	data = make([]Coordinate, 0)
-	decoder := xml.NewDecoder(file)
+	decoder := xml.NewDecoder(svgData)
 	for {
 		t, _ := decoder.Token()
 		if t == nil {
@@ -225,10 +242,30 @@ func ParseSvgFile(fileName string) (data []Coordinate) {
 			if se.Name.Local == "path" {
 				var pathData Path
 				decoder.DecodeElement(&pathData, &se)
-
-				parser := NewParser(pathData.Data)
-
+				parser := NewParser(pathData.Data, 1, 1)
 				data = append(data, parser.Parse()...)
+			} else if se.Name.Local == "g" {
+				var groupData Group
+				decoder.DecodeElement(&groupData, &se)
+
+				var transformX, transformY, scaleX, scaleY float64
+				if groupData.Transform != "" && strings.Contains(groupData.Transform, "scale") {
+					if _, err := fmt.Sscanf(groupData.Transform, "translate(%f,%f) scale(%f,%f)", &transformX, &transformY, &scaleX, &scaleY); err != nil {
+						fmt.Println("WARNING: Unable to parse svg group transform of ", groupData.Transform)
+						scaleX = 1
+						scaleY = 1
+					}
+				} else {
+					scaleX = 1
+					scaleY = 1
+				}
+
+				if groupData.Paths != nil {
+					for _, pathElement := range groupData.Paths {
+						parser := NewParser(pathElement.Data, scaleX, scaleY)
+						data = append(data, parser.Parse()...)
+					}
+				}
 			}
 		}
 	}
