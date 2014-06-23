@@ -203,7 +203,7 @@ func (this *PathParser) ReadCoord(penUp bool) {
 	this.coordinates = append(this.coordinates, this.currentPosition)
 }
 
-// read a file and parse its Gcode
+// read a file and parse the svg
 func ParseSvgFile(fileName string) (data []Coordinate) {
 
 	file, err := os.Open(fileName)

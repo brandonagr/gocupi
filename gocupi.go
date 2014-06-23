@@ -25,6 +25,8 @@ func main() {
 	toChartFlag := flag.Bool("tochart", false, "Output a chart of the movement and velocity")
 	countFlag := flag.Bool("count", false, "Outputs the time it would take to draw")
 	speedSlowFactor := flag.Float64("slowfactor", 1.0, "Divide max speed by this number")
+	flipXFlag := flag.Bool("flipx", false, "Flip the drawing left to right")
+	flipYFlag := flag.Bool("flipy", false, "Flip the drawing top to bottom")
 	flag.Parse()
 
 	if *speedSlowFactor < 1.0 {
@@ -303,6 +305,12 @@ func main() {
 		return
 	}
 
+	if *flipXFlag || *flipYFlag {
+		originalPlotCoords := plotCoords
+		plotCoords = make(chan Coordinate, 1024)
+		go FlipPlotCoords(*flipXFlag, *flipYFlag, originalPlotCoords, plotCoords)
+	}
+
 	if *toImageFlag {
 		fmt.Println("Outputting to image")
 		DrawToImage("output.png", plotCoords)
@@ -325,6 +333,19 @@ func main() {
 		WriteStepsToChart(stepData)
 	default:
 		WriteStepsToSerial(stepData)
+	}
+}
+
+func FlipPlotCoords(flipX, flipY bool, coords <-chan Coordinate, flippedCoords chan<- Coordinate) {
+	defer close(flippedCoords)
+	for coord := range coords {
+		if flipX {
+			coord.X = -coord.X
+		}
+		if flipY {
+			coord.Y = -coord.Y
+		}
+		flippedCoords <- coord
 	}
 }
 
