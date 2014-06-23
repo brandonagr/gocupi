@@ -193,7 +193,7 @@ func WriteStepsToSerial(stepData <-chan int8) {
 }
 
 // Used to manually adjust length of each step
-func PerformManualAlignment() {
+func InteractiveMoveSpool() {
 
 	for {
 
@@ -204,35 +204,41 @@ func PerformManualAlignment() {
 			return
 		}
 
-		side = strings.ToLower(side)
+		leftSpool := strings.ToLower(side) == "l"
 		fmt.Println("Moving ", side, distance)
 
-		alignStepData := make(chan int8, 1024)
-		go WriteStepsToSerial(alignStepData)
-
-		interp := new(TrapezoidInterpolater)
-		interp.Setup(Coordinate{}, Coordinate{X: distance, Y: 0}, Coordinate{})
-		position := 0.0
-
-		for slice := 1.0; slice <= interp.Slices(); slice++ {
-
-			sliceTarget := interp.Position(slice)
-
-			// calc integer number of steps that will be made this time slice
-			sliceSteps := math.Ceil((sliceTarget.X - position) * (StepsFixedPointFactor / Settings.StepSize_MM))
-			position = position + sliceSteps*(Settings.StepSize_MM/StepsFixedPointFactor)
-
-			if side == "l" {
-				alignStepData <- int8(-sliceSteps)
-				alignStepData <- 0
-			} else {
-				alignStepData <- 0
-				alignStepData <- int8(sliceSteps)
-			}
-		}
-
-		close(alignStepData)
+		MoveSpool(leftSpool, distance)
 	}
+}
+
+// Move a specific spool a given distance
+func MoveSpool(leftSpool bool, distance float64) {
+
+	alignStepData := make(chan int8, 1024)
+	go WriteStepsToSerial(alignStepData)
+
+	interp := new(TrapezoidInterpolater)
+	interp.Setup(Coordinate{}, Coordinate{X: distance, Y: 0}, Coordinate{})
+	position := 0.0
+
+	for slice := 1.0; slice <= interp.Slices(); slice++ {
+
+		sliceTarget := interp.Position(slice)
+
+		// calc integer number of steps that will be made this time slice
+		sliceSteps := math.Ceil((sliceTarget.X - position) * (StepsFixedPointFactor / Settings.StepSize_MM))
+		position = position + sliceSteps*(Settings.StepSize_MM/StepsFixedPointFactor)
+
+		if leftSpool {
+			alignStepData <- int8(-sliceSteps)
+			alignStepData <- 0
+		} else {
+			alignStepData <- 0
+			alignStepData <- int8(sliceSteps)
+		}
+	}
+
+	close(alignStepData)
 }
 
 // Do mouse tracking, must open up serial port directly in order to send steps in realtime as requested

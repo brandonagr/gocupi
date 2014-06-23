@@ -229,7 +229,15 @@ func main() {
 		go GenerateParametric(posFunc, plotCoords)
 
 	case "spool":
-		PerformManualAlignment()
+		if len(args) == 3 {
+
+			leftSpool := strings.ToLower(args[1]) == "l"
+			distance := GetArgsAsFloats("spool", args[2:], 1)[0]
+
+			MoveSpool(leftSpool, distance)
+		} else {
+			InteractiveMoveSpool()
+		}
 		return
 
 	case "svg":
@@ -474,8 +482,8 @@ spiro R r p
 
 	`spool`: `Directly control spool movement, useful for initial setup. If you ommit the L/R d parameters then you enter an interactive mode where you can repeatedly type the options to enter several spool commands in a row.
 	
-spool L/R d
-	L/R - designing either the left or right spool
+spool [L|R] d
+	L|R - designing either the left or right spool
 	d - distance to extend line, negative numbers retract`,
 
 	`svg`: `Draw an svg file. Must be made up of only straight lines, curves are not currently supported in the svg parser.
