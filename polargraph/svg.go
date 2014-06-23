@@ -69,8 +69,7 @@ func ParseCommand(commandString string) PathCommand {
 		return MoveToAbsolute
 	case "m":
 		return MoveToRelative
-	case "Z":
-	case "z":
+	case "Z", "z":
 		return ClosePath
 	case "L":
 		return LineToAbsolute
