@@ -66,11 +66,9 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 			if target.PenUp {
 				stepData <- PenUpCommand
 				stepData <- PenUpCommand
-				fmt.Println("PenUp")
 			} else {
 				stepData <- PenDownCommand
 				stepData <- PenDownCommand
-				fmt.Println("PenDown")
 			}
 			currentPenUp = target.PenUp
 		}
@@ -106,11 +104,20 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 func CountSteps(stepData <-chan int8) {
 
 	sliceCount := 0
-	for _ = range stepData {
+	penTransition := 0
+	for step := range stepData {
 
-		sliceCount++
+		if step == PenUpCommand || step == PenDownCommand {
+			penTransition++
+		} else {
+			sliceCount++
+		}
 	}
-	fmt.Println("Steps ", sliceCount/2, "Time", time.Duration(float64(sliceCount)*0.5*TimeSlice_US)*time.Microsecond)
+	// since data is sent once for left and right spools, have to divide by 2
+	sliceCount = sliceCount >> 1
+	penTransition = penTransition >> 1
+	penTransitionCooldown_US := 1250000.0 // as defined in the microcontroller code
+	fmt.Println("Steps", sliceCount, "Pen Transitions", penTransition, "Time", time.Duration(float64(sliceCount)*TimeSlice_US+float64(penTransition)*penTransitionCooldown_US)*time.Microsecond)
 }
 
 // Sends the given stepData to a file
