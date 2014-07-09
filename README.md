@@ -5,7 +5,7 @@ Polargraph (vertical plotter / drawing machine) written in Go. Inspired by [Pola
 
 The difference with Gocupi is that it uses a Raspberry Pi to do most of the processing instead of relying on a microcontroller to parse commands. This gives it the ability to render complex svg files that would not git in memory of a microcontroller.
 
-Beta versions of prebuilt hardware are now available at [gocupi.com](gocupi.com)
+Beta versions of prebuilt hardware are now available at [gocupi.com](http://gocupi.com)
 
 Quickstart Guide
 ================
