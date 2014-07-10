@@ -382,6 +382,7 @@ func PrintCommandHelp(command string) {
 		PrintGenericHelp()
 	}
 	fmt.Println(helpText)
+	fmt.Println()
 }
 
 // output help summary
@@ -419,6 +420,8 @@ Commands:`)
 		}
 		fmt.Print(k)
 	}
+	fmt.Println()
+	fmt.Println()
 }
 
 var CommandHelp = map[string]string{
