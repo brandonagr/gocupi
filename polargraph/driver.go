@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"bufio"
 	"strings"
 	"time"
 )
@@ -16,7 +17,6 @@ import (
 func OutputCoords(plotCoords <-chan Coordinate) {
 
 	for coord := range plotCoords {
-
 		fmt.Println(coord)
 	}
 
@@ -75,7 +75,7 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 
 		interp.Setup(origin, target, nextTarget)
 
-		//fmt.Println("Slice", sliceTotal, "------------------------")
+		//fmt.Println("Slices", interp.Slices(), "------------------------")
 
 		for slice := 1.0; slice <= interp.Slices(); slice++ {
 
@@ -145,7 +145,11 @@ func WriteStepsToFile(stepData <-chan int8) {
 }
 
 // Sends the given stepData to the stepper driver
-func WriteStepsToSerial(stepData <-chan int8) {
+func WriteStepsToSerial(stepData <-chan int8, pauseOnPenUp bool) {
+	if (pauseOnPenUp) {
+		fmt.Println("Pause on PenUp enabled!")
+	}
+
 	fmt.Println("Opening com port")
 	c := &serial.Config{Name: "/dev/ttyAMA0", Baud: 57600}
 	s, err := serial.OpenPort(c)
@@ -164,6 +168,8 @@ func WriteStepsToSerial(stepData <-chan int8) {
 
 	// send a -128 to force the arduino to restart and rerequest data
 	s.Write([]byte{ResetCommand})
+	
+	var pause = false
 
 	for stepDataOpen := true; stepDataOpen; {
 		// wait for next data request
@@ -180,9 +186,22 @@ func WriteStepsToSerial(stepData <-chan int8) {
 
 			byteData, stepDataOpen = <-stepData
 			writeData[i] = byte(byteData)
+			
+			// pause on pen up
+			if (pauseOnPenUp && byteData == PenUpCommand) {
+				fmt.Println("PenUp...")
+				pause = true
+			} else if (byteData == PenDownCommand) {
+				fmt.Println("PenDown...")
+			}
 
 			byteData, stepDataOpen = <-stepData
 			writeData[i+1] = byte(byteData)
+			
+			// we want this to be the last command
+			if (pause) {
+				break;
+			}
 		}
 
 		totalSends++
@@ -196,6 +215,15 @@ func WriteStepsToSerial(stepData <-chan int8) {
 		}
 
 		s.Write(writeData)
+		
+		if (pause) {
+			// reset
+			pause = false
+		
+			fmt.Println("Press any key to continue...")
+			reader := bufio.NewReader(os.Stdin)
+			reader.ReadString('\n')
+		}
 	}
 }
 
@@ -222,7 +250,7 @@ func InteractiveMoveSpool() {
 func MoveSpool(leftSpool bool, distance float64) {
 
 	alignStepData := make(chan int8, 1024)
-	go WriteStepsToSerial(alignStepData)
+	go WriteStepsToSerial(alignStepData, false)
 
 	interp := new(TrapezoidInterpolater)
 	interp.Setup(Coordinate{}, Coordinate{X: distance, Y: 0}, Coordinate{})
