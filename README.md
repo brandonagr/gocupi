@@ -15,21 +15,37 @@ Install Go
 The full install guide is on [golang.org](http://golang.org/doc/install)
 
 For the raspberry pi you can [download precompiled binaries](http://dave.cheney.net/unofficial-arm-tarballs) to avoid the lengthy process of building go from source
-  
-Set your GOPATH environment variable
-`cd ~`
-`mkdir gopath`
-`export GOPATH=$HOME/gopath`
 
-Update your PATH environment variable
-`export PATH=$PATH:$HOME/gopath/bin`
-
+Install needed dependency
+---------------------
 Install mercurial
 `sudo apt-get install mercurial`
 
 Download and build gocupi
 ---------------------------
+From your home directory
 `go get github.com/brandonagr/gocupi`
+
+Change some path variables
+----------------------------
+
+Add the following three lines to the bottom of `~/.bashrc`
+
+The GOROOT environment variable `export PATH=$PATH:/usr/local/go/bin`
+
+The GOPATH environment variable `export GOPATH=$HOME/gopath`
+
+The PATH environment variable `export PATH=$PATH:$HOME/gopath/bin` 
+
+Fix the serial communication
+----------------------------
+Change the default serial communication by editing /boot/cmdline.txt and remove references to `/dev/ttyAMA0`
+
+Disable the getty on that serial port in /etc/inittab by commenting out references to `/dev/ttyAMA0`
+
+Reboot
+-------
+In order to reset the serial communication port we need to `sudo reboot`
 
 Run gocupi
 ----------
