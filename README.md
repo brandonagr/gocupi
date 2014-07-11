@@ -24,6 +24,9 @@ Set your GOPATH environment variable
 Update your PATH environment variable
 `export PATH=$PATH:$HOME/gopath/bin`
 
+Install mercurial
+`sudo apt-get install mercurial`
+
 Download and build gocupi
 ---------------------------
 `go get github.com/brandonagr/gocupi`
