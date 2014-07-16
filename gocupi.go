@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	. "github.com/BrandonAGr/gocupi/polargraph"
+	. "./polargraph"
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	"sort"
