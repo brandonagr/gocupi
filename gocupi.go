@@ -421,6 +421,7 @@ Commands:`)
 		}
 		fmt.Print(k)
 	}
+	fmt.Println();
 }
 
 var CommandHelp = map[string]string{
