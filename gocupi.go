@@ -1,9 +1,9 @@
 package main
 
 import (
+	. "./polargraph"
 	"flag"
 	"fmt"
-	. "./polargraph"
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	"sort"
@@ -383,6 +383,7 @@ func PrintCommandHelp(command string) {
 		PrintGenericHelp()
 	}
 	fmt.Println(helpText)
+	fmt.Println()
 }
 
 // output help summary
@@ -421,7 +422,8 @@ Commands:`)
 		}
 		fmt.Print(k)
 	}
-	fmt.Println();
+	fmt.Println()
+	fmt.Println()
 }
 
 var CommandHelp = map[string]string{
