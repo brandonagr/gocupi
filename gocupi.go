@@ -1,9 +1,9 @@
 package main
 
 import (
-	. "./polargraph"
 	"flag"
 	"fmt"
+	. "github.com/BrandonAGr/gocupi/polargraph"
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	"sort"
