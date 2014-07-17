@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	. "github.com/BrandonAGr/gocupi/polargraph"
@@ -45,6 +46,8 @@ func main() {
 	}
 
 	plotCoords := make(chan Coordinate, 1024)
+	var err error
+	var params []float64
 
 	switch args[0] {
 
@@ -69,7 +72,12 @@ func main() {
 		close(plotCoords)
 
 	case "circle":
-		params := GetArgsAsFloats("circle", args[1:], 3)
+		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("circle")
+			return
+		}
 		circleSetup := SlidingCircle{
 			Radius:             params[0],
 			CircleDisplacement: params[1],
@@ -81,8 +89,9 @@ func main() {
 
 	case "gcode":
 		if len(args) < 3 {
+			fmt.Println("ERROR: ", fmt.Sprint("Expected 2 parameters and saw ", len(args)-1))
+			fmt.Println()
 			PrintCommandHelp("svg")
-			panic(fmt.Sprint("Expected 2 parameters and saw ", len(args)-1))
 		}
 
 		scale, _ := strconv.ParseFloat(args[1], 64)
@@ -95,7 +104,12 @@ func main() {
 		go GenerateGcodePath(data, scale, plotCoords)
 
 	case "grid":
-		params := GetArgsAsFloats("grid", args[1:], 2)
+		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("grid")
+			return
+		}
 		gridSetup := Grid{
 			Width: params[0],
 			Cells: params[1],
@@ -105,7 +119,12 @@ func main() {
 		go GenerateGrid(gridSetup, plotCoords)
 
 	case "hilbert":
-		params := GetArgsAsFloats("hilbert", args[1:], 2)
+		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("hilbert")
+			return
+		}
 		hilbertSetup := HilbertCurve{
 			Size:   params[0],
 			Degree: int(params[1]),
@@ -115,7 +134,12 @@ func main() {
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
 
 	case "imagearc":
-		params := GetArgsAsFloats("imagearc", args[1:], 2)
+		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("imagearc")
+			return
+		}
 		arcSetup := Arc{
 			Size:    params[0],
 			ArcDist: params[1],
@@ -127,7 +151,12 @@ func main() {
 		go GenerateArc(arcSetup, data, plotCoords)
 
 	case "imageraster":
-		params := GetArgsAsFloats("imageraster", args[1:], 2)
+		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("imageraster")
+			return
+		}
 		rasterSetup := Raster{
 			Size:     params[0],
 			PenWidth: params[1],
@@ -138,7 +167,12 @@ func main() {
 		go GenerateRaster(rasterSetup, data, plotCoords)
 
 	case "lissa":
-		params := GetArgsAsFloats("lissa", args[1:], 3)
+		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("lissa")
+			return
+		}
 		posFunc := func(t float64) Coordinate {
 			return Coordinate{
 				X: params[0] * math.Cos(params[1]*t+math.Pi/2.0),
@@ -150,7 +184,12 @@ func main() {
 		go GenerateParametric(posFunc, plotCoords)
 
 	case "line":
-		params := GetArgsAsFloats("line", args[1:], 2)
+		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("line")
+			return
+		}
 		lineSetup := BouncingLine{
 			Angle:         params[0],
 			TotalDistance: params[1],
@@ -164,7 +203,12 @@ func main() {
 		return
 
 	case "parabolic":
-		params := GetArgsAsFloats("parabolic", args[1:], 3)
+		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("parabolic")
+			return
+		}
 		parabolicSetup := Parabolic{
 			Radius:           params[0],
 			PolygonEdgeCount: params[1],
@@ -175,7 +219,12 @@ func main() {
 		go GenerateParabolic(parabolicSetup, plotCoords)
 
 	case "setup":
-		params := GetArgsAsFloats("setup", args[1:], 3)
+		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("setup")
+			return
+		}
 
 		Settings.SpoolHorizontalDistance_MM = params[0]
 		Settings.StartingLeftDist_MM = params[1]
@@ -205,7 +254,12 @@ func main() {
 		return
 
 	case "spiral":
-		params := GetArgsAsFloats("spiral", args[1:], 2)
+		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("spiral")
+			return
+		}
 		spiralSetup := Spiral{
 			RadiusBegin:       params[0],
 			RadiusEnd:         0.01,
@@ -216,7 +270,12 @@ func main() {
 		go GenerateSpiral(spiralSetup, plotCoords)
 
 	case "spiro":
-		params := GetArgsAsFloats("spiro", args[1:], 3)
+		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("spiro")
+			return
+		}
 		bigR := params[0]
 		littleR := params[1]
 		pen := params[2]
@@ -235,9 +294,14 @@ func main() {
 		if len(args) == 3 {
 
 			leftSpool := strings.ToLower(args[1]) == "l"
-			distance := GetArgsAsFloats("spool", args[2:], 1)[0]
+			if params, err = GetArgsAsFloats(args[2:], 1); err != nil {
+				fmt.Println("ERROR: ", err)
+				fmt.Println()
+				PrintCommandHelp("spool")
+				return
+			}
 
-			MoveSpool(leftSpool, distance)
+			MoveSpool(leftSpool, params[0])
 		} else {
 			InteractiveMoveSpool()
 		}
@@ -245,8 +309,10 @@ func main() {
 
 	case "svg":
 		if len(args) < 3 {
+			fmt.Println("ERROR: ", fmt.Sprint("Expected at least 2 parameters and saw ", len(args)-1))
+			fmt.Println()
 			PrintCommandHelp("svg")
-			panic(fmt.Sprint("Expected at least 2 parameters and saw ", len(args)-1))
+			return
 		}
 
 		size, _ := strconv.ParseFloat(args[1], 64)
@@ -275,8 +341,10 @@ func main() {
 
 	case "text":
 		if len(args) != 3 {
+			fmt.Println("ERROR: ", fmt.Sprint("Expected at least 2 parameters and saw ", len(args)-1))
+			fmt.Println()
 			PrintCommandHelp("text")
-			panic(fmt.Sprint("Expected 2 parameters and saw ", len(args)-1))
+			return
 		}
 		height, _ := strconv.ParseFloat(args[1], 64)
 		if height == 0 {
@@ -287,7 +355,12 @@ func main() {
 		go GenerateTextPath(args[2], height, plotCoords)
 
 	case "qr":
-		params := GetArgsAsFloats("qr", args[1:], 2)
+		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("qr")
+			return
+		}
 		rasterSetup := Raster{
 			Size:     params[0],
 			PenWidth: params[1],
@@ -351,11 +424,10 @@ func FlipPlotCoords(flipX, flipY bool, coords <-chan Coordinate, flippedCoords c
 }
 
 // Parse a series of numbers as floats
-func GetArgsAsFloats(command string, args []string, expectedCount int) []float64 {
+func GetArgsAsFloats(args []string, expectedCount int) ([]float64, error) {
 
 	if len(args) < expectedCount {
-		PrintCommandHelp(command)
-		panic(fmt.Sprint("Expected at least ", expectedCount, " numeric parameters and only saw ", len(args)))
+		return nil, errors.New(fmt.Sprint("Expected at least ", expectedCount, " numeric parameters and only saw ", len(args)))
 	}
 
 	numbers := make([]float64, expectedCount)
@@ -363,15 +435,15 @@ func GetArgsAsFloats(command string, args []string, expectedCount int) []float64
 	var err error
 	for argIndex := 0; argIndex < expectedCount; argIndex++ {
 		if numbers[argIndex], err = strconv.ParseFloat(args[argIndex], 64); err != nil {
-			panic(fmt.Sprint("Unable to parse", args[argIndex], "as a float: ", err))
+			return nil, errors.New(fmt.Sprint("Unable to parse ", args[argIndex], " as a float: ", err))
 		}
 
 		if numbers[argIndex] == 0 {
-			panic(fmt.Sprint("0 is not a valid value for parameter", argIndex))
+			return nil, errors.New(fmt.Sprint("0 is not a valid value for parameter ", argIndex))
 		}
 	}
 
-	return numbers
+	return numbers, nil
 }
 
 // output the help for a specific command
@@ -388,8 +460,7 @@ func PrintCommandHelp(command string) {
 
 // output help summary
 func PrintGenericHelp() {
-	fmt.Println(`help COMMAND to view help for a specific command
-	
+	fmt.Println(`	
 General Usage: (flags) COMMAND PARAMETERS...
 
 All distance numbers are in millimeters
@@ -423,6 +494,7 @@ Commands:`)
 		fmt.Print(k)
 	}
 	fmt.Println()
+	fmt.Println("help COMMAND to view help for a specific command")
 	fmt.Println()
 }
 
@@ -486,7 +558,7 @@ parabolic R c l
 	c - count of polygon edges
 	l - number of lines per edges`,
 
-	`setup`: `Enter the initial setup measurements of the system.
+	`setup`: `Enter the initial setup measurements of the system. Updates the config xml file.
 	
 setup D L R
 	D - distance between the idlers
