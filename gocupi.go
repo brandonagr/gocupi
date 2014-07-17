@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	. "github.com/BrandonAGr/gocupi/polargraph"
+	. "./polargraph"
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	"sort"
@@ -20,6 +20,7 @@ func init() {
 func main() {
 	Settings.Read()
 
+	pauseOnPenUp := flag.Bool("pause", false, "Pause when pen is raised (requires keyboard input)")
 	toImageFlag := flag.Bool("toimage", false, "Output result to an image file instead of to the stepper")
 	toFileFlag := flag.Bool("tofile", false, "Output steps to a text file")
 	toChartFlag := flag.Bool("tochart", false, "Output a chart of the movement and velocity")
@@ -332,7 +333,7 @@ func main() {
 	case *toChartFlag:
 		WriteStepsToChart(stepData)
 	default:
-		WriteStepsToSerial(stepData)
+		WriteStepsToSerial(stepData, *pauseOnPenUp)
 	}
 }
 
@@ -394,6 +395,7 @@ All distance numbers are in millimeters
 All angles are in radians
 
 Flags:
+-pause, pause when pen is raised (requires keyboard input)
 -toimage, outputs data to an image of what the render should look like
 -tochart, outputs a graph of velocity and position
 -tofile, outputs step data to a file
@@ -419,6 +421,7 @@ Commands:`)
 		}
 		fmt.Print(k)
 	}
+	fmt.Println();
 }
 
 var CommandHelp = map[string]string{

@@ -3,6 +3,7 @@ package polargraph
 // Handles sending data over serial to the arduino
 
 import (
+	"bufio"
 	"fmt"
 	serial "github.com/tarm/goserial"
 	"io"
@@ -16,7 +17,6 @@ import (
 func OutputCoords(plotCoords <-chan Coordinate) {
 
 	for coord := range plotCoords {
-
 		fmt.Println(coord)
 	}
 
@@ -75,7 +75,7 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 
 		interp.Setup(origin, target, nextTarget)
 
-		//fmt.Println("Slice", sliceTotal, "------------------------")
+		//fmt.Println("Slices", interp.Slices(), "------------------------")
 
 		for slice := 1.0; slice <= interp.Slices(); slice++ {
 
@@ -145,7 +145,11 @@ func WriteStepsToFile(stepData <-chan int8) {
 }
 
 // Sends the given stepData to the stepper driver
-func WriteStepsToSerial(stepData <-chan int8) {
+func WriteStepsToSerial(stepData <-chan int8, pauseOnPenUp bool) {
+	if pauseOnPenUp {
+		fmt.Println("Pause on PenUp enabled!")
+	}
+
 	fmt.Println("Opening com port")
 	c := &serial.Config{Name: "/dev/ttyAMA0", Baud: 57600}
 	s, err := serial.OpenPort(c)
@@ -165,6 +169,8 @@ func WriteStepsToSerial(stepData <-chan int8) {
 	// send a -128 to force the arduino to restart and rerequest data
 	s.Write([]byte{ResetCommand})
 
+	var pauseAfterWrite = false
+
 	for stepDataOpen := true; stepDataOpen; {
 		// wait for next data request
 		n, err := s.Read(readData)
@@ -178,11 +184,25 @@ func WriteStepsToSerial(stepData <-chan int8) {
 		dataToWrite := int(readData[0])
 		for i := 0; i < dataToWrite; i += 2 {
 
-			byteData, stepDataOpen = <-stepData
-			writeData[i] = byte(byteData)
+			if pauseAfterWrite {
+				// want to fill remainder of buffer with 0s before writing it to serial
+				writeData[i] = byte(0)
+				writeData[i+1] = byte(0)
+			} else {
+				// even if stepData is closed and empty, receiving from it will return default value 0 for byteData and false for stepDataOpen
+				byteData, stepDataOpen = <-stepData
+				writeData[i] = byte(byteData)
+				byteData, stepDataOpen = <-stepData
+				writeData[i+1] = byte(byteData)
 
-			byteData, stepDataOpen = <-stepData
-			writeData[i+1] = byte(byteData)
+				// pause on pen up
+				if byteData == PenUpCommand {
+					fmt.Println("PenUp...")
+					pauseAfterWrite = pauseOnPenUp
+				} else if byteData == PenDownCommand {
+					fmt.Println("PenDown...")
+				}
+			}
 		}
 
 		totalSends++
@@ -196,6 +216,14 @@ func WriteStepsToSerial(stepData <-chan int8) {
 		}
 
 		s.Write(writeData)
+
+		if pauseAfterWrite {
+			pauseAfterWrite = false
+
+			fmt.Println("Press any key to continue...")
+			reader := bufio.NewReader(os.Stdin)
+			reader.ReadString('\n')
+		}
 	}
 }
 
@@ -222,7 +250,7 @@ func InteractiveMoveSpool() {
 func MoveSpool(leftSpool bool, distance float64) {
 
 	alignStepData := make(chan int8, 1024)
-	go WriteStepsToSerial(alignStepData)
+	go WriteStepsToSerial(alignStepData, false)
 
 	interp := new(TrapezoidInterpolater)
 	interp.Setup(Coordinate{}, Coordinate{X: distance, Y: 0}, Coordinate{})
