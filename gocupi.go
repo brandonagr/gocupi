@@ -72,7 +72,7 @@ func main() {
 		close(plotCoords)
 
 	case "circle":
-		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 3, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("circle")
@@ -104,7 +104,7 @@ func main() {
 		go GenerateGcodePath(data, scale, plotCoords)
 
 	case "grid":
-		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 2, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("grid")
@@ -119,7 +119,7 @@ func main() {
 		go GenerateGrid(gridSetup, plotCoords)
 
 	case "hilbert":
-		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 2, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("hilbert")
@@ -134,7 +134,7 @@ func main() {
 		go GenerateHilbertCurve(hilbertSetup, plotCoords)
 
 	case "imagearc":
-		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 2, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("imagearc")
@@ -151,7 +151,7 @@ func main() {
 		go GenerateArc(arcSetup, data, plotCoords)
 
 	case "imageraster":
-		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 2, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("imageraster")
@@ -167,7 +167,7 @@ func main() {
 		go GenerateRaster(rasterSetup, data, plotCoords)
 
 	case "lissa":
-		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 3, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("lissa")
@@ -184,7 +184,7 @@ func main() {
 		go GenerateParametric(posFunc, plotCoords)
 
 	case "line":
-		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 2, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("line")
@@ -203,7 +203,7 @@ func main() {
 		return
 
 	case "parabolic":
-		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 3, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("parabolic")
@@ -219,16 +219,28 @@ func main() {
 		go GenerateParabolic(parabolicSetup, plotCoords)
 
 	case "setup":
-		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 3, false); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("setup")
 			return
 		}
 
-		Settings.SpoolHorizontalDistance_MM = params[0]
-		Settings.StartingLeftDist_MM = params[1]
-		Settings.StartingRightDist_MM = params[2]
+		if params[0] != 0 {
+			Settings.SpoolHorizontalDistance_MM = params[0]
+		} else {
+			fmt.Println("Using existing SpoolHorizontalDistance_MM of", Settings.SpoolHorizontalDistance_MM)
+		}
+		if params[1] != 0 {
+			Settings.StartingLeftDist_MM = params[1]
+		} else {
+			fmt.Println("Using existing StartingLeftDist_MM of", Settings.StartingLeftDist_MM)
+		}
+		if params[2] != 0 {
+			Settings.StartingRightDist_MM = params[2]
+		} else {
+			fmt.Println("Using existing StartingRightDist_MM of", Settings.StartingRightDist_MM)
+		}
 
 		if Settings.SpoolHorizontalDistance_MM > (Settings.StartingLeftDist_MM + Settings.StartingRightDist_MM) {
 			fmt.Println("ERROR: Attempted to specify a setup where the two string distances are less than the distance between idlers")
@@ -254,7 +266,7 @@ func main() {
 		return
 
 	case "spiral":
-		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 2, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("spiral")
@@ -270,7 +282,7 @@ func main() {
 		go GenerateSpiral(spiralSetup, plotCoords)
 
 	case "spiro":
-		if params, err = GetArgsAsFloats(args[1:], 3); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 3, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("spiro")
@@ -294,7 +306,7 @@ func main() {
 		if len(args) == 3 {
 
 			leftSpool := strings.ToLower(args[1]) == "l"
-			if params, err = GetArgsAsFloats(args[2:], 1); err != nil {
+			if params, err = GetArgsAsFloats(args[2:], 1, true); err != nil {
 				fmt.Println("ERROR: ", err)
 				fmt.Println()
 				PrintCommandHelp("spool")
@@ -355,7 +367,7 @@ func main() {
 		go GenerateTextPath(args[2], height, plotCoords)
 
 	case "qr":
-		if params, err = GetArgsAsFloats(args[1:], 2); err != nil {
+		if params, err = GetArgsAsFloats(args[1:], 2, true); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("qr")
@@ -424,7 +436,7 @@ func FlipPlotCoords(flipX, flipY bool, coords <-chan Coordinate, flippedCoords c
 }
 
 // Parse a series of numbers as floats
-func GetArgsAsFloats(args []string, expectedCount int) ([]float64, error) {
+func GetArgsAsFloats(args []string, expectedCount int, preventZero bool) ([]float64, error) {
 
 	if len(args) < expectedCount {
 		return nil, errors.New(fmt.Sprint("Expected at least ", expectedCount, " numeric parameters and only saw ", len(args)))
@@ -438,7 +450,7 @@ func GetArgsAsFloats(args []string, expectedCount int) ([]float64, error) {
 			return nil, errors.New(fmt.Sprint("Unable to parse ", args[argIndex], " as a float: ", err))
 		}
 
-		if numbers[argIndex] == 0 {
+		if preventZero && numbers[argIndex] == 0 {
 			return nil, errors.New(fmt.Sprint("0 is not a valid value for parameter ", argIndex))
 		}
 	}
@@ -559,6 +571,7 @@ parabolic R c l
 	l - number of lines per edges`,
 
 	`setup`: `Enter the initial setup measurements of the system. Updates the config xml file.
+Enter 0 for a parameter that you don't want to update, so you can update just distance between the idlers by doing 'setup 500 0 0'.
 	
 setup D L R
 	D - distance between the idlers
