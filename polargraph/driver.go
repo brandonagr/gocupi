@@ -3,12 +3,12 @@ package polargraph
 // Handles sending data over serial to the arduino
 
 import (
+	"bufio"
 	"fmt"
 	serial "github.com/tarm/goserial"
 	"io"
 	"math"
 	"os"
-	"bufio"
 	"strings"
 	"time"
 )
@@ -146,7 +146,7 @@ func WriteStepsToFile(stepData <-chan int8) {
 
 // Sends the given stepData to the stepper driver
 func WriteStepsToSerial(stepData <-chan int8, pauseOnPenUp bool) {
-	if (pauseOnPenUp) {
+	if pauseOnPenUp {
 		fmt.Println("Pause on PenUp enabled!")
 	}
 
@@ -168,8 +168,8 @@ func WriteStepsToSerial(stepData <-chan int8, pauseOnPenUp bool) {
 
 	// send a -128 to force the arduino to restart and rerequest data
 	s.Write([]byte{ResetCommand})
-	
-	var pause = false
+
+	var pauseAfterWrite = false
 
 	for stepDataOpen := true; stepDataOpen; {
 		// wait for next data request
@@ -184,23 +184,24 @@ func WriteStepsToSerial(stepData <-chan int8, pauseOnPenUp bool) {
 		dataToWrite := int(readData[0])
 		for i := 0; i < dataToWrite; i += 2 {
 
-			byteData, stepDataOpen = <-stepData
-			writeData[i] = byte(byteData)
-			
-			// pause on pen up
-			if (pauseOnPenUp && byteData == PenUpCommand) {
-				fmt.Println("PenUp...")
-				pause = true
-			} else if (byteData == PenDownCommand) {
-				fmt.Println("PenDown...")
-			}
+			if pauseAfterWrite {
+				// want to fill remainder of buffer with 0s before writing it to serial
+				writeData[i] = byte(0)
+				writeData[i+1] = byte(0)
+			} else {
+				// even if stepData is closed and empty, receiving from it will return default value 0 for byteData and false for stepDataOpen
+				byteData, stepDataOpen = <-stepData
+				writeData[i] = byte(byteData)
+				byteData, stepDataOpen = <-stepData
+				writeData[i+1] = byte(byteData)
 
-			byteData, stepDataOpen = <-stepData
-			writeData[i+1] = byte(byteData)
-			
-			// we want this to be the last command
-			if (pause) {
-				break;
+				// pause on pen up
+				if byteData == PenUpCommand {
+					fmt.Println("PenUp...")
+					pauseAfterWrite = pauseOnPenUp
+				} else if byteData == PenDownCommand {
+					fmt.Println("PenDown...")
+				}
 			}
 		}
 
@@ -215,11 +216,10 @@ func WriteStepsToSerial(stepData <-chan int8, pauseOnPenUp bool) {
 		}
 
 		s.Write(writeData)
-		
-		if (pause) {
-			// reset
-			pause = false
-		
+
+		if pauseAfterWrite {
+			pauseAfterWrite = false
+
 			fmt.Println("Press any key to continue...")
 			reader := bufio.NewReader(os.Stdin)
 			reader.ReadString('\n')
