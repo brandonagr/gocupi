@@ -16,6 +16,8 @@ The full install guide is on [golang.org](http://golang.org/doc/install)
 
 For the raspberry pi you can [download precompiled binaries](http://dave.cheney.net/unofficial-arm-tarballs) to avoid the lengthy process of building go from source
 
+You must set GOROOT if you install go to someplace besides /usr/local/go
+
 Install needed dependency
 ---------------------
 Install mercurial
@@ -30,8 +32,6 @@ Change some path variables
 ----------------------------
 
 Add the following three lines to the bottom of `~/.bashrc`
-
-The GOROOT environment variable `export PATH=$PATH:/usr/local/go/bin`
 
 The GOPATH environment variable `export GOPATH=$HOME/gopath`
 
