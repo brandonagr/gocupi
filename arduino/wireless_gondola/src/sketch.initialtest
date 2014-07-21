@@ -1,0 +1,29 @@
+/*
+  Gocupi wireless gondola
+  
+  Uses an nRF24L01+ for wireless communication with the the gocupi main board to provide wireless pen up/down functionality
+ */
+
+#include <Servo.h>
+
+Servo penUpServo;
+const int PENUP_SERVO_PIN = 9;
+
+const int STATUS_LED_PIN = 13;
+
+// initial setup
+void setup() {
+	penUpServo.attach(PENUP_SERVO_PIN);
+	pinMode(STATUS_LED_PIN, OUTPUT);
+}
+
+// the loop routine runs over and over again forever
+void loop() {
+	digitalWrite(STATUS_LED_PIN, HIGH);
+	penUpServo.write(0);
+	delay(2000);
+
+	digitalWrite(STATUS_LED_PIN, LOW);
+	penUpServo.write(180);
+	delay(2000);
+}
