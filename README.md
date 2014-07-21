@@ -12,11 +12,31 @@ Quickstart Guide
 
 Install Go
 -----------
-The full install guide is on [golang.org](http://golang.org/doc/install)
+The full install guide is on [golang.org](http://golang.org/doc/install). For the Raspberry Pi you can [download precompiled binaries](http://dave.cheney.net/unofficial-arm-tarballs) to avoid the lengthy process of building go from source.
 
-For the raspberry pi you can [download precompiled binaries](http://dave.cheney.net/unofficial-arm-tarballs) to avoid the lengthy process of building go from source
+For example, installing go to the default location with a precompiled binary on a raspberry pi just takes 3 commands:
 
-You must set GOROOT if you install go to someplace besides /usr/local/go
+    wget http://dave.cheney.net/paste/go.1.3.linux-arm~multiarch-armv6-1.tar.gz
+    sudo tar -C /usr/local -xzf go.1.3.linux-arm~multiarch-armv6-1.tar.gz
+    sudo echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.profile
+
+(You must set GOROOT also if you install go to someplace besides the default /usr/local/go)
+
+Fix the serial communication
+----------------------------
+Change the default serial communication by editing /boot/cmdline.txt and remove references to `/dev/ttyAMA0`
+
+Disable the getty on that serial port in /etc/inittab by commenting out references to `/dev/ttyAMA0`
+
+In order to reset the serial communication port we need to `sudo reboot`
+
+Setup gopath folder
+----------------------------
+Setup the folder for your gopath and set some path variables
+
+    mkdir ~/gopath
+    sudo echo 'export GOPATH=$HOME/gopath' >> ~/.profile
+    sudo echo 'export PATH=$PATH:$HOME/gopath/bin' >> ~/.profile
 
 Install needed dependency
 ---------------------
@@ -27,25 +47,6 @@ Download and build gocupi
 ---------------------------
 From your home directory
 `go get github.com/brandonagr/gocupi`
-
-Change some path variables
-----------------------------
-
-Add the following three lines to the bottom of `~/.bashrc`
-
-The GOPATH environment variable `export GOPATH=$HOME/gopath`
-
-The PATH environment variable `export PATH=$PATH:$HOME/gopath/bin` 
-
-Fix the serial communication
-----------------------------
-Change the default serial communication by editing /boot/cmdline.txt and remove references to `/dev/ttyAMA0`
-
-Disable the getty on that serial port in /etc/inittab by commenting out references to `/dev/ttyAMA0`
-
-Reboot
--------
-In order to reset the serial communication port we need to `sudo reboot`
 
 Run gocupi
 ----------
