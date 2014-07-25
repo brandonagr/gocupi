@@ -28,74 +28,24 @@
 
     <div class="container">
       <section id="main_content">
-        <h1>
-<a name="gocupi" class="anchor" href="#gocupi"><span class="octicon octicon-link"></span></a>gocupi</h1>
+<p><img src="images/gopher_pi.png"/></p>
 
 <p>Polargraph (vertical plotter / drawing machine) written in Go. Inspired by <a href="http://www.polargraph.co.uk/">Polargraph</a> and <a href="http://marginallyclever.com/blog/drawbot/">drawbot</a> projects, designed with the help of the <a href="http://dallasmakerspace.org/">Dallas Makerspace</a></p>
 
-<p>The difference with Gocupi is that it uses a Raspberry Pi to do most of the processing instead of relying on a microcontroller to parse commands. This gives it the ability to render complex svg files that would not fit in memory on a microcontroller.</p>
+<p>Gocupi is different from existing systems in that it uses a Raspberry Pi to do most of the processing instead of relying on a microcontroller to parse commands. This gives it the ability to render complex svg files and patterns that would not fit in memory on a microcontroller.</p>
 
-<p>Beta versions of prebuilt hardware are now available at <a href="http://gocupi.com">gocupi.com</a></p>
 
-<h1>
-<a name="quickstart-guide" class="anchor" href="#quickstart-guide"><span class="octicon octicon-link"></span></a>Quickstart Guide</h1>
 
-<h2>
-<a name="install-go" class="anchor" href="#install-go"><span class="octicon octicon-link"></span></a>Install Go</h2>
+<p>
+<img src="images/small_setup.jpg"/>
+<img src="images/IMG_20121115_212000.jpg"/></p>
 
-<p>The full install guide is on <a href="http://golang.org/doc/install">golang.org</a>. For the Raspberry Pi you can <a href="http://dave.cheney.net/unofficial-arm-tarballs">download precompiled binaries</a> to avoid the lengthy process of building go from source.</p>
+<h1>Get your own Gocupi</h1>
 
-<p>For example, installing go to the default location with a precompiled binary on a raspberry pi just takes 3 commands:</p>
-
-<pre><code>wget http://dave.cheney.net/paste/go.1.3.linux-arm~multiarch-armv6-1.tar.gz
-sudo tar -C /usr/local -xzf go.1.3.linux-arm~multiarch-armv6-1.tar.gz
-sudo echo 'export PATH=$PATH:/usr/local/go/bin' &gt;&gt; ~/.profile
-</code></pre>
-
-<p>(You must set GOROOT also if you install go to someplace besides the default /usr/local/go)</p>
-
-<h2>
-<a name="fix-the-serial-communication" class="anchor" href="#fix-the-serial-communication"><span class="octicon octicon-link"></span></a>Fix the serial communication</h2>
-
-<p>Change the default serial communication by editing /boot/cmdline.txt and remove references to <code>/dev/ttyAMA0</code></p>
-
-<p>Disable the getty on that serial port in /etc/inittab by commenting out references to <code>/dev/ttyAMA0</code></p>
-
-<p>In order to reset the serial communication port we need to <code>sudo reboot</code></p>
-
-<h2>
-<a name="setup-gopath-folder" class="anchor" href="#setup-gopath-folder"><span class="octicon octicon-link"></span></a>Setup gopath folder</h2>
-
-<p>Setup the folder for your gopath and set some path variables</p>
-
-<pre><code>mkdir ~/gopath
-sudo echo 'export GOPATH=$HOME/gopath' &gt;&gt; ~/.profile
-sudo echo 'export PATH=$PATH:$HOME/gopath/bin' &gt;&gt; ~/.profile
-</code></pre>
-
-<h2>
-<a name="install-needed-dependency" class="anchor" href="#install-needed-dependency"><span class="octicon octicon-link"></span></a>Install needed dependency</h2>
-
-<p>Install mercurial
-<code>sudo apt-get install mercurial</code></p>
-
-<h2>
-<a name="download-and-build-gocupi" class="anchor" href="#download-and-build-gocupi"><span class="octicon octicon-link"></span></a>Download and build gocupi</h2>
-
-<p>From your home directory
-<code>go get github.com/brandonagr/gocupi</code></p>
-
-<h2>
-<a name="run-gocupi" class="anchor" href="#run-gocupi"><span class="octicon octicon-link"></span></a>Run gocupi</h2>
-
-<p><code>gocupi</code> The gocupi executable should now be in your $GOPATH\bin folder, you can run the command with no arguments to display the help and what command are available</p>
-
-<p><code>gocupi setup 1000 700 700</code> The setup command can be used to initialize the dimensions of the polargraph hardware, the setup is stored in the generated gocupi_config.xml file</p>
-
-<p><code>gocupi -toimage grid 100 10</code> The -toimage flag causes the system to draw to an output.png instead of trying to control the stepper motors over serial</p>
+<p>A kickstarter campaign will be starting soon to allow you to get a prebuilt Gocupi. More information will be available at <a href="http://gocupi.com">gocupi.com</a></p>
 
 <h1>
-<a name="basic-polargraph-description" class="anchor" href="#basic-polargraph-description"><span class="octicon octicon-link"></span></a>Basic polargraph description</h1>
+<a name="basic-polargraph-description" class="anchor" href="#basic-polargraph-description"><span class="octicon octicon-link"></span></a>What is a polargraph?</h1>
 
 <p>Two stepper motors move a pen hanging from threads to draw stuff out on a whiteboard or any vertical surface. A program written in Go runs on the Pi, it sends movement commands over serial to an arduino, which then pulses the step pin on the stepper drivers to make the stepper motors move.</p>
 
@@ -107,14 +57,20 @@ sudo echo 'export PATH=$PATH:$HOME/gopath/bin' &gt;&gt; ~/.profile
 <p>In the Go program, there are several channels that form a pipeline where separate functions execute the different pipeline stages. All of the stages are run in different goroutines so that they execute concurrently.</p>
 
 <ul>
-<li><p>The first stage in the pipeline is generating X,Y coordinates, it can either read those points from an svg file, gcode file, mouse data, or generate them according to an algorithm(such as hilbert space filling curve, spiral, circle, parabolic graph, etc).</p></li>
-<li><p>The second stage takes an X,Y coordinate and interpolates the movement from the previous X,Y position to the new position by evaluating the pen position every 2 milliseconds. It takes into account acceleration, entry speed, and exit speed so that it can slow down the pen smoothly before the end of the current line segment if needed. It calculates how much the stepper motors need to turn to move the pen to the interpolated X,Y location over those 2 milliseconds.</p></li>
-<li><p>The final stage takes the step commands and writes them over serial to the arduino. The arduino first sends a byte requesting a certain amount of data when the buffer has enough room, then the raspberry pi sends that much data to the arduino.</p></li>
-<li><p>The arduino has a 1KB buffer of step commands and uses simple linear interpolation to see if it should generate a pulse at the current time to move the stepper motor one step in a particular direction.</p></li>
-</ul><p>In order to generate single line art drawings(like the raspberry pi logo shown below) I followed the <a href="http://www.makerbot.com/blog/2012/03/12/single-line-art-traveling-salesman-problem-tutorial/">makerbot</a> and <a href="http://wiki.evilmadscience.com/TSP_art">eggbot</a> tutorials which show how to convert a grayscale image to a stippled image to a path to an svg file.</p>
-      </section>
-    </div>
+<li>The first stage in the pipeline is generating X,Y coordinates, it can either read those points from an svg file, gcode file, mouse data, or generate them according to an algorithm(such as hilbert space filling curve, spiral, circle, parabolic graph, etc).</li>
+<li>The second stage takes an X,Y coordinate and interpolates the movement from the previous X,Y position to the new position by evaluating the pen position every 2 milliseconds. It takes into account acceleration, entry speed, and exit speed so that it can slow down the pen smoothly before the end of the current line segment if needed. It calculates how much the stepper motors need to turn to move the pen to the interpolated X,Y location over those 2 milliseconds.</li>
+<li>The final stage takes the step commands and writes them over serial to the arduino. The arduino first sends a byte requesting a certain amount of data when the buffer has enough room, then the raspberry pi sends that much data to the arduino.</li>
+<li>The arduino has a 1KB buffer of step commands and uses simple linear interpolation to see if it should generate a pulse at the current time to move the stepper motor one step in a particular direction.</li>
+</ul><p>In order to generate single line art drawings(like the raspberry pi & gopher logo shown above) I followed the <a href="http://www.makerbot.com/blog/2012/03/12/single-line-art-traveling-salesman-problem-tutorial/">makerbot</a> and <a href="http://wiki.evilmadscience.com/TSP_art">eggbot</a> tutorials which show how to convert a grayscale image to a stippled image to a path to an svg file.</p>
 
-    
+<h1>Interpolation</h1>
+<p>The system uses simple <a href="http://www.pmdcorp.com/news/articles/html/Mathematics_of_Motion_Control_Profiles.cfm">trapezoid based velocity</a> to move the gondola smoothly. During interpolation there are three phases, acceleration at a constant rate, cruising at a constant speed, and decelerating at a constant rate. It handles the edge cases where you don't have enough distance to accelerate or decelerate fully.</p>
+<p>For each line segment it is about to draw it calculates the angle turn at the end of the segment to the next line segment to determine the target exit speed. Ie if it has to make a 90 degree turn, then it wants to come to a stop at the end of the current line segment, if it isn't turning and just going straight then it doesn't need to slow down at all.</p>
+<p><img src="images/chart_interp.png"></p>
+<p>In that chart you can see the constant acceleration phase as velocity is increasing, and then the velocity of the pen in the cartesian coordinate system is constant. The reason for the steps in velocity is because of the instantaneous changes in direction between line segments. Even though it does slow down to make a turn it does not stop completly for every turn.</p>
+<p><img src="images/chart_hilbert.png"></p>
+<p>In this chart there is not enough distance to reach the target velocity, so there is only an acceleration and then deceleration phase. It is making 90 degree turns, that is why the velocity goes to 0 between each line segment. The thickness of the velocity lines is due to the limited resolution of the stepper motors, which are running at 1/8 microsteps, and the arduino interpolates to a precision of 1/32 of a microstep.</p>
+      </section>
+    </div>    
   </body>
 </html>
