@@ -83,30 +83,26 @@ void loop(){
   long receiveData;
   if (radio.available()) {
     
-    readDataFromMirf = 1;
-    bool result = radio.read(&receiveData, sizeof(long));
+//    while(radio.read(&receiveData, sizeof(long))) {
+    radio.read(&receiveData, sizeof(long));
     
-    if (result) {
 //      Serial.print("Got data: ");
 //      Serial.println(receiveData);
 
       if (receiveData) {
-        penUpServo.write(150);
+//        penUpServo.write(150);
 
-        currentLedStatus = 1;
-        digitalWrite(STATUS_LED_PIN, 1);
+        currentLedStatus = !currentLedStatus;
+        digitalWrite(STATUS_LED_PIN, currentLedStatus);
         blinkDelayMillis = 1000;
       } else {
-        penUpServo.write(0);
+//        penUpServo.write(0);
 
-        currentLedStatus = 1;
-        digitalWrite(STATUS_LED_PIN, 1);
+        currentLedStatus = !currentLedStatus;
+        digitalWrite(STATUS_LED_PIN, currentLedStatus);
         blinkDelayMillis = 2000;
       }
-    } else {
-//      Serial.println("Failed to read");
-        digitalWrite(STATUS_LED_PIN, 0);
-    }
+//  }
   }
 }
 
