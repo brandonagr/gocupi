@@ -91,10 +91,11 @@ func main() {
 		if len(args) < 3 {
 			fmt.Println("ERROR: ", fmt.Sprint("Expected 2 parameters and saw ", len(args)-1))
 			fmt.Println()
-			PrintCommandHelp("svg")
+			PrintCommandHelp("gcode")
+			return
 		}
 
-		scale, _ := strconv.ParseFloat(args[1], 64)
+		scale,_ := strconv.ParseFloat(args[1], 64)
 		if scale == 0 {
 			scale = 1
 		}
