@@ -487,7 +487,7 @@ Flags:
 -count, outputs number of steps and render time
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 -flipx, flip the generated image left to right
--flipx, flip the generated image top to bottom
+-flipy, flip the generated image top to bottom
 
 Commands:`)
 
