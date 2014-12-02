@@ -116,7 +116,7 @@ func (settings *SettingsData) Read() {
 
 // setup derived fields
 func (settings *SettingsData) CalculateDerivedFields() {
-	settings.DrawingSurfaceMaxX_MM = settings.SpoolHorizontalDistance_MM - 2*settings.DrawingSurfaceMinX_MM
+	settings.DrawingSurfaceMaxX_MM = settings.SpoolHorizontalDistance_MM - settings.DrawingSurfaceMinX_MM
 	settings.StepSize_MM = (settings.SpoolSingleStep_Degrees / 360.0) * settings.SpoolCircumference_MM
 
 	stepsPerRevolution := 360.0 / settings.SpoolSingleStep_Degrees
