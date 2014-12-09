@@ -297,6 +297,7 @@ type Arc struct {
 }
 
 // Draw image by generate a series of arcs, where darknes of a pixel is a movement along the arc
+// white is drawn with PenUp=true
 func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate) {
 	defer close(plotCoords)
 
@@ -360,41 +361,45 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 		flipDir = !flipDir
 		if flipDir {
 			for theta := topAngle; theta <= botAngle; theta += thetaDelta {
-
-				pos := arcOrigin.Add(Coordinate{X: math.Cos(theta) * radius, Y: math.Sin(theta) * radius})
+				pos := arcOrigin.Add(Coordinate{X: math.Cos(theta) * radius, Y: math.Sin(theta) * radius, PenUp: true})
 				imageValue := 1.0 - sampleImageAt(imageData, pos.Scaled(1/scale))
-				offset := setup.ArcDist * 0.5 * imageValue
+				offset := setup.ArcDist * 0.485 * imageValue
 
-				plotCoords <- pos
 				if imageValue > 0.05 {
-					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta) * (radius + offset), Y: math.Sin(theta) * (radius + offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta+thetaDelta/2.0) * (radius + offset), Y: math.Sin(theta+thetaDelta/2.0) * (radius + offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta+thetaDelta/2.0) * (radius - offset), Y: math.Sin(theta+thetaDelta/2.0) * (radius - offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta+thetaDelta) * (radius - offset), Y: math.Sin(theta+thetaDelta) * (radius - offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta) * radius, Y: math.Sin(theta) * radius, PenUp: false})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta) * (radius + offset), Y: math.Sin(theta) * (radius + offset), PenUp: false})                               //up
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta+thetaDelta/2.0) * (radius + offset), Y: math.Sin(theta+thetaDelta/2.0) * (radius + offset), PenUp: false}) //bottom
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta+thetaDelta/2.0) * (radius - offset), Y: math.Sin(theta+thetaDelta/2.0) * (radius - offset), PenUp: false}) //down
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta+thetaDelta) * (radius - offset), Y: math.Sin(theta+thetaDelta) * (radius - offset), PenUp: false})         //top
+				} else {
+					plotCoords <- pos
 				}
 			}
-			plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(botAngle) * radius, Y: math.Sin(botAngle) * radius})
+			plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(botAngle) * radius, Y: math.Sin(botAngle) * radius, PenUp: true})
+
 		} else {
 			for theta := botAngle; theta >= topAngle; theta -= thetaDelta {
-				pos := arcOrigin.Add(Coordinate{X: math.Cos(theta) * radius, Y: math.Sin(theta) * radius})
+				pos := arcOrigin.Add(Coordinate{X: math.Cos(theta) * radius, Y: math.Sin(theta) * radius, PenUp: true})
 				imageValue := 1.0 - sampleImageAt(imageData, pos.Scaled(1/scale))
-				offset := setup.ArcDist * 0.5 * imageValue
+				offset := setup.ArcDist * 0.485 * imageValue
 
-				plotCoords <- pos
 				if imageValue > 0.05 {
-					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta) * (radius + offset), Y: math.Sin(theta) * (radius + offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta-thetaDelta/2.0) * (radius + offset), Y: math.Sin(theta-thetaDelta/2.0) * (radius + offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta-thetaDelta/2.0) * (radius - offset), Y: math.Sin(theta-thetaDelta/2.0) * (radius - offset)})
-					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta-thetaDelta) * (radius - offset), Y: math.Sin(theta-thetaDelta) * (radius - offset)})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta) * radius, Y: math.Sin(theta) * radius, PenUp: false})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta) * (radius + offset), Y: math.Sin(theta) * (radius + offset), PenUp: false})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta-thetaDelta/2.0) * (radius + offset), Y: math.Sin(theta-thetaDelta/2.0) * (radius + offset), PenUp: false})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta-thetaDelta/2.0) * (radius - offset), Y: math.Sin(theta-thetaDelta/2.0) * (radius - offset), PenUp: false})
+					plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(theta-thetaDelta) * (radius - offset), Y: math.Sin(theta-thetaDelta) * (radius - offset), PenUp: false})
+				} else {
+					plotCoords <- pos
 				}
 			}
-			plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(topAngle) * radius, Y: math.Sin(topAngle) * radius})
+			plotCoords <- arcOrigin.Add(Coordinate{X: math.Cos(topAngle) * radius, Y: math.Sin(topAngle) * radius, PenUp: true})
 		}
 	}
 
-	plotCoords <- Coordinate{X: width, Y: height}
-	plotCoords <- Coordinate{X: 0, Y: height}
-	plotCoords <- Coordinate{X: 0, Y: 0}
+	plotCoords <- Coordinate{X: width, Y: height, PenUp: true}
+	plotCoords <- Coordinate{X: 0, Y: height, PenUp: true}
+	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
 }
 
 // Parameters for arc
