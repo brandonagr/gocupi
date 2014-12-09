@@ -278,6 +278,47 @@ func ParseSvg(svgData io.Reader) (data []Coordinate) {
 }
 
 // Send svg path points to channel
+func GenerateSvgCenterPath(data Coordinates, size float64, plotCoords chan<- Coordinate) {
+
+	defer close(plotCoords)
+
+	minPoint, maxPoint := data.Extents()
+
+	imageSize := maxPoint.Minus(minPoint)
+	scale := size / imageSize.X
+
+	fmt.Println("SVG Min:", minPoint, "Max:", maxPoint, "Scale:", scale)
+
+	if imageSize.X*scale > (Settings.DrawingSurfaceMaxX_MM-Settings.DrawingSurfaceMinX_MM) || imageSize.Y*scale > (Settings.DrawingSurfaceMaxY_MM-Settings.DrawingSurfaceMinY_MM) {
+		panic(fmt.Sprint(
+			"SVG coordinates extend past drawable surface, as defined in setup. Scaled svg size was: ",
+			imageSize,
+			" And settings bounds are, X: ", Settings.DrawingSurfaceMaxX_MM, " - ", Settings.DrawingSurfaceMinX_MM,
+			" Y: ", Settings.DrawingSurfaceMaxY_MM, " - ", Settings.DrawingSurfaceMinY_MM))
+	}
+
+	// want to center the image horizontally, so need actual world space location of gondola at start
+	polarSystem := PolarSystemFromSettings()
+	previousPolarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
+	startingLocation := previousPolarPos.ToCoord(polarSystem)
+	surfaceWidth := Settings.DrawingSurfaceMaxX_MM - Settings.DrawingSurfaceMinX_MM
+
+	// actual starting location - desired = offset
+	imageDistanceFromLeftMargin := (surfaceWidth - (imageSize.X * scale)) / 2
+	centeringOffset := Coordinate{X: startingLocation.X - imageDistanceFromLeftMargin}
+	fmt.Println("Pen starting position:", startingLocation, "Drawing surface width:", surfaceWidth, "Centering Offset:", centeringOffset)
+
+	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
+
+	for index := 0; index < len(data); index++ {
+		curTarget := data[index]
+		plotCoords <- curTarget.Minus(minPoint).Scaled(scale).Minus(centeringOffset)
+	}
+
+	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
+}
+
+// Send svg path points to channel
 func GenerateSvgBoxPath(data Coordinates, size float64, plotCoords chan<- Coordinate) {
 
 	defer close(plotCoords)
@@ -291,7 +332,7 @@ func GenerateSvgBoxPath(data Coordinates, size float64, plotCoords chan<- Coordi
 
 	if imageSize.X*scale > (Settings.DrawingSurfaceMaxX_MM-Settings.DrawingSurfaceMinX_MM) || imageSize.Y*scale > (Settings.DrawingSurfaceMaxY_MM-Settings.DrawingSurfaceMinY_MM) {
 		panic(fmt.Sprint(
-			"SVG coordinates extend past drawable surface, as defined in settings.xml. Scaled svg size was: ",
+			"SVG coordinates extend past drawable surface, as defined in setup. Scaled svg size was: ",
 			imageSize,
 			" And settings bounds are, X: ", Settings.DrawingSurfaceMaxX_MM, " - ", Settings.DrawingSurfaceMinX_MM,
 			" Y: ", Settings.DrawingSurfaceMaxY_MM, " - ", Settings.DrawingSurfaceMinY_MM))
@@ -326,7 +367,7 @@ func GenerateSvgTopPath(data Coordinates, size float64, plotCoords chan<- Coordi
 
 	if imageSize.X*scale > (Settings.DrawingSurfaceMaxX_MM-Settings.DrawingSurfaceMinX_MM) || imageSize.Y*scale > (Settings.DrawingSurfaceMaxY_MM-Settings.DrawingSurfaceMinY_MM) {
 		panic(fmt.Sprint(
-			"SVG coordinates extend past drawable surface, as defined in settings.xml. Scaled svg size was: ",
+			"SVG coordinates extend past drawable surface, as defined in setup. Scaled svg size was: ",
 			imageSize,
 			" And settings bounds are, X: ", Settings.DrawingSurfaceMaxX_MM, " - ", Settings.DrawingSurfaceMinX_MM,
 			" Y: ", Settings.DrawingSurfaceMaxY_MM, " - ", Settings.DrawingSurfaceMinY_MM))

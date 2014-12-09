@@ -346,6 +346,9 @@ func main() {
 		case "box":
 			go GenerateSvgBoxPath(data, size, plotCoords)
 
+		case "center":
+			go GenerateSvgCenterPath(data, size, plotCoords)
+
 		default:
 			fmt.Println("Expected top or box as the svg type, and saw", svgType)
 			return
@@ -604,7 +607,8 @@ svg s "path" t
 	path - path to svg file
 	t - type of drawing, either top or box
 		top (default) - best for TSP single loop drawings, pen starts on loop at top
-		box - pen starts in upper left corner, drawing boundary extents first`,
+		box - pen starts in upper left corner, drawing boundary extents first
+		center - drawing is centered left to right on drawing surface, top of drawing starts at current pen location`,
 
 	`text`: `Draw a given text string, font is based on the hershey simplex font.
 	

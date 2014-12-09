@@ -35,7 +35,7 @@ func GenerateSteps(plotCoords <-chan Coordinate, stepData chan<- int8) {
 	fmt.Println("Start Location", startingLocation, "Initial Polar", previousPolarPos)
 
 	if startingLocation.IsNaN() {
-		panic(fmt.Sprint("Starting location is not a valid number, your settings.xml has impossible values"))
+		panic(fmt.Sprint("Starting location is not a valid number, setup has impossible values"))
 	}
 
 	// setup 0,0 as the initial location of the plot head
