@@ -74,7 +74,7 @@ func drawLine(start Coordinate, end Coordinate, minPoint Coordinate, maxPoint Co
 	end_y := int(end.Y - minPoint.Y)
 	var lineColor color.RGBA
 	if end.PenUp {
-		lineColor = color.RGBA{200, 200, 0, 255}
+		lineColor = color.RGBA{220, 220, 220, 255}
 	} else {
 		lineColor = color.RGBA{0, 0, 255, 255}
 	}

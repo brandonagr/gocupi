@@ -4,7 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	. "github.com/BrandonAGr/gocupi/polargraph"
+	. "github.com/brandonagr/gocupi/polargraph"
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	"sort"
@@ -87,11 +87,32 @@ func main() {
 		fmt.Println("Generating sliding circle")
 		go GenerateSlidingCircle(circleSetup, plotCoords)
 
+	case "crosshatch":
+		if params, err = GetArgsAsFloats(args[1:], 2, true); err != nil {
+			fmt.Println("ERROR: ", err)
+			fmt.Println()
+			PrintCommandHelp("crosshatch")
+			return
+		}
+		crossHatchSetup := CrossHatch{
+			Size: params[0],
+			Dist: params[1],
+		}
+
+		fmt.Println("Generating crosshatch path")
+		data := LoadImage(args[3])
+		go GenerateCrossHatch(crossHatchSetup, data, plotCoords)
+
+		originalPlotCoords := plotCoords
+		plotCoords = make(chan Coordinate, 1024)
+		go RemoveExtraPenUpMovements(originalPlotCoords, plotCoords)
+
 	case "gcode":
 		if len(args) < 3 {
 			fmt.Println("ERROR: ", fmt.Sprint("Expected 2 parameters and saw ", len(args)-1))
 			fmt.Println()
-			PrintCommandHelp("svg")
+			PrintCommandHelp("gcode")
+			return
 		}
 
 		scale, _ := strconv.ParseFloat(args[1], 64)
@@ -438,6 +459,29 @@ func FlipPlotCoords(flipX, flipY bool, coords <-chan Coordinate, flippedCoords c
 	}
 }
 
+// Remove unnecessary pen up movements, since PenUp for a line segment is determined by the PenUp of the end of the line, need to do special remember previous coord logic
+func RemoveExtraPenUpMovements(coords <-chan Coordinate, cleanedCoords chan<- Coordinate) {
+	defer close(cleanedCoords)
+
+	previous := Coordinate{PenUp: false}
+
+	skipping := false
+
+	for coord := range coords {
+		if previous.PenUp && coord.PenUp {
+			skipping = true
+			previous = coord
+		} else {
+			if skipping {
+				cleanedCoords <- previous
+				skipping = false
+			}
+			cleanedCoords <- coord
+		}
+		previous = coord
+	}
+}
+
 // Parse a series of numbers as floats
 func GetArgsAsFloats(args []string, expectedCount int, preventZero bool) ([]float64, error) {
 
@@ -489,7 +533,7 @@ Flags:
 -count, outputs number of steps and render time
 -slowfactor=#, slow down rendering by #x, 2x, 4x slower etc
 -flipx, flip the generated image left to right
--flipx, flip the generated image top to bottom
+-flipy, flip the generated image top to bottom
 
 Commands:`)
 
@@ -520,6 +564,13 @@ circle R d n
 	R - radius of circle
 	d - displacement per revolution
 	n - number of circles`,
+
+	`crosshatch`: `Render an image using a crosshatch pattern.
+
+crosshatch s d "path"
+	s - size of long axis
+	d - distance between each crosshatch line
+	path - path to image file`,
 
 	`gcode`: `Render a given gcode file, only a subset of valid gcode is recognized.
 	

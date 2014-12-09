@@ -4,6 +4,7 @@ package polargraph
 
 import (
 	"fmt"
+	"github.com/nfnt/resize"
 	"image"
 	"math"
 )
@@ -394,6 +395,204 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 	plotCoords <- Coordinate{X: width, Y: height}
 	plotCoords <- Coordinate{X: 0, Y: height}
 	plotCoords <- Coordinate{X: 0, Y: 0}
+}
+
+// Parameters for arc
+type CrossHatch struct {
+
+	// Size of longest axis
+	Size float64
+
+	// Distance between lines
+	Dist float64
+}
+
+// Draw image by generate a series of arcs, where darknes of a pixel is a movement along the arc
+func GenerateCrossHatch(setup CrossHatch, imageData image.Image, plotCoords chan<- Coordinate) {
+	defer close(plotCoords)
+
+	gridSize := setup.Size / setup.Dist
+	imageData = resize.Resize(uint(gridSize), 0, imageData, resize.Bicubic)
+
+	imageSize := imageData.Bounds().Max
+	scale := setup.Size / math.Max(float64(imageSize.X), float64(imageSize.Y))
+	width := float64(imageSize.X) * scale
+	height := float64(imageSize.Y) * scale
+
+	fmt.Println("Width", width, "Height", height, "Scale", scale)
+
+	//polarSystem := PolarSystemFromSettings()
+	//polarPos := PolarCoordinate{LeftDist: Settings.StartingLeftDist_MM, RightDist: Settings.StartingRightDist_MM}
+
+	leftToRightThreshold := 0.75
+	rightToLeftThreshold := 0.5
+	verticalThreshold := 0.25
+
+	// start in bottom left
+	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
+	currentPos := Coordinate{X: 0, Y: height - setup.Dist, PenUp: true}
+	plotCoords <- currentPos
+
+	imageX := 0
+	imageY := imageSize.Y - 1
+
+	// left to right diagonal
+	goingDown := true
+	for {
+		if average(imageData.At(imageX, imageY)) < leftToRightThreshold {
+			currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: false}
+		} else {
+			currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+		}
+		plotCoords <- currentPos
+
+		if goingDown {
+			imageX += 1
+			imageY += 1
+
+			if imageX >= imageSize.X {
+				goingDown = false
+				imageX = imageSize.X - 1
+				imageY -= 2
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+			if imageY >= imageSize.Y {
+				goingDown = false
+				imageY = imageSize.Y - 1
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+		} else {
+			imageX -= 1
+			imageY -= 1
+
+			if imageY < 0 {
+				goingDown = true
+				imageY = 0
+				imageX += 2
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+			if imageX < 0 {
+				goingDown = true
+				imageX = 0
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+		}
+
+		if imageY < 0 || imageX >= imageSize.X {
+			break
+		}
+	}
+
+	imageX = 0
+	imageY = 0
+	currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+	plotCoords <- currentPos
+	goingDown = true
+
+	// right to left diagonal
+	for {
+		if average(imageData.At(imageX, imageY)) < rightToLeftThreshold {
+			currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: false}
+		} else {
+			currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+		}
+		plotCoords <- currentPos
+
+		if goingDown {
+			imageX -= 1
+			imageY += 1
+
+			if imageY >= imageSize.Y {
+				goingDown = false
+				imageY = imageSize.Y - 1
+				imageX += 2
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+
+			if imageX < 0 {
+				goingDown = false
+				imageX = 0
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+		} else {
+			imageX += 1
+			imageY -= 1
+
+			if imageX >= imageSize.X {
+				goingDown = true
+				imageX = imageSize.X - 1
+				imageY += 2
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+
+			if imageY < 0 {
+				goingDown = true
+				imageY = 0
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+		}
+
+		if imageY < 0 || imageX >= imageSize.X {
+			break
+		}
+	}
+
+	imageX = imageSize.X - 1
+	imageY = imageSize.Y - 1
+	currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+	plotCoords <- currentPos
+	goingDown = false
+
+	// vertical
+	for imageX = imageSize.X - 1; imageX >= 0; {
+		if average(imageData.At(imageX, imageY)) < verticalThreshold {
+			currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: false}
+		} else {
+			currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+		}
+		plotCoords <- currentPos
+
+		if goingDown {
+			imageY += 1
+
+			if imageY >= imageSize.Y {
+				goingDown = false
+				imageY = imageSize.Y - 1
+				imageX--
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+		} else {
+			imageY -= 1
+			if imageY < 0 {
+				goingDown = true
+				imageY = 0
+				imageX--
+
+				currentPos = Coordinate{X: float64(imageX) * setup.Dist, Y: float64(imageY) * setup.Dist, PenUp: true}
+				plotCoords <- currentPos
+			}
+		}
+	}
+
+	plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
 }
 
 // Parameters for raster
