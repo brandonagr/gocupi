@@ -171,23 +171,6 @@ func main() {
 		data = GaussianImage(data)
 		go GenerateArc(arcSetup, data, plotCoords)
 
-		case "imagearcNoWhite":
-		if params, err = GetArgsAsFloats(args[1:], 2, true); err != nil {
-			fmt.Println("ERROR: ", err)
-			fmt.Println()
-			PrintCommandHelp("imagearc")
-			return
-		}
-		arcSetup := Arc{
-			Size:    params[0],
-			ArcDist: params[1],
-		}
-
-		fmt.Println("Generating image arc path")
-		data := LoadImage(args[3])
-		data = GaussianImage(data)
-		go GenerateArcNoWhite(arcSetup, data, plotCoords)
-
 		case "meanderStipple":
 		if params, err = GetArgsAsFloats(args[1:], 4, false); err != nil {
 			fmt.Println("ERROR: ", err)
