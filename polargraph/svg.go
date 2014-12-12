@@ -25,6 +25,18 @@ type Group struct {
 	Paths     []Path `xml:"path"`
 }
 
+type GroupStipple struct {
+	Transform string `xml:"transform,attr"`
+	Stipples     []Stipple `xml:"circle"`
+}
+
+type Stipple struct {
+	Style string `xml:"style,attr"`
+	DataX  float64 `xml:"cx,attr"`
+	DataY  float64 `xml:"cy,attr"`
+	DataR  float64 `xml:"r,attr"`
+}
+
 // All supported Path Commands
 type PathCommand int
 
@@ -276,6 +288,77 @@ func ParseSvg(svgData io.Reader) (data []Coordinate) {
 
 	return data
 }
+// read a file
+func ParseSvgFileCircle(fileName string) (data []Circle) {
+	//fmt.Println("filename",fileName)
+	file, err := os.Open(fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	return ParseSvgCircle(file)
+}
+
+// read svg xml data
+func ParseSvgCircle(svgData io.Reader) (data []Circle) {
+
+	data = make([]Circle, 0)
+	decoder := xml.NewDecoder(svgData)
+	for {
+		t, _ := decoder.Token()
+		if t == nil {
+			break
+		}
+
+		switch se := t.(type) {
+			case xml.StartElement:
+			//fmt.Println("xml element name:",se.Name.Local)
+
+			if se.Name.Local == "circle" {
+				var stippleData Stipple
+				decoder.DecodeElement(&stippleData, &se)
+
+				data = append(data)
+				} else if se.Name.Local == "g" {
+
+					//fmt.Println("se:",se)
+					var groupData GroupStipple
+					decoder.DecodeElement(&groupData, &se)
+					//fmt.Println("group data:",groupData)
+
+					var transformX, transformY, scaleX, scaleY float64
+					if groupData.Transform != "" && strings.Contains(groupData.Transform, "scale") {
+						if _, err := fmt.Sscanf(groupData.Transform, "translate(%f,%f) scale(%f,%f)", &transformX, &transformY, &scaleX, &scaleY); err != nil {
+							fmt.Println("WARNING: Unable to parse svg group transform of ", groupData.Transform)
+							scaleX = 1
+							scaleY = 1
+						}
+						} else {
+							scaleX = 1
+							scaleY = 1
+						}
+						/*
+						data = groupData.Stipples
+						*/
+
+						if groupData.Stipples != nil {
+							for _, stipple := range groupData.Stipples {
+								circle := Circle{Coordinate{X:stipple.DataX,Y:stipple.DataY},stipple.DataR}
+								data = append(data,circle)
+							}
+						}
+
+					}
+					}//end switch
+				}
+
+				if len(data) == 0 {
+					panic("SVG contained no Circle elements! Only Circle are supported")
+				}
+				//fmt.Println("[]Circles",data)
+				return data
+			}
+
 
 // Send svg path points to channel
 func GenerateSvgCenterPath(data Coordinates, size float64, plotCoords chan<- Coordinate) {

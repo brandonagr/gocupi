@@ -41,7 +41,7 @@ func DrawToImage(imageName string, plotCoords <-chan Coordinate) {
 	maxPoint = maxPoint.Add(Coordinate{X: 50, Y: 50})
 	minPoint = minPoint.Add(Coordinate{X: -50, Y: -50})
 
-	fmt.Println("Image Min:", minPoint, "Min:", maxPoint)
+	fmt.Println("Image Min:", minPoint, "Max:", maxPoint)
 
 	image := image.NewRGBA(image.Rect(0, 0, int(maxPoint.X-minPoint.X), int(maxPoint.Y-minPoint.Y)))
 
@@ -74,16 +74,19 @@ func drawLine(start Coordinate, end Coordinate, minPoint Coordinate, maxPoint Co
 	end_y := int(end.Y - minPoint.Y)
 	var lineColor color.RGBA
 	if end.PenUp {
-		lineColor = color.RGBA{220, 220, 220, 255}
+		lineColor = color.RGBA{255, 0, 0, 255}
 	} else {
-		lineColor = color.RGBA{0, 0, 255, 255}
+		lineColor = color.RGBA{0, 0, 0, 255}
 	}
 
+	//image.Set(end_x+1, end_y-1, color.RGBA{255, 0, 0, 128})
 	//  highlight the end
+	/*
 	image.Set(end_x+1, end_y+1, color.RGBA{255, 0, 0, 128})
 	image.Set(end_x+1, end_y-1, color.RGBA{255, 0, 0, 128})
 	image.Set(end_x-1, end_y+1, color.RGBA{255, 0, 0, 128})
 	image.Set(end_x-1, end_y-1, color.RGBA{255, 0, 0, 128})
+	*/
 
 	// Bresenham's
 	cx := start_x
