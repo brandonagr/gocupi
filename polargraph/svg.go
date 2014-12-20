@@ -35,6 +35,7 @@ type Stipple struct {
 	DataX  float64 `xml:"cx,attr"`
 	DataY  float64 `xml:"cy,attr"`
 	DataR  float64 `xml:"r,attr"`
+	Id  string `xml:"id,attr"`
 }
 
 // All supported Path Commands
@@ -306,6 +307,7 @@ func ParseSvgCircle(svgData io.Reader) (data []Circle) {
 	decoder := xml.NewDecoder(svgData)
 	for {
 		t, _ := decoder.Token()
+		//fmt.Println("token: ",t)
 		if t == nil {
 			break
 		}
@@ -313,6 +315,7 @@ func ParseSvgCircle(svgData io.Reader) (data []Circle) {
 		switch se := t.(type) {
 			case xml.StartElement:
 			//fmt.Println("xml element name:",se.Name.Local)
+			//fmt.Println("se:",se)
 
 			if se.Name.Local == "circle" {
 				var stippleData Stipple
@@ -321,7 +324,6 @@ func ParseSvgCircle(svgData io.Reader) (data []Circle) {
 				data = append(data)
 				} else if se.Name.Local == "g" {
 
-					//fmt.Println("se:",se)
 					var groupData GroupStipple
 					decoder.DecodeElement(&groupData, &se)
 					//fmt.Println("group data:",groupData)
@@ -343,7 +345,18 @@ func ParseSvgCircle(svgData io.Reader) (data []Circle) {
 
 						if groupData.Stipples != nil {
 							for _, stipple := range groupData.Stipples {
-								circle := Circle{Coordinate{X:stipple.DataX,Y:stipple.DataY},stipple.DataR}
+								//fmt.Println("id: ",stipple.Id)
+								penup:= false
+								start:= false
+								if strings.Contains(stipple.Id, "penup"){
+									fmt.Println("id: ",stipple.Id)
+									penup = true
+									}
+								if strings.Contains(stipple.Id, "start"){
+									fmt.Println("id to start: ",stipple.Id)
+									start = true
+								}
+								circle := Circle{Coordinate{X:stipple.DataX,Y:stipple.DataY,PenUp: penup},stipple.DataR,start}
 								data = append(data,circle)
 							}
 						}
@@ -352,11 +365,27 @@ func ParseSvgCircle(svgData io.Reader) (data []Circle) {
 					}//end switch
 				}
 
-				if len(data) == 0 {
+				//search id with "start" tag in it
+				initialPositionIndex := 0
+				for index, point := range data {
+					if point.Start == true{
+						initialPositionIndex = index
+					}
+				}
+
+				dataSorted := make([]Circle, 0)
+				for index := 0; index < len(data); index++ {
+					curTarget := data[(index+initialPositionIndex)%len(data)]
+					dataSorted = append(dataSorted,curTarget)
+				}
+				fmt.Println("initialPositionIndex: ",initialPositionIndex,"len(data): ",len(data),"len(dataSorted): ",len(dataSorted))
+				fmt.Println("initialPosition: ",dataSorted[initialPositionIndex],"nextPosition: ",dataSorted[initialPositionIndex+1])
+
+				if len(dataSorted) == 0 {
 					panic("SVG contained no Circle elements! Only Circle are supported")
 				}
 				//fmt.Println("[]Circles",data)
-				return data
+				return dataSorted
 			}
 
 

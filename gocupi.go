@@ -4,7 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	. "github.com/brandonagr/gocupi/polargraph"
+	//. "github.com/brandonagr/gocupi/polargraph"
+	. "github.com/sergio-daniels/gocupi/polargraph"
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	"sort"
@@ -171,39 +172,39 @@ func main() {
 		data = GaussianImage(data)
 		go GenerateArc(arcSetup, data, plotCoords)
 
-		case "meanderStipple":
+	case "meanderStipple":
 		if params, err = GetArgsAsFloats(args[1:], 4, false); err != nil {
 			fmt.Println("ERROR: ", err)
 			fmt.Println()
 			PrintCommandHelp("meanderStipple")
 			return
 		}
-			//rad1:= params[0]
-			//rad2:= params[1]
-			size:=params[0]
-			narrowness:= params[1]
-			radMulty:= params[2]
-			cutOff:=params[3]
+		//rad1:= params[0]
+		//rad2:= params[1]
+		size := params[0]
+		narrowness := params[1]
+		radMulty := params[2]
+		cutOff := params[3]
 
-			fmt.Println("Reading stipples from voronoi_stipller")
-			circles := ParseSvgFileCircle(args[5])
-			//fmt.Println("parsed data:",data)
+		fmt.Println("Reading stipples from voronoi_stipller")
+		circles := ParseSvgFileCircle(args[5])
+		//fmt.Println("parsed data:",data)
 
-			fmt.Println("Generating meander")
+		fmt.Println("Generating meander")
 
-			/*
-		//used for test
-		circles := make([]Circle, 0)
-		c1:=Circle{Coordinate{X: 100,Y: 100},10.0}
-		c2:=Circle{Coordinate{X: 600,Y: 200},70.0}
-		c3:=Circle{Coordinate{X: 500,Y: 550},30.0}
-		c4:=Circle{Coordinate{X: 400,Y: 350},5.0}
-		circles= append(circles,c1,c2,c3,c4)
+		/*
+			//used for test
+			circles := make([]Circle, 0)
+			c1:=Circle{Coordinate{X: 100,Y: 100},10.0}
+			c2:=Circle{Coordinate{X: 600,Y: 200,PenUp:true},70.0}
+			c3:=Circle{Coordinate{X: 500,Y: 550},30.0}
+			c4:=Circle{Coordinate{X: 400,Y: 350},5.0}
+			circles= append(circles,c1,c2,c3,c4)
 
-		go TestGenerateMeander(circles,size,narrowness,radMulty,cutOff, plotCoords)
-		*/
+			//go TestGenerateMeander(circles,size,narrowness,radMulty,cutOff, plotCoords)
+			*/
 
-		go GenerateMeander(circles,size,narrowness,radMulty,cutOff, plotCoords)
+		go GenerateMeander(circles, size, narrowness, radMulty, cutOff, plotCoords)
 
 		//go DrawMeander(circles,size,narrowness,plotCoords)
 		//defer close(plotCoords)

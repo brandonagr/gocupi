@@ -332,7 +332,7 @@ func GenerateArc(setup Arc, imageData image.Image, plotCoords chan<- Coordinate)
 
 		// find two points of intersection
 		var topIntersection, botIntersection Coordinate
-		arc := Circle{arcOrigin, radius}
+		arc := Circle{arcOrigin, radius,false}
 
 		for _, side := range sides {
 			p1, p1Valid, _, _ := arc.Intersection(side)
@@ -421,10 +421,14 @@ func GenerateMeander(circles []Circle, size float64,narrowness float64,radMulty 
 	data = nil
 	imageSize := maxPoint.Minus(minPoint)
 	scale := size / math.Max(imageSize.X, imageSize.Y)
+	pixelToMM := 0.264583333
+
 	minRadius:=100.0
 	maxRadius:=-100.0
+
 	//radmulty:=0.4
-	fmt.Println("SVG Min:", minPoint, "Max:", maxPoint, "Scale:", scale)
+	fmt.Println("SVG Min[mm]:", minPoint.Scaled(pixelToMM), "Max:", maxPoint.Scaled(pixelToMM),"imageSize: ",imageSize.Scaled(pixelToMM), "Scale:", scale)
+	fmt.Println("SVG Min:", minPoint, "Max:", maxPoint,"imageSize: ",imageSize, "Scale:", scale)
 	if imageSize.X*scale > (Settings.DrawingSurfaceMaxX_MM-Settings.DrawingSurfaceMinX_MM) || imageSize.Y*scale > (Settings.DrawingSurfaceMaxY_MM-Settings.DrawingSurfaceMinY_MM) {
 		panic(fmt.Sprint(
 			"SVG coordinates extend past drawable surface, as defined in settings.xml. Scaled svg size was: ",
@@ -442,19 +446,26 @@ func GenerateMeander(circles []Circle, size float64,narrowness float64,radMulty 
 		for i:= 0;i < len(circles)-1; i++{
 			//for i:= 0;i < 2; i++{
 			//fmt.Println("index: of circles ",i)
-			//
 
 			rad1:=circles[i].Radius*radMulty
-
+			// calculate min and max circle radius
 			if rad1 < minRadius {
 				minRadius = rad1
 				} else if rad1 > maxRadius {
 					maxRadius = rad1
 				}
 
-				DrawMeander(circles[i],circles[i+1],scale,narrowness,radMulty,cutOff,plotCoords)
-				if i== len(circles)-2{
-					fmt.Println("last circle: ",circles[i+1].Center.String())
+				//fmt.Println("circle start: ",circles[i],"cirle end: ", circles[i+1])
+
+				// do not meander if pen is up
+				if circles[i].Center.PenUp == false{
+					DrawMeander(circles[i],circles[i+1],scale,narrowness,radMulty,cutOff,plotCoords)
+					if i== len(circles)-2{
+						fmt.Println("last circle: ",circles[i+1].Center.String())
+					}
+				}else{
+					plotCoords <- Coordinate{X: circles[i].Center.Scaled(scale).X, Y: circles[i].Center.Scaled(scale).Y, PenUp: true}
+					plotCoords <- Coordinate{X: circles[i+1].Center.Scaled(scale).X, Y: circles[i+1].Center.Scaled(scale).Y, PenUp: true}
 				}
 			}
 			// close the tour
@@ -463,7 +474,10 @@ func GenerateMeander(circles []Circle, size float64,narrowness float64,radMulty 
 			//fmt.Println("len(circles)-1",len(circles)-1)
 			//fmt.Println("letzer Punkt für schluss: ",circles[len(circles)-1].Center.String())
 			//fmt.Println("schluss: ",circles[0].Center.String())
+			fmt.Println("circle start: ",circles[len(circles)-1],"cirle end: ", circles[0])
 			DrawMeander(circles[len(circles)-1],circles[0],scale,narrowness,radMulty,cutOff,plotCoords)
+			//fmt.Println("circle start: ",circles[0],"cirle end: ", circles[1])
+			//DrawMeander(circles[0],circles[1],scale,narrowness,radMulty,cutOff,plotCoords)
 
 			// go home
 			plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
@@ -485,8 +499,10 @@ func GenerateMeander(circles []Circle, size float64,narrowness float64,radMulty 
 
 			imageSize := maxPoint.Minus(minPoint)
 			scale := size / math.Max(imageSize.X, imageSize.Y)
+			pixelToMM := 0.264583333
 
-			fmt.Println("SVG Min:", minPoint, "Max:", maxPoint, "Scale:", scale)
+			fmt.Println("SVG Min:", minPoint.Scaled(pixelToMM), "Max:", maxPoint.Scaled(pixelToMM),"imageSize: ",imageSize, "Scale:", scale)
+			fmt.Println("SVG Min:", minPoint, "Max:", maxPoint,"imageSize: ",imageSize, "Scale:", scale)
 			if imageSize.X*scale > (Settings.DrawingSurfaceMaxX_MM-Settings.DrawingSurfaceMinX_MM) || imageSize.Y*scale > (Settings.DrawingSurfaceMaxY_MM-Settings.DrawingSurfaceMinY_MM) {
 				panic(fmt.Sprint(
 					"SVG coordinates extend past drawable surface, as defined in settings.xml. Scaled svg size was: ",
@@ -495,10 +511,16 @@ func GenerateMeander(circles []Circle, size float64,narrowness float64,radMulty 
 					" Y: ", Settings.DrawingSurfaceMaxY_MM, " - ", Settings.DrawingSurfaceMinY_MM))
 				}
 
+				// go to start point
+				plotCoords <- Coordinate{X: circles[0].Center.X, Y: circles[0].Center.Y, PenUp: true}.Scaled(scale)
+
 				DrawMeander(circles[0],circles[1],scale,narrowness,radMulty,cutOff,plotCoords)
 				DrawMeander(circles[1],circles[2],scale,narrowness,radMulty,cutOff,plotCoords)
 				DrawMeander(circles[2],circles[3],scale,narrowness,radMulty,cutOff,plotCoords)
 				DrawMeander(circles[3],circles[0],scale,narrowness,radMulty,cutOff,plotCoords)
+
+				// go home
+				plotCoords <- Coordinate{X: 0, Y: 0, PenUp: true}
 
 			}
 
@@ -544,7 +566,7 @@ func GenerateMeander(circles []Circle, size float64,narrowness float64,radMulty 
 				//y'= -x * sina + y * cosa
 
 				//start point
-				plotCoords <- Coordinate{X: start.X, Y: start.Y,PenUp:false}.Scaled(scale) //P1
+				plotCoords <- Coordinate{X: start.X, Y: start.Y,PenUp: start.PenUp}.Scaled(scale) //P1
 
 				//draw star
 				starAngle:= 10.0*narrowness*7/10
@@ -556,42 +578,47 @@ func GenerateMeander(circles []Circle, size float64,narrowness float64,radMulty 
 				// start point in order to get a star shape
 				tempX:=rad1*cosA+0*sinA
 				tempY:=-(rad1)*sinA+0*cosA
+				//do not meander if pen is up
+				//if start.PenUp == false{
+					if ((rad1 >cutOff || rad2 > cutOff) && false){
+						for z :=0.0; z <= (180)/starAngle; z++ {
+							tempAngle:= starAngle*z
+							cosStarAngle:= math.Cos(tempAngle*math.Pi/180)
+							sinStarAngle:= math.Sin(tempAngle*math.Pi/180)
+							//fmt.Println("starAngle: ",tempAngle,"z: ",z)
+							//fmt.Println("cosStarAngle: ",cosStarAngle, "sinStarAngle", sinStarAngle)
+							tempCoord:=Coordinate{X: tempX*cosStarAngle+tempY*sinStarAngle, Y: -(tempX)*sinStarAngle+tempY*cosStarAngle,PenUp: start.PenUp}.Add(start).Scaled(scale)
+							//fmt.Println("x strich", tempCoord.X,"y strich",tempCoord.Y,"länge",tempCoord.Len())
 
-				if (rad1 >cutOff || rad2 > cutOff){
-					for z :=0.0; z <= (180)/starAngle; z++ {
-						tempAngle:= starAngle*z
-						cosStarAngle:= math.Cos(tempAngle*math.Pi/180)
-						sinStarAngle:= math.Sin(tempAngle*math.Pi/180)
-						//fmt.Println("starAngle: ",tempAngle,"z: ",z)
-						//fmt.Println("cosStarAngle: ",cosStarAngle, "sinStarAngle", sinStarAngle)
-						tempCoord:=Coordinate{X: tempX*cosStarAngle+tempY*sinStarAngle, Y: -(tempX)*sinStarAngle+tempY*cosStarAngle}.Add(start).Scaled(scale)
-						//fmt.Println("x strich", tempCoord.X,"y strich",tempCoord.Y,"länge",tempCoord.Len())
+							plotCoords <-tempCoord//P2
+							//go pack to center
+							plotCoords <- Coordinate{X: start.X, Y: start.Y,PenUp: start.PenUp}.Scaled(scale) //P1
 
-						plotCoords <-tempCoord//P2
-						//go pack to center
-						plotCoords <- Coordinate{X: start.X, Y: start.Y,PenUp:false}.Scaled(scale) //P1
-
-					}
-				}
-				//first point on meander
-				if rad1 >cutOff || rad2 > cutOff{
-					plotCoords <-Coordinate{X: rad1*cosA+0*sinA, Y: -(rad1)*sinA+0*cosA}.Add(start).Scaled(scale)//P2
-					//rest of points on meander
-					for i :=1.0; i <= hpp/narrowness; i = i+2 {
-						Q=tanB*narrowness*i
-						//fmt.Println("Q",Q,"i",i,"hpp/narrowness",hpp/narrowness)
-						plotCoords <-Coordinate{X: neg*(Q+rad1)*cosA+narrowness*i*sinA, Y:-neg*(Q+rad1)*sinA +narrowness*i*cosA}.Add(start).Scaled(scale)//P3
-						plotCoords <-Coordinate{X:-neg*(Q+rad1)*cosA+narrowness*i*sinA, Y:-neg*(-(Q+rad1))*sinA+narrowness*i*cosA}.Add(start).Scaled(scale)//P4
-						y := i+1
-						if y <= hpp/narrowness{
-							Q=tanB*narrowness*y
-							plotCoords <-Coordinate{X:-neg*(Q+rad1)*cosA+narrowness*y*sinA, Y:-neg*(-(Q+rad1))*sinA+narrowness*y*cosA}.Add(start).Scaled(scale)//P5
-							plotCoords <-Coordinate{X:neg*(Q+rad1)*cosA+narrowness*y*sinA, Y:-neg*(Q+rad1)*sinA+narrowness*y*cosA}.Add(start).Scaled(scale)//P6
 						}
 					}
-				}
+
+				//first point on meander
+					if (rad1 >cutOff || rad2 > cutOff){
+						plotCoords <-Coordinate{X: rad1*cosA+0*sinA, Y: -(rad1)*sinA+0*cosA,PenUp: start.PenUp}.Add(start).Scaled(scale)//P2
+						//rest of points on meander
+						for i :=1.0; i <= hpp/narrowness; i = i+2 {
+							Q=tanB*narrowness*i
+							//fmt.Println("Q",Q,"i",i,"hpp/narrowness",hpp/narrowness)
+							plotCoords <-Coordinate{X: neg*(Q+rad1)*cosA+narrowness*i*sinA, Y:-neg*(Q+rad1)*sinA +narrowness*i*cosA,PenUp: start.PenUp}.Add(start).Scaled(scale)//P3
+							plotCoords <-Coordinate{X:-neg*(Q+rad1)*cosA+narrowness*i*sinA, Y:-neg*(-(Q+rad1))*sinA+narrowness*i*cosA,PenUp: start.PenUp}.Add(start).Scaled(scale)//P4
+							y := i+1
+							if y <= hpp/narrowness{
+								Q=tanB*narrowness*y
+								plotCoords <-Coordinate{X:-neg*(Q+rad1)*cosA+narrowness*y*sinA, Y:-neg*(-(Q+rad1))*sinA+narrowness*y*cosA,PenUp: start.PenUp}.Add(start).Scaled(scale)//P5
+								plotCoords <-Coordinate{X:neg*(Q+rad1)*cosA+narrowness*y*sinA, Y:-neg*(Q+rad1)*sinA+narrowness*y*cosA,PenUp: start.PenUp}.Add(start).Scaled(scale)//P6
+							}
+						}
+					}
+				//}
+				//end point
+				plotCoords <- Coordinate{X: end.X, Y: end.Y,PenUp: start.PenUp}.Scaled(scale) //P7
 			}
-			
+
 // Parameters for arc
 type CrossHatch struct {
 

@@ -198,6 +198,8 @@ type Circle struct {
 
 	// Radius of circle
 	Radius float64
+	// flag to set start point
+	Start bool
 }
 
 // Defines a line segment
