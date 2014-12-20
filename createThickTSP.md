@@ -2,22 +2,22 @@ Follow the instruction on http://www.drububu.com/illustration/tsp/index.html to 
 acordingly.
 The output saved in output_bilder\tsp_art.svg is the input for the gocupi meanderStipple command. For help see gocupi command help.
 
-  # create a TSP art image according to the instructions on
-  #http://www.drububu.com/illustration/tsp/index.html
-  #Example
-  #.\create_tsp.ps1 -stipp 1000 -pixd 6 -radm 2 -quali 0.1 -input .\input_bilder\test.png
-  # .\create_tsp.ps1 -stipp 26000 -pixd 12 -radm 1 -quali 0.05 -input .\input_bilder\test.png
-  # script created: 20.14.2014 / Sergio Daniels
+    # create a TSP art image according to the instructions on
+    #http://www.drububu.com/illustration/tsp/index.html
+    #Example
+    #.\create_tsp.ps1 -stipp 1000 -pixd 6 -radm 2 -quali 0.1 -input .\input_bilder\test.png
+    # .\create_tsp.ps1 -stipp 26000 -pixd 12 -radm 1 -quali 0.05 -input .\input_bilder\test.png
+    # script created: 20.14.2014 / Sergio Daniels
 
-  param(
-    [int]$stipples = 8000,
-    [string]$quality = 0.1,
-    [string]$radmulti = 1,
-    [string]$pixdensity = 5,
-    [string]$inputFile = "input.png",
-    [string]$output = ".\tmp\output.svg",
-    [switch]$MyVerbose = $false
-    )
+    param(
+      [int]$stipples = 8000,
+      [string]$quality = 0.1,
+      [string]$radmulti = 1,
+      [string]$pixdensity = 5,
+      [string]$inputFile = "input.png",
+      [string]$output = ".\tmp\output.svg",
+      [switch]$MyVerbose = $false
+      )
 
     Write-Host "Stipples: ",$stipples
     Write-Host "color: ", $color
