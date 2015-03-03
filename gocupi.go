@@ -4,8 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	//. "github.com/brandonagr/gocupi/polargraph"
-	. "github.com/sergio-daniels/gocupi/polargraph"
+	. "github.com/brandonagr/gocupi/polargraph"
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	"sort"
@@ -202,7 +201,7 @@ func main() {
 			circles= append(circles,c1,c2,c3,c4)
 
 			//go TestGenerateMeander(circles,size,narrowness,radMulty,cutOff, plotCoords)
-			*/
+		*/
 
 		go GenerateMeander(circles, size, narrowness, radMulty, cutOff, plotCoords)
 
@@ -404,6 +403,9 @@ func main() {
 
 		case "box":
 			go GenerateSvgBoxPath(data, size, plotCoords)
+
+		case "center":
+			go GenerateSvgCenterPath(data, size, plotCoords)
 
 		default:
 			fmt.Println("Expected top or box as the svg type, and saw", svgType)

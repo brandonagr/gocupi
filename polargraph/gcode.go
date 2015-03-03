@@ -13,6 +13,7 @@ import (
 
 // Any of the possible command types that are supported
 type GcodeCommand int32
+
 var penupcode float64
 
 const (
@@ -62,16 +63,15 @@ func ParseGcodeFile(fileName string) GcodeData {
 func ParseGcode(fileData []string) (data GcodeData) {
 
 	data = GcodeData{make([]GcodeLine, 0)}
-	
 
 	for _, fileLine := range fileData {
 
 		if strings.HasPrefix(fileLine, "G00") || strings.HasPrefix(fileLine, "G01") {
 
 			coord := Coordinate{X: math.MaxFloat64, Y: math.MaxFloat64, PenUp: false}
-			
+
 			for _, part := range strings.Split(fileLine, " ") {
-				
+
 				var err interface{}
 				if strings.HasPrefix(part, "X") {
 					coord.X, err = strconv.ParseFloat(part[1:], 64)
@@ -80,7 +80,7 @@ func ParseGcode(fileData []string) (data GcodeData) {
 					}
 				} else if strings.HasPrefix(part, "Y") {
 					if strings.HasSuffix(part, ";") {
-				        part = part[:len(part)-len(";")]
+						part = part[:len(part)-len(";")]
 					}
 					coord.Y, err = strconv.ParseFloat(part[1:], 64)
 					if err != nil {
@@ -88,17 +88,16 @@ func ParseGcode(fileData []string) (data GcodeData) {
 					}
 					coord.Y = -coord.Y
 				} else if strings.HasPrefix(part, "Z") {
-				    if strings.HasSuffix(part, ";") {
-				        part = part[:len(part)-len(";")]
-				    }
-				    penupcode, err = strconv.ParseFloat(part[1:],64)
+					if strings.HasSuffix(part, ";") {
+						part = part[:len(part)-len(";")]
+					}
+					penupcode, err = strconv.ParseFloat(part[1:], 64)
 					if err != nil {
 						panic(err)
 					}
-					
-					
+
 				}
-				
+
 			}
 			if penupcode == 50 {
 				coord.PenUp = true
@@ -122,6 +121,6 @@ func GenerateGcodePath(data GcodeData, scale float64, plotCoords chan<- Coordina
 	defer close(plotCoords)
 
 	for _, curTarget := range data.Lines {
-	   plotCoords <- curTarget.Dest.Scaled(scale)
+		plotCoords <- curTarget.Dest.Scaled(scale)
 	}
 }

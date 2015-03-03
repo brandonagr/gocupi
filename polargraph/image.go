@@ -81,10 +81,10 @@ func drawLine(start Coordinate, end Coordinate, minPoint Coordinate, maxPoint Co
 	}
 
 	/*
-	image.Set(end_x+1, end_y+1, color.RGBA{255, 0, 0, 128})
-	image.Set(end_x+1, end_y-1, color.RGBA{255, 0, 0, 128})
-	image.Set(end_x-1, end_y+1, color.RGBA{255, 0, 0, 128})
-	image.Set(end_x-1, end_y-1, color.RGBA{255, 0, 0, 128})
+		image.Set(end_x+1, end_y+1, color.RGBA{255, 0, 0, 128})
+		image.Set(end_x+1, end_y-1, color.RGBA{255, 0, 0, 128})
+		image.Set(end_x-1, end_y+1, color.RGBA{255, 0, 0, 128})
+		image.Set(end_x-1, end_y-1, color.RGBA{255, 0, 0, 128})
 	*/
 	// Bresenham's
 	cx := start_x

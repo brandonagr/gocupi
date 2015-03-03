@@ -26,16 +26,16 @@ type Group struct {
 }
 
 type GroupStipple struct {
-	Transform string `xml:"transform,attr"`
-	Stipples     []Stipple `xml:"circle"`
+	Transform string    `xml:"transform,attr"`
+	Stipples  []Stipple `xml:"circle"`
 }
 
 type Stipple struct {
-	Style string `xml:"style,attr"`
-	DataX  float64 `xml:"cx,attr"`
-	DataY  float64 `xml:"cy,attr"`
-	DataR  float64 `xml:"r,attr"`
-	Id  string `xml:"id,attr"`
+	Style string  `xml:"style,attr"`
+	DataX float64 `xml:"cx,attr"`
+	DataY float64 `xml:"cy,attr"`
+	DataR float64 `xml:"r,attr"`
+	Id    string  `xml:"id,attr"`
 }
 
 // All supported Path Commands
@@ -289,6 +289,7 @@ func ParseSvg(svgData io.Reader) (data []Coordinate) {
 
 	return data
 }
+
 // read a file
 func ParseSvgFileCircle(fileName string) (data []Circle) {
 	//fmt.Println("filename",fileName)
@@ -313,7 +314,7 @@ func ParseSvgCircle(svgData io.Reader) (data []Circle) {
 		}
 
 		switch se := t.(type) {
-			case xml.StartElement:
+		case xml.StartElement:
 			//fmt.Println("xml element name:",se.Name.Local)
 			//fmt.Println("se:",se)
 
@@ -322,72 +323,71 @@ func ParseSvgCircle(svgData io.Reader) (data []Circle) {
 				decoder.DecodeElement(&stippleData, &se)
 
 				data = append(data)
-				} else if se.Name.Local == "g" {
+			} else if se.Name.Local == "g" {
 
-					var groupData GroupStipple
-					decoder.DecodeElement(&groupData, &se)
-					//fmt.Println("group data:",groupData)
+				var groupData GroupStipple
+				decoder.DecodeElement(&groupData, &se)
+				//fmt.Println("group data:",groupData)
 
-					var transformX, transformY, scaleX, scaleY float64
-					if groupData.Transform != "" && strings.Contains(groupData.Transform, "scale") {
-						if _, err := fmt.Sscanf(groupData.Transform, "translate(%f,%f) scale(%f,%f)", &transformX, &transformY, &scaleX, &scaleY); err != nil {
-							fmt.Println("WARNING: Unable to parse svg group transform of ", groupData.Transform)
-							scaleX = 1
-							scaleY = 1
-						}
-						} else {
-							scaleX = 1
-							scaleY = 1
-						}
-						/*
-						data = groupData.Stipples
-						*/
-
-						if groupData.Stipples != nil {
-							for _, stipple := range groupData.Stipples {
-								//fmt.Println("id: ",stipple.Id)
-								penup:= false
-								start:= false
-								if strings.Contains(stipple.Id, "penup"){
-									fmt.Println("id: ",stipple.Id)
-									penup = true
-									}
-								if strings.Contains(stipple.Id, "start"){
-									fmt.Println("id to start: ",stipple.Id)
-									start = true
-								}
-								circle := Circle{Coordinate{X:stipple.DataX,Y:stipple.DataY,PenUp: penup},stipple.DataR,start}
-								data = append(data,circle)
-							}
-						}
-
+				var transformX, transformY, scaleX, scaleY float64
+				if groupData.Transform != "" && strings.Contains(groupData.Transform, "scale") {
+					if _, err := fmt.Sscanf(groupData.Transform, "translate(%f,%f) scale(%f,%f)", &transformX, &transformY, &scaleX, &scaleY); err != nil {
+						fmt.Println("WARNING: Unable to parse svg group transform of ", groupData.Transform)
+						scaleX = 1
+						scaleY = 1
 					}
-					}//end switch
+				} else {
+					scaleX = 1
+					scaleY = 1
 				}
+				/*
+					data = groupData.Stipples
+				*/
 
-				//search id with "start" tag in it
-				initialPositionIndex := 0
-				for index, point := range data {
-					if point.Start == true{
-						initialPositionIndex = index
+				if groupData.Stipples != nil {
+					for _, stipple := range groupData.Stipples {
+						//fmt.Println("id: ",stipple.Id)
+						penup := false
+						start := false
+						if strings.Contains(stipple.Id, "penup") {
+							fmt.Println("id: ", stipple.Id)
+							penup = true
+						}
+						if strings.Contains(stipple.Id, "start") {
+							fmt.Println("id to start: ", stipple.Id)
+							start = true
+						}
+						circle := Circle{Coordinate{X: stipple.DataX, Y: stipple.DataY, PenUp: penup}, stipple.DataR, start}
+						data = append(data, circle)
 					}
 				}
 
-				dataSorted := make([]Circle, 0)
-				for index := 0; index < len(data); index++ {
-					curTarget := data[(index+initialPositionIndex)%len(data)]
-					dataSorted = append(dataSorted,curTarget)
-				}
-				fmt.Println("initialPositionIndex: ",initialPositionIndex,"len(data): ",len(data),"len(dataSorted): ",len(dataSorted))
-				fmt.Println("initialPosition: ",dataSorted[initialPositionIndex],"nextPosition: ",dataSorted[initialPositionIndex+1])
-
-				if len(dataSorted) == 0 {
-					panic("SVG contained no Circle elements! Only Circle are supported")
-				}
-				//fmt.Println("[]Circles",data)
-				return dataSorted
 			}
+		} //end switch
+	}
 
+	//search id with "start" tag in it
+	initialPositionIndex := 0
+	for index, point := range data {
+		if point.Start == true {
+			initialPositionIndex = index
+		}
+	}
+
+	dataSorted := make([]Circle, 0)
+	for index := 0; index < len(data); index++ {
+		curTarget := data[(index+initialPositionIndex)%len(data)]
+		dataSorted = append(dataSorted, curTarget)
+	}
+	fmt.Println("initialPositionIndex: ", initialPositionIndex, "len(data): ", len(data), "len(dataSorted): ", len(dataSorted))
+	fmt.Println("initialPosition: ", dataSorted[initialPositionIndex], "nextPosition: ", dataSorted[initialPositionIndex+1])
+
+	if len(dataSorted) == 0 {
+		panic("SVG contained no Circle elements! Only Circle are supported")
+	}
+	//fmt.Println("[]Circles",data)
+	return dataSorted
+}
 
 // Send svg path points to channel
 func GenerateSvgCenterPath(data Coordinates, size float64, plotCoords chan<- Coordinate) {
