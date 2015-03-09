@@ -1,7 +1,7 @@
 Create Thick TSP
 ================
 forked the code in order to draw thicker lines to get more contrast. For detailed descriptions see file createThickTSP
-
+How to set start point and pinup see http://4um.gocupi.com/t/draw-tsp-with-different-line-thickness/61
 
 gocupi
 ======
