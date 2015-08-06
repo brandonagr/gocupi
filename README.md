@@ -47,13 +47,15 @@ Setup the folder for your gopath and set some path variables
 
 Install needed dependency
 ---------------------
-Install mercurial
-`sudo apt-get install mercurial`
+Update apt-get, install mercurial, and reboot
+    `sudo apt-get update`
+    `sudo apt-get install mercurial`
+    `sudo reboot`
 
 Download and build gocupi
 ---------------------------
 From your home directory
-`go get github.com/brandonagr/gocupi`
+    `go get github.com/brandonagr/gocupi`
 
 Run gocupi
 ----------
