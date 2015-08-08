@@ -14,8 +14,18 @@ Gocupi is different from existing systems in that it uses a Raspberry Pi to do m
 
 Check out the [project page](http://brandonagr.github.io/gocupi/) for a general description, there are also several [wiki pages](https://github.com/brandonagr/gocupi/wiki) with additional information.
 
-Quickstart Guide
+Custom Linux Distro
+===================
+
+You can now [download](https://www.dropbox.com/s/6l89m04kcqiwlgb/gocupi_boot_image.zip?dl=0) a custom linux distrobution built from Raspbian with all gocupi software pre-installed.
+Unzip the download and copy files to blank SD card (do not build the image). Put the card in the Pi and Bob's your uncle.
+
+If you choose the method above (custom linux distro) then you can skip to the bottom of this document to section "Run gocupi".
+
+Manual Installation Quickstart Guide
 ================
+
+(Start with something well supported i.e. Raspbian Wheezy.) 
 
 Install Go
 -----------
