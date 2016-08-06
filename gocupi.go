@@ -691,7 +691,7 @@ parabolic R c l
 	`setup`: `Enter the initial setup measurements of the system. Updates the config xml file.
 Enter 0 for a parameter that you don't want to update, so you can update just distance between the idlers by doing 'setup 500 0 0'. 
 
-	A fourth argument (optional) may be entered, to define a fixed number to be added to the L and R measurements when measuring to the center of the gondola is impractical due to writing instrument or other impediment. Set this argument only when you wish to change its value. Passing 0 to this argument is taken literally, and sets the value of the configuration property
+A fourth argument (optional) may be entered, to define a fixed number to be added to the L and R measurements when measuring to the center of the gondola is impractical due to writing instrument or other impediment. Set this argument only when you wish to change its value. Passing 0 to this argument is taken literally, and sets the value of the configuration property
 
 setup D L R [A]
 	D - distance between the idlers
