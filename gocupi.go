@@ -185,7 +185,7 @@ func main() {
 		radMulty := params[2]
 		cutOff := params[3]
 
-		fmt.Println("Reading stipples from voronoi_stipller")
+		fmt.Println("Reading stipples from voronoi_stippler")
 		circles := ParseSvgFileCircle(args[5])
 		//fmt.Println("parsed data:",data)
 
@@ -283,22 +283,40 @@ func main() {
 			PrintCommandHelp("setup")
 			return
 		}
+		if(len(params) == 4) {
+			if params[3] != 0 {
+				Settings.GondolaArmLength_MM = params[3]
+				fmt.Println("Setting GondolaArmLength_MM to", Settings.GondolaArmLength_MM) 
+			} else {
+				fmt.Println("Setting GondolaArmLength_MM to 0")
+				Settings.GondolaArmLength_MM = 0
+			}
+		}
+		if (Settings.GondolaArmLength_MM != 0)  && (len(params) < 4) {
+			fmt.Println("Existing GondolaArmLength_MM of", Settings.GondolaArmLength_MM)
+		}
 
 		if params[0] != 0 {
 			Settings.SpoolHorizontalDistance_MM = params[0]
+			fmt.Print("New")
 		} else {
-			fmt.Println("Using existing SpoolHorizontalDistance_MM of", Settings.SpoolHorizontalDistance_MM)
+			fmt.Print("Existing")
 		}
+		fmt.Println(" SpoolHorizontalDistance_MM of", Settings.SpoolHorizontalDistance_MM)
 		if params[1] != 0 {
-			Settings.StartingLeftDist_MM = params[1]
+			Settings.StartingLeftDist_MM = params[1] + Settings.GondolaArmLength_MM
+			fmt.Print("New")
 		} else {
-			fmt.Println("Using existing StartingLeftDist_MM of", Settings.StartingLeftDist_MM)
+			fmt.Print("Existing")
 		}
+			fmt.Println(" StartingLeftDist_MM of", Settings.StartingLeftDist_MM)
 		if params[2] != 0 {
-			Settings.StartingRightDist_MM = params[2]
+			Settings.StartingRightDist_MM = params[2] + Settings.GondolaArmLength_MM
+			fmt.Print("New")
 		} else {
-			fmt.Println("Using existing StartingRightDist_MM of", Settings.StartingRightDist_MM)
+			fmt.Print("Existing")
 		}
+			fmt.Println(" StartingRightDist_MM of", Settings.StartingRightDist_MM)
 
 		if Settings.SpoolHorizontalDistance_MM > (Settings.StartingLeftDist_MM + Settings.StartingRightDist_MM) {
 			fmt.Println("ERROR: Attempted to specify a setup where the two string distances are less than the distance between idlers")
@@ -525,11 +543,12 @@ func GetArgsAsFloats(args []string, expectedCount int, preventZero bool) ([]floa
 	if len(args) < expectedCount {
 		return nil, errors.New(fmt.Sprint("Expected at least ", expectedCount, " numeric parameters and only saw ", len(args)))
 	}
-
-	numbers := make([]float64, expectedCount)
+	
+	// usage error for this function indicates "at least", so if we get more than the minimum, we will accept and return that many floats
+	numbers := make([]float64, len(args))
 
 	var err error
-	for argIndex := 0; argIndex < expectedCount; argIndex++ {
+	for argIndex := 0; argIndex < len(args); argIndex++ {
 		if numbers[argIndex], err = strconv.ParseFloat(args[argIndex], 64); err != nil {
 			return nil, errors.New(fmt.Sprint("Unable to parse ", args[argIndex], " as a float: ", err))
 		}
@@ -670,12 +689,15 @@ parabolic R c l
 	l - number of lines per edges`,
 
 	`setup`: `Enter the initial setup measurements of the system. Updates the config xml file.
-Enter 0 for a parameter that you don't want to update, so you can update just distance between the idlers by doing 'setup 500 0 0'.
+Enter 0 for a parameter that you don't want to update, so you can update just distance between the idlers by doing 'setup 500 0 0'. 
 
-setup D L R
+A fourth argument (optional) may be entered, to define a fixed number to be added to the L and R measurements when measuring to the center of the gondola is impractical due to writing instrument or other impediment. Set this argument only when you wish to change its value. Passing 0 to this argument is taken literally, and sets the value of the configuration property
+
+setup D L R [A]
 	D - distance between the idlers
 	L - length of left string from left idler to pen tip
-	R - length of right string from right idler to pen tip`,
+	R - length of right string from right idler to pen tip
+	A - (optional) length from the end of the measured line (start of gondola arm) to pen tip`,
 
 	`spiral`: `Draw a spiral.
 

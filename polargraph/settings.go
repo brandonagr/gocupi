@@ -75,6 +75,9 @@ type SettingsData struct {
 
 	// Acceleration in mm / s^2, derived from Acceleration_Seconds and MaxSpeed_MM_S
 	Acceleration_MM_S2 float64 `xml:"-"`
+
+	// fixed length to add to entered measurements
+	GondolaArmLength_MM float64
 }
 
 // Global settings variable
