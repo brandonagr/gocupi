@@ -12,7 +12,7 @@ Gocupi is different from existing systems in that it uses a Raspberry Pi to do m
 
 **A kit with all the hardware needed is now [available at gocupi.com](http://www.gocupi.com/store/)**
 
-Check out the [project page](http://brandonagr.github.io/gocupi/) for a general description, there are also several [wiki pages](https://github.com/brandonagr/gocupi/wiki) with additional information.
+Check out the [project page](http://brandonagr.github.io/gocupi/) for a general description, there are also several [wiki pages](https://github.com/brandonagr/gocupi/wiki) with additional information as well as a [forum](http://4um.gocupi.com).
 
 Custom Linux Distro
 ===================
