@@ -1,7 +1,7 @@
 package polargraph
 
 import (
-	chart "code.google.com/p/plotinum/plot"
+	chart "github.com/p/plotinum/plot"
     chartplotter "github.com/gonum/plot/plotter"
 	vg "github.com/gonum/plot/vg"
 	"image/color"
