@@ -1,0 +1,65 @@
+Partlist
+
+Exported from gocupi_v1.1.brd at 9/12/2016 5:10:11 PM
+
+EAGLE Version 6.4.0 Copyright (c) 1988-2013 CadSoft
+
+Assembly variant: 
+
+Part     Value              Package                         Library                     Position (mm)         Orientation
+
+C1       680p               0805                            SparkFun-Passives           (46.51375 8.41375)    R270
+C2       100uF              PANASONIC_D                     adafruit                    (18.415 16.8275)      R90
+C3       680p               0805                            SparkFun-Passives           (44.45 30.95625)      R270
+C4       680p               0805                            SparkFun-Passives           (43.33875 47.3075)    R90
+C5       330uF              PANASONIC_F                     adafruit                    (22.86 26.82875)      R90
+C7       47uF               PANASONIC_C                     microbuilder                (40.48125 35.08375)   R0
+C8       0.1uF              0805                            SparkFun-Passives           (15.875 42.2275)      R270
+C9       680p               0805                            SparkFun-Passives           (45.085 25.7175)      R90
+CN1                         DCJACK_2MM_SMT                  microbuilder                (5.08 13.6525)        R0
+D1                          SOD-123                         dp_devices                  (17.62125 35.71875)   R90
+JP1                         1X03-CLEANBIG                   adafruit                    (32.22625 26.51125)   R90
+JP2                         1X01-CLEANBIG                   adafruit                    (20.16125 38.25875)   R0
+JP3                         1X01-CLEANBIG                   adafruit                    (20.16125 36.03625)   R0
+JP4                         1X03                            adafruit                    (81.43875 51.27625)   R90
+JP8      Power              1X08-CLEANBIG                   adafruit                    (10.4775 1.42875)     R180
+JP9      2X4                2X4                             headers(.1in)               (46.0375 53.34)       R180
+L1       220uH              SDR1305                         inductors                   (7.62 40.79875)       R0
+LED1                        CHIPLED_0805                    adafruit                    (32.54375 1.27)       R270
+R1       10k                0805                            SparkFun-Resistors          (35.40125 36.67125)   R180
+R2       1k                 0805                            SparkFun-Resistors          (19.05 4.92125)       R180
+R3       20k                0805                            SparkFun-Resistors          (43.815 8.41375)      R90
+R4       20k                0805                            SparkFun-Resistors          (46.83125 25.7175)    R270
+R5       20k                0805                            SparkFun-Resistors          (46.0375 30.95625)    R90
+R6       20k                0805                            SparkFun-Resistors          (44.92625 47.3075)    R270
+R7       10k                0805                            SparkFun-Resistors          (35.40125 38.25875)   R180
+R8       10k                0805                            SparkFun-Resistors          (30.1625 32.86125)    R90
+R9       10k                0805                            SparkFun-Resistors          (62.865 27.6225)      R270
+R11      10k                0805                            SparkFun-Resistors          (59.21375 31.4325)    R90
+R12      10k                SM-42/43A                       pot                         (37.62375 27.78125)   R270
+R13      10k                0805                            SparkFun-Resistors          (47.78375 30.95625)   R90
+R14      10k                0805                            SparkFun-Resistors          (49.37125 8.41375)    R90
+R15      10k                0805                            SparkFun-Resistors          (60.0075 26.3525)     R0
+R16      10k                0805                            SparkFun-Resistors          (59.3725 8.09625)     R90
+R17      10k                0805                            SparkFun-Resistors          (56.99125 26.035)     R270
+R18      10k                0805                            SparkFun-Resistors          (56.515 47.3075)      R0
+R19      10k                0805                            SparkFun-Resistors          (47.625 47.3075)      R270
+R20      5k1                0805                            SparkFun-Resistors          (41.11625 28.73375)   R270
+R21      0.75               0805                            SparkFun-Resistors          (54.61 26.035)        R270
+R22      0.75               0805                            SparkFun-Resistors          (54.2925 8.09625)     R90
+R23      0.75               0805                            SparkFun-Resistors          (54.13375 30.00375)   R90
+R24      0.75               0805                            SparkFun-Resistors          (53.34 46.51375)      R0
+R25      10k                0805                            SparkFun-Passives           (59.53125 46.19625)   R0
+R26      10k                0805                            SparkFun-Resistors          (42.545 44.60875)     R0
+R27      10k                0805                            SparkFun-Resistors          (48.41875 25.7175)    R270
+R28      10k                0805                            SparkFun-Resistors          (42.70375 22.225)     R0
+RJ45-L   RJ45_SMD           RJ45_SMD                        rj45_smd                    (76.2 30.95625)       R90
+RJ45-R   RJ45_SMD           RJ45_SMD                        rj45_smd                    (76.2 14.12875)       R90
+S1                          SWITCH-SPST-SMD-A               SwK-SparkFun                (25.7175 3.81)        R180
+SJ1      SJ1                SJ                              jumper                      (18.57375 9.36625)    R180
+U1                          TQFP32-08                       SparkFun-DigitalIC          (26.82875 40.3225)    R180
+U2       A3967SLB-L         SO24W                           allegro                     (52.22875 39.0525)    R0
+U3       A3967SLB-R         SO24W                           allegro                     (52.22875 17.145)     R0
+U4       TL2575             TO263_5                         TL2575_new                  (8.255 26.67)         R90
+X1       RASPI_BOARD_AB_E2P RASPI_BOARD_AB_EDGES_2DRILL_PAD raspberrypi_bastelstube_v13 (0 0)                 R0
+XTAL1    10MHz              RESONATOR-SMD                   SwK-SparkFun                (33.9725 43.65625)    R90
