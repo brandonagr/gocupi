@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	//. "github.com/brandonagr/gocupi/polargraph"
-	. "github.com/sergio-daniels/gocupi/polargraph"
+	. "github.com/sergio-daniels/gocupi/polargraph" 
 	"github.com/qpliu/qrencode-go/qrencode"
 	"math"
 	"sort"
